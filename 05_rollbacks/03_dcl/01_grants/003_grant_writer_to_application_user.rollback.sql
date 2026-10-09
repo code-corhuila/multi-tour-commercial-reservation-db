@@ -1,0 +1,1 @@
+REVOKE commercial_reservation_writer FROM commercial_reservation_app;

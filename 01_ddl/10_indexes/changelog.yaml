@@ -1,2 +1,16 @@
-# Empty on purpose: every folder carries its changelog from day one, so the execution order is fixed.
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-indexes-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,10_indexes"
+      comment: "outbox_event indexes: by tenant, and a partial one on the events not yet published. idempotency_key needs none: its primary key starts with tenant_id."
+      changes:
+        - sqlFile:
+            path: 001_create_outbox_event_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/001_create_outbox_event_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
