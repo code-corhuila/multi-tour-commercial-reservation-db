@@ -171,6 +171,41 @@ check "an outbox event for a service that does not exist is refused by fk_outbox
 # the T-07 tests below count outbox rows, so this section leaves none behind
 sql "delete from $SCHEMA.outbox_event" >/dev/null 2>&1 || true
 
+# T-10, AC-5: the minimal capacity entity of a departure (plan.md DD-19). Held seats are set by the
+# test itself, because holding them belongs to the reservations story, HU-COM-007.
+echo "T-10 - salida_capacity"
+cap_table="$SCHEMA.salida_capacity"
+cap_insert() { # tenant, departure, capacity, held seats
+  echo "insert into $cap_table (salida_capacity_id, tenant_id, salida_id, effective_capacity, held_seats) values (gen_random_uuid(), '$1', '$2', $3, $4)"
+}
+salida="00000000-0000-0000-0000-0000000000c1"
+other_tenant_cap="00000000-0000-0000-0000-000000000002"
+expected_cap_columns="salida_capacity_id uuid NO,tenant_id uuid NO,salida_id uuid NO,effective_capacity integer NO,held_seats integer NO"
+actual_cap_columns="$(sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by ordinal_position) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity'" 2>/dev/null || true)"
+check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: exactly the 5 columns exist with their type and nullability" "$([ "$actual_cap_columns" = "$expected_cap_columns" ]; echo $?)"
+check "a complete capacity row is accepted, with the held seats set by the fixture" "$(sql "$(cap_insert "$tenant" "$salida" 20 3)" >/dev/null 2>&1; echo $?)"
+check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: zero held seats are accepted" "$(sql "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c2 20 0)" >/dev/null 2>&1; echo $?)"
+check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: a negative held seat count is refused" "$(refused "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c3 20 -1)" 'chk_salida_capacity_held_seats')"
+check "a second row for the same tenant and departure is refused" "$(refused "$(cap_insert "$tenant" "$salida" 30 0)" 'uq_salida_capacity_tenant_id_salida_id')"
+check "the same departure under another tenant is accepted" "$(sql "$(cap_insert "$other_tenant_cap" "$salida" 20 0)" >/dev/null 2>&1; echo $?)"
+cap_defaults="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity' and column_name in ('salida_id','effective_capacity') and column_default is not null" 2>/dev/null || true)"
+cap_judged="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity' and column_name in ('salida_id','effective_capacity')" 2>/dev/null || true)"
+check "salida_id and effective_capacity have no DEFAULT" "$([ "$cap_judged" = 2 ] && [ "$cap_defaults" = 0 ]; echo $?)"
+# the departure belongs to operations-cost, so it is a logical reference only (Annex J.3.4)
+cap_constraints="$(sql "select count(*) from pg_constraint where conrelid = '$cap_table'::regclass" 2>/dev/null || true)"
+cap_foreign_keys="$(sql "select count(*) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'f'" 2>/dev/null || true)"
+check "no foreign key leaves salida_capacity" "$([ "${cap_constraints:-0}" -gt 0 ] && [ "$cap_foreign_keys" = 0 ]; echo $?)"
+# the lower bound of the capacity is only PROPOSED in 06-data, which orders not to implement it
+cap_checks="$(sql "select string_agg(conname, ',' order by conname) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'c'" 2>/dev/null || true)"
+check "effective_capacity has no lower bound: the only CHECK is the one on held_seats" "$([ "$cap_checks" = "chk_salida_capacity_held_seats" ]; echo $?)"
+app_cap_insert="$(as_role "$app" "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c4 10 0)")"
+app_cap_update="$(as_role "$app" "update $cap_table set held_seats = held_seats + 1 where salida_id = '$salida' and tenant_id = '$tenant'")"
+app_cap_delete="$(as_role "$app" "delete from $cap_table")"
+check "the application user can INSERT into salida_capacity" "$(echo "$app_cap_insert" | grep -q '^INSERT 0 1'; echo $?)"
+check "the application user can UPDATE salida_capacity, raising the held seats" "$(echo "$app_cap_update" | grep -q '^UPDATE 1'; echo $?)"
+check "the application user's DELETE on salida_capacity is refused by permission" "$(echo "$app_cap_delete" | grep -q 'permission denied for table salida_capacity'; echo $?)"
+echo "      $(echo "$app_cap_delete" | grep -i 'permission denied' | head -1)"
+
 # T-07, AC-D1.7 and AC-D1.8: the idempotency key and the outbox (plan.md D-06, D-07)
 echo "T-07 - idempotency key and outbox"
 insert_key() { echo "insert into $SCHEMA.idempotency_key (key, tenant_id, resource_type, resource_id) values ($1, '${2:-$tenant}', 'catalog_service', gen_random_uuid())"; }
@@ -200,8 +235,8 @@ check "the relay's unpublished events have a partial index" "$([ "$partial" = 1 
 tables="$(sql "select count(*) from pg_tables where schemaname = '$SCHEMA'")"
 no_tenant="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_attribute a where a.attrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id' and a.attnum > 0 and a.attnotnull and a.atttypid = 'uuid'::regtype)")"
 no_tenant_index="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0] where i.indrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id')")"
-check "everyTableCarriesAMandatoryIndexedTenantId: every table has a mandatory uuid tenant_id" "$([ "$tables" -ge 3 ] && [ "$no_tenant" = 0 ]; echo $?)"
-check "everyTableCarriesAMandatoryIndexedTenantId: every table has an index that starts with tenant_id" "$([ "$tables" -ge 3 ] && [ "$no_tenant_index" = 0 ]; echo $?)"
+check "everyTableCarriesAMandatoryIndexedTenantId: every table has a mandatory uuid tenant_id" "$([ "$tables" -ge 4 ] && [ "$no_tenant" = 0 ]; echo $?)"
+check "everyTableCarriesAMandatoryIndexedTenantId: every table has an index that starts with tenant_id" "$([ "$tables" -ge 4 ] && [ "$no_tenant_index" = 0 ]; echo $?)"
 unnamed="$(sql "select count(*) from pg_constraint c join pg_namespace n on n.oid = c.connamespace where n.nspname = '$SCHEMA' and c.contype in ('p','u','c','f') and c.conname !~ '^(pk|uq|chk|fk)_'")"
 check "every constraint has an explicit name" "$([ "$tables" -ge 2 ] && [ "$unnamed" = 0 ]; echo $?)"
 unnamed_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and indexname !~ '^(pk|uq|idx)_'")"
