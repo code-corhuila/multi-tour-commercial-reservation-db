@@ -29,3 +29,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/002_create_outbox_event.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-003
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "catalog_service: the services a tenant offers, with closed value sets as CHECKs and no defaults (plan.md DD-8, DD-16)."
+      changes:
+        - sqlFile:
+            path: 003_create_catalog_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/003_create_catalog_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
