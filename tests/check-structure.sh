@@ -54,7 +54,7 @@ if ls 01_ddl/00_extensions/*.sql >/dev/null 2>&1; then bad "01_ddl/00_extensions
 
 # ---- 3b. the migrations define no extension, no login and no secret (AC-D1.12, RNF-D8, Annex J.4, J.7).
 # Comments (SQL, YAML and the changeset comment field) are stripped first: they may explain why something is absent without being it.
-# The deploy folder names the PG_PASSWORD variable the runner reads, so only the migrations are searched for LOGIN and passwords.
+# The deploy folder names the PG_ADMIN_PASSWORD variable the runner reads, so only the migrations are searched for LOGIN and passwords.
 sql_text() { find "$@" -type f \( -name '*.sql' -o -name '*.yaml' -o -name '*.yml' -o -name Dockerfile \) -print0 | xargs -0 -r sed 's/--.*$//; s/^[[:space:]]*#.*$//; /^[[:space:]]*comment:/d'; }
 sql_text 01_ddl 02_dml 03_dcl 04_tcl 05_rollbacks deploy | grep -qiE 'create[[:space:]]+extension' && bad "an extension is created in the migrations or in deploy/: it belongs to the instance (Annex J.4)"
 sql_text 01_ddl 02_dml 03_dcl 04_tcl 05_rollbacks | grep -qiE '(^|[^a-z_])login([^a-z_]|$)|password' && bad "a LOGIN role or a password appears in the migrations: users are created by the infrastructure from secrets (Annex A rule 10)"
@@ -76,7 +76,7 @@ else
   for name in databasechangelog_commercial_reservation databasechangeloglock_commercial_reservation; do
     echo "$body" | grep -q "$name" || bad "$compose does not pass the control table $name (Annex J.6)"
   done
-  for var in PG_USER PG_PASSWORD PG_DATABASE; do
+  for var in PG_ADMIN_USER PG_ADMIN_PASSWORD PG_DATABASE; do
     echo "$body" | grep -q "\${$var:?" || bad "$compose does not require $var without a default"
   done
 fi
