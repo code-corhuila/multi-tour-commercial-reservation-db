@@ -52,6 +52,35 @@ fi
 [ -d 05_rollbacks ] || bad "05_rollbacks/ is missing"
 if ls 01_ddl/00_extensions/*.sql >/dev/null 2>&1; then bad "01_ddl/00_extensions must stay empty: extensions belong to the instance (Annex J.4)"; fi
 
+# ---- 3b. the migrations define no extension, no login and no secret (AC-D1.12, RNF-D8, Annex J.4, J.7).
+# Comments (SQL, YAML and the changeset comment field) are stripped first: they may explain why something is absent without being it.
+# The deploy folder names the PG_PASSWORD variable the runner reads, so only the migrations are searched for LOGIN and passwords.
+sql_text() { find "$@" -type f \( -name '*.sql' -o -name '*.yaml' -o -name '*.yml' -o -name Dockerfile \) -print0 | xargs -0 -r sed 's/--.*$//; s/^[[:space:]]*#.*$//; /^[[:space:]]*comment:/d'; }
+sql_text 01_ddl 02_dml 03_dcl 04_tcl 05_rollbacks deploy | grep -qiE 'create[[:space:]]+extension' && bad "an extension is created in the migrations or in deploy/: it belongs to the instance (Annex J.4)"
+sql_text 01_ddl 02_dml 03_dcl 04_tcl 05_rollbacks | grep -qiE '(^|[^a-z_])login([^a-z_]|$)|password' && bad "a LOGIN role or a password appears in the migrations: users are created by the infrastructure from secrets (Annex A rule 10)"
+sql_text 01_ddl 02_dml 03_dcl 04_tcl 05_rollbacks | grep -qiE 'create[[:space:]]+(role|user)[[:space:]]+commercial_reservation_app' && bad "commercial_reservation_app is created here: the infrastructure creates it (Annex J.7)"
+
+# ---- 3c. deploy/compose.yml holds only the migration runner (AC-D1.12, RNF-D1, Annex J.7)
+compose=deploy/compose.yml
+if [ ! -f "$compose" ]; then
+  bad "$compose is missing (T-05)"
+else
+  body="$(sed 's/^[[:space:]]*#.*$//' "$compose")"
+  echo "$body" | grep -qE '^[[:space:]]*image:[[:space:]]*["'"'"']?postgres' && bad "$compose defines a PostgreSQL image: the instance belongs to multi-tour-infra-postgres"
+  echo "$body" | grep -qE '^[[:space:]]*volumes:' && bad "$compose declares volumes: the data lives in the instance"
+  services="$(echo "$body" | awk '/^services:/{s=1;next} /^[^ ]/{s=0} s && /^  [A-Za-z0-9_-]+:/{n++} END{print n+0}')"
+  [ "$services" = 1 ] || bad "$compose must define exactly one service, the runner (found $services)"
+  echo "$body" | grep -qE 'profiles:.*tooling|^[[:space:]]*-[[:space:]]*tooling' || bad "$compose does not put the runner in the tooling profile"
+  echo "$body" | grep -q 'condition: service_healthy' || bad "$compose does not wait for the postgres service to be healthy"
+  echo "$body" | grep -q 'jdbc:postgresql://postgres:5432/${PG_DATABASE' || bad "$compose does not point at the single instance by jdbc:postgresql://postgres:5432/\${PG_DATABASE}"
+  for name in databasechangelog_commercial_reservation databasechangeloglock_commercial_reservation; do
+    echo "$body" | grep -q "$name" || bad "$compose does not pass the control table $name (Annex J.6)"
+  done
+  for var in PG_USER PG_PASSWORD PG_DATABASE; do
+    echo "$body" | grep -q "\${$var:?" || bad "$compose does not require $var without a default"
+  done
+fi
+
 # ---- 4. common files (norm 5.1, Annex I); CODEOWNERS is never modified (norm 13)
 for file in README.md .gitignore .env.example .github/CODEOWNERS .github/pull_request_template.md; do
   [ -f "$file" ] || bad "$file is missing"
@@ -66,6 +95,7 @@ if [ -f .env.example ]; then
   grep -qE '^[A-Z][A-Z0-9_]*=' .env.example || bad ".env.example lists no variable"
   while IFS= read -r row; do
     case "$row" in ''|\#*) continue ;; esac
+    row="${row%$'\r'}" # a Windows checkout converts line endings; the value is what follows the '='
     key="${row%%=*}"; value="${row#*=}"
     case "$key" in
       *PASSWORD*|*SECRET*|*TOKEN*|*KEY*) [ -z "$value" ] || bad ".env.example gives a value to the secret $key" ;;
