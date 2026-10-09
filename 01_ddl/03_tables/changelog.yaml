@@ -44,3 +44,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/003_create_catalog_service.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-004
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "salida_capacity: the capacity and held seats of a departure, one row per tenant and departure (plan.md DD-19; name and columns proposed in 06-data)."
+      changes:
+        - sqlFile:
+            path: 004_create_salida_capacity.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/004_create_salida_capacity.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
