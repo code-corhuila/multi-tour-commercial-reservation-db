@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-schemas-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,schemas"
+      comment: "commercial_reservation: the schema of the Commercial and Reservations macrodomain. Nothing of the domain lives in public."
+      changes:
+        - sqlFile:
+            path: 001_create_schema_commercial_reservation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/01_schemas/001_create_schema_commercial_reservation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
