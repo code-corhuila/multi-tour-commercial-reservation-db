@@ -23,7 +23,7 @@ for. From that repository, with its environment file:
 docker compose --profile tooling run --rm commercial-reservation-db-migrate
 ```
 
-The runner reads `PG_DATABASE`, `PG_USER` and `PG_PASSWORD` (listed in `.env.example`, all required,
+The runner reads `PG_DATABASE`, `PG_ADMIN_USER` and `PG_ADMIN_PASSWORD` (listed in `.env.example`, all required,
 none with a default). The user needs permission to create the schema and the roles. The runner also
 needs the application user `commercial_reservation_app` and the `pgcrypto` extension to exist: the
 infrastructure creates both (Annex J.7). `db-ci.yml` creates them in its throwaway database, which
