@@ -32,7 +32,8 @@ check() { # description, condition result (0 = holds)
 }
 sql() { docker exec -e PGPASSWORD "$container" psql -U postgres -d postgres -tAc "$1"; }
 liquibase() {
-  MSYS_NO_PATHCONV=1 docker run --rm --network "$network" -e LIQUIBASE_COMMAND_PASSWORD -v "$host_dir:/liquibase/work" -w /liquibase/work "$runner_image" \
+  # no volume: the migrations are inside the image, exactly as the compose file runs it
+  docker run --rm --network "$network" -e LIQUIBASE_COMMAND_PASSWORD "$runner_image" \
     --url="jdbc:postgresql://$container:5432/postgres" --username=postgres \
     --changelog-file=changelog/changelog-master.yaml \
     --database-changelog-table-name="$CONTROL" \
@@ -40,7 +41,7 @@ liquibase() {
 }
 
 echo "building the runner image (deploy/Dockerfile)"
-docker build -q -t "$runner_image" -f deploy/Dockerfile deploy >/dev/null
+docker build -q -t "$runner_image" -f deploy/Dockerfile . >/dev/null
 docker network create "$network" >/dev/null
 docker run -d --name "$container" --network "$network" -e POSTGRES_PASSWORD "$POSTGRES_IMAGE" >/dev/null
 
@@ -53,6 +54,16 @@ sql "select 1" >/dev/null || { echo "PostgreSQL did not start"; exit 1; }
 
 # plan.md D-10: the extension belongs to the instance, so the throwaway database needs it created here
 sql "create extension if not exists pgcrypto" >/dev/null
+# plan.md D-10, Annex J.7: the application user belongs to the infrastructure, which creates it from
+# secrets. This is the only other thing CI does in its place. NOLOGIN is enough: the tests become it
+# with SET ROLE, so no password exists anywhere.
+sql "create role commercial_reservation_app nologin" >/dev/null
+
+# The literal answer of the engine to a statement run as a role, errors included, so that a refusal
+# is recorded as the engine said it and not as a summary of it.
+as_role() { # role, statement
+  docker exec -e PGPASSWORD "$container" psql -U postgres -d postgres -c "set role $1" -c "$2" 2>&1 || true
+}
 
 echo "step 1 - update builds everything"
 liquibase update >/dev/null
@@ -66,6 +77,91 @@ default_table="$(sql "select count(*) from information_schema.tables where table
 check "the control table $CONTROL exists" "$([ "$own" = 1 ]; echo $?)"
 check "the default control table databasechangelog does not exist" "$([ "$default_table" = 0 ]; echo $?)"
 
+# T-06, AC-D1.6: roles without login, DELETE withheld by the engine (plan.md D-04, D-08)
+echo "T-06 - roles, grants and DELETE withheld"
+reader="commercial_reservation_reader"; writer="commercial_reservation_writer"; app="commercial_reservation_app"
+roles="$(sql "select count(*) from pg_roles where rolname in ('$reader','$writer')")"
+check "the reader and the writer roles exist" "$([ "$roles" = 2 ]; echo $?)"
+loginable="$(sql "select count(*) from pg_authid where rolname in ('$reader','$writer') and (rolcanlogin or rolpassword is not null)")"
+check "neither role can log in nor holds a password (Annex A rule 10)" "$([ "$roles" = 2 ] && [ "$loginable" = 0 ]; echo $?)"
+check "the application user inherits the writer" "$([ "$(sql "select pg_has_role('$app','$writer','member')")" = t ]; echo $?)"
+# A table born after the grants is the case default privileges exist for: the catalog table of T-08.
+# It is created and judged inside one transaction that is rolled back, so nothing stays behind.
+probe="$(printf '%s\n' "begin;" \
+  "create table commercial_reservation.zz_probe (id int);" \
+  "set local role $app;" \
+  "insert into commercial_reservation.zz_probe values (1);" \
+  "update commercial_reservation.zz_probe set id = 2;" \
+  "delete from commercial_reservation.zz_probe;" \
+  "rollback;" | docker exec -i -e PGPASSWORD "$container" psql -U postgres -d postgres 2>&1 || true)"
+check "a table created later accepts INSERT as the application user" "$(echo "$probe" | grep -q '^INSERT 0 1'; echo $?)"
+check "a table created later accepts UPDATE as the application user" "$(echo "$probe" | grep -q '^UPDATE 1'; echo $?)"
+check "a table created later refuses DELETE by permission" "$(echo "$probe" | grep -q 'permission denied for table zz_probe'; echo $?)"
+echo "      $(echo "$probe" | grep 'permission denied' | head -1)"
+over_granted="$(sql "select count(*) from information_schema.tables t where t.table_schema = '$SCHEMA' and t.table_name not in ('idempotency_key', 'outbox_event') and (has_table_privilege('$writer', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE'))")"
+check "no table but the two technical ones lets the writer or the application user DELETE" "$([ "$roles" = 2 ] && [ "$over_granted" = 0 ]; echo $?)"
+
+# T-07, AC-D1.7 and AC-D1.8: the idempotency key and the outbox (plan.md D-06, D-07)
+echo "T-07 - idempotency key and outbox"
+tenant="00000000-0000-0000-0000-000000000001"; actor="00000000-0000-0000-0000-0000000000a1"
+refused() { # statement, text the engine must answer with: the refusal has to come from the named rule
+  local answer
+  # captured first: grep -q closing the pipe early would make psql fail under pipefail
+  answer="$(docker exec -e PGPASSWORD "$container" psql -U postgres -d postgres -c "$1" 2>&1 || true)"
+  echo "$answer" | grep -q "$2"; echo $?
+}
+insert_key() { echo "insert into $SCHEMA.idempotency_key (key, tenant_id, resource_type, resource_id) values ($1, '${2:-$tenant}', 'catalog_service', gen_random_uuid())"; }
+check "a 7 character key is refused by the engine" "$(refused "$(insert_key "repeat('k', 7)")" 'chk_idempotency_key_key_length')"
+check "a 129 character key is refused by the engine" "$(refused "$(insert_key "repeat('k', 129)")" 'chk_idempotency_key_key_length')"
+check "an 8 and a 128 character key are accepted" "$(sql "$(insert_key "repeat('a', 8)"); $(insert_key "repeat('b', 128)")" >/dev/null 2>&1; echo $?)"
+check "the same key inserted again is refused as a duplicate" "$(refused "$(insert_key "repeat('a', 8)")" 'pk_idempotency_key')"
+sql "$(insert_key "repeat('a', 8)") on conflict do nothing" >/dev/null 2>&1 || true
+check "the same key in the same tenant leaves a single row" "$([ "$(sql "select count(*) from $SCHEMA.idempotency_key where key = repeat('a', 8)")" = 1 ]; echo $?)"
+# the key is scoped by tenant (modeling-conventions.md): one tenant must never receive the resource of another
+other_tenant="00000000-0000-0000-0000-000000000002"
+sql "$(insert_key "repeat('a', 8)" "$other_tenant")" >/dev/null 2>&1 || true
+check "the same key in two tenants leaves two rows" "$([ "$(sql "select count(*) from $SCHEMA.idempotency_key where key = repeat('a', 8)")" = 2 ]; echo $?)"
+check "the key is the primary key of tenant and key together" "$([ "$(sql "select string_agg(a.attname, ',' order by k.ord) from pg_constraint c cross join unnest(c.conkey) with ordinality k(attnum, ord) join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum where c.conname = 'pk_idempotency_key'")" = "tenant_id,key" ]; echo $?)"
+
+columns="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'outbox_event' and column_name in ('outbox_event_id','tenant_id','event_type','service_id','previous_catalog_status','new_catalog_status','actor_id','occurred_at','published_at')")"
+check "the outbox carries the fields of the two catalog events, its type and its published mark" "$([ "$columns" = 9 ]; echo $?)"
+outbox_insert() { echo "insert into $SCHEMA.outbox_event (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', '$1', gen_random_uuid(), '$2', '$3', '$actor', now())"; }
+check "an inactivation event is accepted and starts unpublished" "$(sql "$(outbox_insert CatalogServiceInactivated ACTIVE INACTIVE)" >/dev/null 2>&1 && [ "$(sql "select count(*) from $SCHEMA.outbox_event where published_at is null")" = 1 ]; echo $?)"
+check "an unknown event type is refused" "$(refused "$(outbox_insert CatalogServiceRenamed ACTIVE INACTIVE)" 'chk_outbox_event_event_type')"
+check "an event that changes nothing is refused" "$(refused "$(outbox_insert CatalogServiceInactivated ACTIVE ACTIVE)" 'chk_outbox_event_condition_changed')"
+check "an inactivation that ends active is refused" "$(refused "$(outbox_insert CatalogServiceInactivated INACTIVE ACTIVE)" 'chk_outbox_event_type_matches_new_condition')"
+partial="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and indexname = 'idx_outbox_event_unpublished' and indexdef like '%WHERE (published_at IS NULL)%'")"
+check "the relay's unpublished events have a partial index" "$([ "$partial" = 1 ]; echo $?)"
+
+# AC-D1.5, RNF-D4, RNF-D5: rules every table of the schema must keep, judged over the catalog so that T-08 inherits them
+tables="$(sql "select count(*) from pg_tables where schemaname = '$SCHEMA'")"
+no_tenant="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_attribute a where a.attrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id' and a.attnum > 0 and a.attnotnull and a.atttypid = 'uuid'::regtype)")"
+no_tenant_index="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0] where i.indrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id')")"
+check "every table has a mandatory uuid tenant_id" "$([ "$tables" -ge 2 ] && [ "$no_tenant" = 0 ]; echo $?)"
+check "every table has an index that starts with tenant_id" "$([ "$tables" -ge 2 ] && [ "$no_tenant_index" = 0 ]; echo $?)"
+unnamed="$(sql "select count(*) from pg_constraint c join pg_namespace n on n.oid = c.connamespace where n.nspname = '$SCHEMA' and c.contype in ('p','u','c','f') and c.conname !~ '^(pk|uq|chk|fk)_'")"
+check "every constraint has an explicit name" "$([ "$tables" -ge 2 ] && [ "$unnamed" = 0 ]; echo $?)"
+unnamed_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and indexname !~ '^(pk|uq|idx)_'")"
+check "every index has an explicit name" "$([ "$tables" -ge 2 ] && [ "$unnamed_index" = 0 ]; echo $?)"
+enums="$(sql "select count(*) from pg_type t join pg_namespace n on n.oid = t.typnamespace where n.nspname = '$SCHEMA' and t.typtype = 'e'")"
+foreign_keys_out="$(sql "select count(*) from pg_constraint c join pg_class r on r.oid = c.confrelid join pg_namespace n on n.oid = r.relnamespace where c.contype = 'f' and n.nspname <> '$SCHEMA'")"
+check "no closed value set is an ENUM and no foreign key leaves the schema" "$([ "$tables" -ge 2 ] && [ "$enums" = 0 ] && [ "$foreign_keys_out" = 0 ]; echo $?)"
+
+# AC-D1.6 and ADR-004 D10 point 6: as the application user, on the two technical tables it may purge, while any other table stays without DELETE (the probe table of T-06)
+app_insert="$(as_role "$app" "$(insert_key "repeat('c', 9)")")"
+app_update="$(as_role "$app" "update $SCHEMA.idempotency_key set resource_type = 'catalog_service' where key = repeat('c', 9)")"
+app_delete="$(as_role "$app" "delete from $SCHEMA.idempotency_key where key = repeat('c', 9)")"
+check "the application user can INSERT into the idempotency table" "$(echo "$app_insert" | grep -q '^INSERT 0 1'; echo $?)"
+check "the application user can UPDATE the idempotency table" "$(echo "$app_update" | grep -q '^UPDATE 1'; echo $?)"
+check "the application user can DELETE from the idempotency table (daily purge, ADR-004 D10)" "$(echo "$app_delete" | grep -q '^DELETE [1-9]'; echo $?)"
+app_outbox_insert="$(as_role "$app" "$(outbox_insert CatalogServiceReactivated INACTIVE ACTIVE)")"
+app_outbox_delete="$(as_role "$app" "delete from $SCHEMA.outbox_event")"
+check "the application user can INSERT into the outbox" "$(echo "$app_outbox_insert" | grep -q '^INSERT 0 1'; echo $?)"
+check "the application user can DELETE from the outbox (daily purge, ADR-004 D10)" "$(echo "$app_outbox_delete" | grep -q '^DELETE [1-9]'; echo $?)"
+deletable="$(sql "select string_agg(t.table_name, ',' order by t.table_name) from information_schema.tables t where t.table_schema = '$SCHEMA' and has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE')")"
+check "DELETE is held on those two technical tables and on no other" "$([ "$deletable" = "idempotency_key,outbox_event" ]; echo $?)"
+sql "delete from $SCHEMA.outbox_event; delete from $SCHEMA.idempotency_key" >/dev/null 2>&1 || true
+
 echo "step 2 - update again applies nothing"
 second="$(liquibase update 2>&1)"
 check "no changeset ran the second time" "$(echo "$second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets' ; echo $?)"
@@ -75,6 +171,11 @@ liquibase rollback-count 999 >/dev/null
 check "the schema $SCHEMA is gone" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 0 ]; echo $?)"
 left="$(sql "select count(*) from information_schema.tables where table_schema not in ('pg_catalog','information_schema') and table_name not like 'databasechangelog%'")"
 check "no table is left besides the control tables" "$([ "$left" = 0 ]; echo $?)"
+# Roles belong to the cluster, not to the schema: dropping the schema leaves them behind, and step 4
+# would then fail with "role already exists".
+leftover="$(sql "select count(*) from pg_roles where rolname in ('$reader','$writer')")"
+check "the reader and the writer roles are gone" "$([ "$leftover" = 0 ]; echo $?)"
+check "the application user, created by CI, is left alone" "$([ "$(sql "select count(*) from pg_roles where rolname = '$app'")" = 1 ]; echo $?)"
 
 echo "step 4 - update rebuilds"
 liquibase update >/dev/null
@@ -83,6 +184,7 @@ check "the schema $SCHEMA exists again" "$([ "$(sql "select count(*) from pg_nam
 # T-04, the third probe: a second domain migrating the same instance with its own control table
 # neither fails nor touches this one (Annex J.6).
 echo "probe - another domain migrates the same instance"
+applied_before="$(sql "select count(*) from $CONTROL")"
 probe_dir="$(mktemp -d)"
 printf 'databaseChangeLog: []\n' > "$probe_dir/probe.yaml"
 # the runner container's user is not the owner of this temporary folder, so it must be readable by others
@@ -97,6 +199,30 @@ MSYS_NO_PATHCONV=1 docker run --rm --network "$network" -e LIQUIBASE_COMMAND_PAS
 rm -rf "$probe_dir"
 check "a second domain with its own control table migrates without collision" "$probe_status"
 mine="$(sql "select count(*) from $CONTROL")"
-check "this domain's control table is untouched by it" "$([ "$mine" = 1 ]; echo $?)"
+check "this domain's control table is untouched by it" "$([ "$mine" = "$applied_before" ] && [ "$mine" -gt 0 ]; echo $?)"
+
+# T-05, AC-D1.12: the compose file holds only the runner, and the runner needs no volume because the
+# migrations travel inside its image. The static half (no database image, no volumes, no extension)
+# is tests/check-structure.sh; this half asks Docker what the file means.
+echo "T-05 - deploy/compose.yml holds only the runner"
+compose_file="deploy/compose.yml"
+compose_env=(env PG_DATABASE=platform PG_USER=migrator "PG_PASSWORD=$throwaway")
+check "the runner image carries the migrations" "$(MSYS_NO_PATHCONV=1 docker run --rm --entrypoint test "$runner_image" -f /liquibase/work/changelog/changelog-master.yaml; echo $?)"
+check "compose validates the file when the three variables are given" "$("${compose_env[@]}" docker compose -f "$compose_file" config -q >/dev/null 2>&1; echo $?)"
+missing="$(env PG_DATABASE=platform PG_USER=migrator docker compose -f "$compose_file" config -q 2>&1 || true)"
+check "compose refuses the file when PG_PASSWORD is missing" "$(echo "$missing" | grep -q 'PG_PASSWORD'; echo $?)"
+# The infrastructure's root file includes this one and defines the postgres service it waits for.
+# A stand-in for that root file shows what the runner becomes once composed.
+root_dir="$(mktemp -d)"
+printf 'include:\n  - %s\nservices:\n  postgres:\n    image: %s\n' "$host_dir/$compose_file" "$POSTGRES_IMAGE" > "$root_dir/root.yml"
+composed="$("${compose_env[@]}" docker compose --profile tooling -f "$root_dir/root.yml" config 2>&1 || true)"
+services="$("${compose_env[@]}" docker compose --profile tooling -f "$root_dir/root.yml" config --services 2>&1 | sort | tr '\n' ' ' || true)"
+rm -rf "$root_dir"
+check "composed with the instance, the only service besides postgres is the runner" "$([ "$services" = "commercial-reservation-db-migrate postgres " ]; echo $?)"
+check "the runner waits for postgres to be healthy" "$(echo "$composed" | grep -q 'condition: service_healthy'; echo $?)"
+check "the runner points at the single instance" "$(echo "$composed" | grep -q 'jdbc:postgresql://postgres:5432/platform'; echo $?)"
+check "the runner passes the control table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-table-name=$CONTROL"; echo $?)"
+check "the runner passes the lock table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-lock-table-name=$LOCK"; echo $?)"
+check "the runner sits on the external platform network" "$(echo "$composed" | grep -q 'external: true'; echo $?)"
 
 exit "$fail"
