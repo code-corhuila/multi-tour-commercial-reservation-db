@@ -14,9 +14,20 @@ It is **not** the database instance, its volume, its extensions or its users: th
 
 ## How to start
 
-The migration runner is added by task T-05 (`deploy/compose.yml`). Until then the migrations are
-built and checked by `db-ci.yml`, which needs only Docker. Copy `.env.example` to `.env` and fill
-it in; `.env` is never versioned.
+`deploy/compose.yml` holds only the migration runner, `commercial-reservation-db-migrate`. The
+PostgreSQL instance is not here: it is defined by `multi-tour-infra-postgres`, whose root compose
+file includes this one (clone both as siblings) and provides the `postgres` service the runner waits
+for. From that repository, with its environment file:
+
+```bash
+docker compose --profile tooling run --rm commercial-reservation-db-migrate
+```
+
+The runner reads `PG_DATABASE`, `PG_USER` and `PG_PASSWORD` (listed in `.env.example`, all required,
+none with a default). The user needs permission to create the schema and the roles. The runner also
+needs the application user `commercial_reservation_app` and the `pgcrypto` extension to exist: the
+infrastructure creates both (Annex J.7). `db-ci.yml` creates them in its throwaway database, which
+needs only Docker. `.env` is never versioned.
 
 ## Where its data is
 
@@ -30,14 +41,18 @@ model is in `06-data/models.md` of `multi-tour-docs`.
 bash tests/check-structure.sh      # the tree, the master changelog and the common files
 ```
 
+```bash
+bash tests/db-ci.sh                # the four steps plus the roles, the tables and compose.yml; needs Docker
+```
+
 `db-ci.yml` builds everything from an empty PostgreSQL, applies it a second time (zero changesets),
 rolls it all back to an empty database and builds it again (Annex A).
 
 ## What is missing
 
-Everything beyond the tree: `db-ci.yml` (T-02), the schema (T-03), the control table (T-04), the
-runner (T-05), roles and grants (T-06), idempotency and outbox tables (T-07), the catalog table
-(T-08), the reconstruction record (T-09) and the capacity entity (T-10).
+The catalog table (T-08), the reconstruction record (T-09) and the capacity entity (T-10). The
+runner has been run only against the throwaway database of `db-ci.yml`, not yet against the
+instance composed by `multi-tour-infra-postgres`.
 
 ## Branching
 
