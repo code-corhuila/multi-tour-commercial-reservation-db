@@ -1,2 +1,16 @@
-# Empty on purpose: every folder carries its changelog from day one, so the execution order is fixed.
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-alter-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,04_alter"
+      comment: "fk_outbox_event_service: an event must name an existing service. It lives here because the catalog table is created after the outbox."
+      changes:
+        - sqlFile:
+            path: 001_add_outbox_event_service_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/001_add_outbox_event_service_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
