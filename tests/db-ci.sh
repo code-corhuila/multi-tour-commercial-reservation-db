@@ -304,11 +304,11 @@ check "this domain's control table is untouched by it" "$([ "$mine" = "$applied_
 # is tests/check-structure.sh; this half asks Docker what the file means.
 echo "T-05 - deploy/compose.yml holds only the runner"
 compose_file="deploy/compose.yml"
-compose_env=(env PG_DATABASE=platform PG_USER=migrator "PG_PASSWORD=$throwaway")
+compose_env=(env PG_DATABASE=platform PG_ADMIN_USER=migrator "PG_ADMIN_PASSWORD=$throwaway")
 check "the runner image carries the migrations" "$(MSYS_NO_PATHCONV=1 docker run --rm --entrypoint test "$runner_image" -f /liquibase/work/changelog/changelog-master.yaml; echo $?)"
 check "compose validates the file when the three variables are given" "$("${compose_env[@]}" docker compose -f "$compose_file" config -q >/dev/null 2>&1; echo $?)"
-missing="$(env PG_DATABASE=platform PG_USER=migrator docker compose -f "$compose_file" config -q 2>&1 || true)"
-check "compose refuses the file when PG_PASSWORD is missing" "$(echo "$missing" | grep -q 'PG_PASSWORD'; echo $?)"
+missing="$(env PG_DATABASE=platform PG_ADMIN_USER=migrator docker compose -f "$compose_file" config -q 2>&1 || true)"
+check "compose refuses the file when PG_ADMIN_PASSWORD is missing" "$(echo "$missing" | grep -q 'PG_ADMIN_PASSWORD'; echo $?)"
 # The infrastructure's root file includes this one and defines the postgres service it waits for.
 # A stand-in for that root file shows what the runner becomes once composed.
 root_dir="$(mktemp -d)"

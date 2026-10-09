@@ -18,8 +18,8 @@ services:
     # The credentials stay in the environment, out of the command line and out of process listings.
     environment:
       LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/${PG_DATABASE:?PG_DATABASE is required, set it in the infrastructure environment file}
-      LIQUIBASE_COMMAND_USERNAME: ${PG_USER:?PG_USER is required, set it in the infrastructure environment file}
-      LIQUIBASE_COMMAND_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD is required, set it in the infrastructure environment file}
+      LIQUIBASE_COMMAND_USERNAME: ${PG_ADMIN_USER:?PG_ADMIN_USER is required, set it in the infrastructure environment file}
+      LIQUIBASE_COMMAND_PASSWORD: ${PG_ADMIN_PASSWORD:?PG_ADMIN_PASSWORD is required, set it in the infrastructure environment file}
     # Own control tables, so that another domain migrating the same instance does not collide (Annex J.6)
     command:
       - --changelog-file=changelog/changelog-master.yaml
