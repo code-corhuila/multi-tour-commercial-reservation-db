@@ -101,8 +101,8 @@ echo "      $(echo "$probe" | grep 'permission denied' | head -1)"
 over_granted="$(sql "select count(*) from information_schema.tables t where t.table_schema = '$SCHEMA' and t.table_name not in ('idempotency_key', 'outbox_event') and (has_table_privilege('$writer', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE'))")"
 check "no table but the two technical ones lets the writer or the application user DELETE" "$([ "$roles" = 2 ] && [ "$over_granted" = 0 ]; echo $?)"
 
-# T-07, AC-D1.7 and AC-D1.8: the idempotency key and the outbox (plan.md D-06, D-07)
-echo "T-07 - idempotency key and outbox"
+# T-08, AC-D1.2 to AC-D1.6 and AC-D1.8: the catalog table (plan.md DD-8, DD-16)
+echo "T-08 - catalog_service"
 tenant="00000000-0000-0000-0000-000000000001"; actor="00000000-0000-0000-0000-0000000000a1"
 refused() { # statement, text the engine must answer with: the refusal has to come from the named rule
   local answer
@@ -110,6 +110,69 @@ refused() { # statement, text the engine must answer with: the refusal has to co
   answer="$(docker exec -e PGPASSWORD "$container" psql -U postgres -d postgres -c "$1" 2>&1 || true)"
   echo "$answer" | grep -q "$2"; echo $?
 }
+# Every value is spelled out: the table has no DEFAULT on purpose (plan.md DD-8, DD-16), so a row that
+# leaves one out is the engine's to refuse. Arguments: type, name expression, status, rate, cost,
+# capacity, transport required, high risk, and an optional id expression.
+catalog_insert() {
+  echo "insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values (${9:-gen_random_uuid()}, '$tenant', '$1', $2, '$3', $4, $5, $6, $7, $8, now(), now())"
+}
+catalog_row() { catalog_insert TOUR "'Coffee farm route'" ACTIVE 150000 90000 12 false false "${1:-}"; }
+expected_columns="service_id uuid NO,tenant_id uuid NO,service_type text NO,commercial_name text NO,catalog_status text NO,base_rate_cents bigint NO,base_operational_cost_cents bigint NO,configured_capacity integer YES,transport_required boolean NO,high_risk boolean NO,created_at timestamp with time zone NO,updated_at timestamp with time zone NO"
+actual_columns="$(sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by ordinal_position) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'catalog_service'" 2>/dev/null || true)"
+check "catalogTableHoldsTheStoryAttributes: the 12 columns exist with their type and nullability" "$([ "$actual_columns" = "$expected_columns" ]; echo $?)"
+high_risk="$(sql "select data_type || ' ' || is_nullable from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'catalog_service' and column_name = 'high_risk'" 2>/dev/null || true)"
+check "catalogTableHoldsTheHighRiskMark: high_risk is boolean NOT NULL" "$([ "$high_risk" = "boolean NO" ]; echo $?)"
+# a row count of 0 would also be the answer of a table that does not exist, so the column count is asserted too
+defaults_judged="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'catalog_service' and column_name in ('service_id','catalog_status','high_risk')" 2>/dev/null || true)"
+with_default="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'catalog_service' and column_name in ('service_id','catalog_status','high_risk') and column_default is not null" 2>/dev/null || true)"
+check "service_id, catalog_status and high_risk have no DEFAULT (the service decides, plan.md DD-8, DD-16)" "$([ "$defaults_judged" = 3 ] && [ "$with_default" = 0 ]; echo $?)"
+check "a complete TOUR row is accepted" "$(sql "$(catalog_row)" >/dev/null 2>&1; echo $?)"
+check "a complete TRANSPORTATION row without capacity is accepted" "$(sql "$(catalog_insert TRANSPORTATION "'Airport transfer'" ACTIVE 80000 50000 null false true)" >/dev/null 2>&1; echo $?)"
+without_rate="insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values (gen_random_uuid(), '$tenant', 'TOUR', 'No rate', 'ACTIVE', 1000, 5, false, false, now(), now())"
+without_cost="insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values (gen_random_uuid(), '$tenant', 'TOUR', 'No cost', 'ACTIVE', 1000, 5, false, false, now(), now())"
+check "insertWithoutValueOrCostIsRefusedByTheEngine: no base_rate_cents is refused by NOT NULL" "$(refused "$without_rate" 'null value in column "base_rate_cents".*not-null constraint')"
+check "insertWithoutValueOrCostIsRefusedByTheEngine: no base_operational_cost_cents is refused by NOT NULL" "$(refused "$without_cost" 'null value in column "base_operational_cost_cents".*not-null constraint')"
+check "closedValueSetsRefuseUnknownValues: an unknown service_type is refused" "$(refused "$(catalog_insert LODGING "'Hotel'" ACTIVE 1000 500 5 false false)" 'chk_catalog_service_service_type')"
+check "closedValueSetsRefuseUnknownValues: an unknown catalog_status is refused" "$(refused "$(catalog_insert TOUR "'Route'" DELETED 1000 500 5 false false)" 'chk_catalog_service_catalog_status')"
+check "a TOUR without configured_capacity is refused" "$(refused "$(catalog_insert TOUR "'Route'" ACTIVE 1000 500 null false false)" 'chk_catalog_service_tour_requires_capacity')"
+check "a configured_capacity of zero is refused" "$(refused "$(catalog_insert TOUR "'Route'" ACTIVE 1000 500 0 false false)" 'chk_catalog_service_configured_capacity')"
+check "a negative configured_capacity is refused" "$(refused "$(catalog_insert TOUR "'Route'" ACTIVE 1000 500 -3 false false)" 'chk_catalog_service_configured_capacity')"
+check "a TRANSPORTATION service requiring transport is refused" "$(refused "$(catalog_insert TRANSPORTATION "'Transfer'" ACTIVE 1000 500 null true false)" 'chk_catalog_service_transportation_not_requiring_transport')"
+check "a negative base_rate_cents is refused" "$(refused "$(catalog_insert TOUR "'Route'" ACTIVE -1 500 5 false false)" 'chk_catalog_service_base_rate_cents')"
+check "a negative base_operational_cost_cents is refused" "$(refused "$(catalog_insert TOUR "'Route'" ACTIVE 1000 -1 5 false false)" 'chk_catalog_service_base_operational_cost_cents')"
+check "an empty commercial_name is refused" "$(refused "$(catalog_insert TOUR "''" ACTIVE 1000 500 5 false false)" 'chk_catalog_service_commercial_name_length')"
+check "a commercial_name of 256 characters is refused" "$(refused "$(catalog_insert TOUR "repeat('n', 256)" ACTIVE 1000 500 5 false false)" 'chk_catalog_service_commercial_name_length')"
+check "a commercial_name of 255 characters is accepted" "$(sql "$(catalog_insert TOUR "repeat('n', 255)" ACTIVE 1000 500 5 false false)" >/dev/null 2>&1; echo $?)"
+
+# AC-D1.6: the application user writes and updates the catalog, and its DELETE is refused by permission
+app_catalog_insert="$(as_role "$app" "$(catalog_row)")"
+app_catalog_update="$(as_role "$app" "update $SCHEMA.catalog_service set high_risk = true where commercial_name = 'Coffee farm route'")"
+app_catalog_delete="$(as_role "$app" "delete from $SCHEMA.catalog_service")"
+check "the application user can INSERT into the catalog" "$(echo "$app_catalog_insert" | grep -q '^INSERT 0 1'; echo $?)"
+check "the application user can UPDATE the catalog" "$(echo "$app_catalog_update" | grep -q '^UPDATE [1-9]'; echo $?)"
+check "the application user's DELETE on the catalog is refused by permission" "$(echo "$app_catalog_delete" | grep -q 'permission denied for table catalog_service'; echo $?)"
+echo "      $(echo "$app_catalog_delete" | grep -i 'permission denied' | head -1)"
+
+# AC-D1.8: the status change and its event are one transaction, so neither exists without the other
+svc="00000000-0000-0000-0000-0000000000b1"
+sql "$(catalog_row "'$svc'")" >/dev/null 2>&1 || true
+tx() { # commit or rollback
+  printf '%s\n' "begin;" \
+    "update $SCHEMA.catalog_service set catalog_status = 'INACTIVE', updated_at = now() where service_id = '$svc';" \
+    "insert into $SCHEMA.outbox_event (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', 'CatalogServiceInactivated', '$svc', 'ACTIVE', 'INACTIVE', '$actor', now());" \
+    "$1;" | docker exec -i -e PGPASSWORD "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 >/dev/null 2>&1
+}
+state() { sql "select catalog_status || '/' || (select count(*) from $SCHEMA.outbox_event where service_id = '$svc') from $SCHEMA.catalog_service where service_id = '$svc'" 2>/dev/null || true; }
+tx rollback || true
+check "activeChangeWritesItsOutboxRowInTheSameTransaction: a rolled back change leaves neither the status nor the event" "$([ "$(state)" = "ACTIVE/0" ]; echo $?)"
+tx commit || true
+check "activeChangeWritesItsOutboxRowInTheSameTransaction: a committed change leaves both" "$([ "$(state)" = "INACTIVE/1" ]; echo $?)"
+check "an outbox event for a service that does not exist is refused by fk_outbox_event_service" "$(refused "insert into $SCHEMA.outbox_event (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', 'CatalogServiceInactivated', gen_random_uuid(), 'ACTIVE', 'INACTIVE', '$actor', now())" 'fk_outbox_event_service')"
+# the T-07 tests below count outbox rows, so this section leaves none behind
+sql "delete from $SCHEMA.outbox_event" >/dev/null 2>&1 || true
+
+# T-07, AC-D1.7 and AC-D1.8: the idempotency key and the outbox (plan.md D-06, D-07)
+echo "T-07 - idempotency key and outbox"
 insert_key() { echo "insert into $SCHEMA.idempotency_key (key, tenant_id, resource_type, resource_id) values ($1, '${2:-$tenant}', 'catalog_service', gen_random_uuid())"; }
 check "a 7 character key is refused by the engine" "$(refused "$(insert_key "repeat('k', 7)")" 'chk_idempotency_key_key_length')"
 check "a 129 character key is refused by the engine" "$(refused "$(insert_key "repeat('k', 129)")" 'chk_idempotency_key_key_length')"
@@ -125,7 +188,7 @@ check "the key is the primary key of tenant and key together" "$([ "$(sql "selec
 
 columns="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'outbox_event' and column_name in ('outbox_event_id','tenant_id','event_type','service_id','previous_catalog_status','new_catalog_status','actor_id','occurred_at','published_at')")"
 check "the outbox carries the fields of the two catalog events, its type and its published mark" "$([ "$columns" = 9 ]; echo $?)"
-outbox_insert() { echo "insert into $SCHEMA.outbox_event (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', '$1', gen_random_uuid(), '$2', '$3', '$actor', now())"; }
+outbox_insert() { echo "insert into $SCHEMA.outbox_event (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', '$1', '$svc', '$2', '$3', '$actor', now())"; }
 check "an inactivation event is accepted and starts unpublished" "$(sql "$(outbox_insert CatalogServiceInactivated ACTIVE INACTIVE)" >/dev/null 2>&1 && [ "$(sql "select count(*) from $SCHEMA.outbox_event where published_at is null")" = 1 ]; echo $?)"
 check "an unknown event type is refused" "$(refused "$(outbox_insert CatalogServiceRenamed ACTIVE INACTIVE)" 'chk_outbox_event_event_type')"
 check "an event that changes nothing is refused" "$(refused "$(outbox_insert CatalogServiceInactivated ACTIVE ACTIVE)" 'chk_outbox_event_condition_changed')"
@@ -137,8 +200,8 @@ check "the relay's unpublished events have a partial index" "$([ "$partial" = 1 
 tables="$(sql "select count(*) from pg_tables where schemaname = '$SCHEMA'")"
 no_tenant="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_attribute a where a.attrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id' and a.attnum > 0 and a.attnotnull and a.atttypid = 'uuid'::regtype)")"
 no_tenant_index="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0] where i.indrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id')")"
-check "every table has a mandatory uuid tenant_id" "$([ "$tables" -ge 2 ] && [ "$no_tenant" = 0 ]; echo $?)"
-check "every table has an index that starts with tenant_id" "$([ "$tables" -ge 2 ] && [ "$no_tenant_index" = 0 ]; echo $?)"
+check "everyTableCarriesAMandatoryIndexedTenantId: every table has a mandatory uuid tenant_id" "$([ "$tables" -ge 3 ] && [ "$no_tenant" = 0 ]; echo $?)"
+check "everyTableCarriesAMandatoryIndexedTenantId: every table has an index that starts with tenant_id" "$([ "$tables" -ge 3 ] && [ "$no_tenant_index" = 0 ]; echo $?)"
 unnamed="$(sql "select count(*) from pg_constraint c join pg_namespace n on n.oid = c.connamespace where n.nspname = '$SCHEMA' and c.contype in ('p','u','c','f') and c.conname !~ '^(pk|uq|chk|fk)_'")"
 check "every constraint has an explicit name" "$([ "$tables" -ge 2 ] && [ "$unnamed" = 0 ]; echo $?)"
 unnamed_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and indexname !~ '^(pk|uq|idx)_'")"
