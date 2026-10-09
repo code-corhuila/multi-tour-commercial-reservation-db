@@ -1,2 +1,31 @@
-# Empty on purpose: every folder carries its changelog from day one, so the execution order is fixed.
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-tables-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "idempotency_key: one key table for the whole domain, unique per tenant and key, 8 to 128 characters (norm 5.3.8)."
+      changes:
+        - sqlFile:
+            path: 001_create_idempotency_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/001_create_idempotency_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "outbox_event: events written with the change they announce, read by the relay through the API (norm 5.3.11)."
+      changes:
+        - sqlFile:
+            path: 002_create_outbox_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/002_create_outbox_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

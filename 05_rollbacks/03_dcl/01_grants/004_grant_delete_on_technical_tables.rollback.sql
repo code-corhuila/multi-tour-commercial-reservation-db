@@ -1,0 +1,1 @@
+REVOKE DELETE ON commercial_reservation.idempotency_key, commercial_reservation.outbox_event FROM commercial_reservation_writer;
