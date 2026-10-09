@@ -1,0 +1,2 @@
+DROP INDEX commercial_reservation.idx_outbox_event_service_id;
+DROP INDEX commercial_reservation.idx_catalog_service_tenant_status_created;
