@@ -175,14 +175,14 @@ sql "delete from $SCHEMA.outbox_event" >/dev/null 2>&1 || true
 # test itself, because holding them belongs to the reservations story, HU-COM-007.
 echo "T-10 - salida_capacity"
 cap_table="$SCHEMA.salida_capacity"
-cap_insert() { # tenant, departure, capacity, held seats
-  echo "insert into $cap_table (salida_capacity_id, tenant_id, salida_id, effective_capacity, held_seats) values (gen_random_uuid(), '$1', '$2', $3, $4)"
+cap_insert() { # tenant, departure, capacity, held seats, and the service (default: the catalog service of the outbox section)
+  echo "insert into $cap_table (salida_capacity_id, tenant_id, salida_id, service_id, effective_capacity, held_seats) values (gen_random_uuid(), '$1', '$2', '${5:-$svc}', $3, $4)"
 }
 salida="00000000-0000-0000-0000-0000000000c1"
 other_tenant_cap="00000000-0000-0000-0000-000000000002"
-expected_cap_columns="salida_capacity_id uuid NO,tenant_id uuid NO,salida_id uuid NO,effective_capacity integer NO,held_seats integer NO"
+expected_cap_columns="salida_capacity_id uuid NO,tenant_id uuid NO,salida_id uuid NO,effective_capacity integer NO,held_seats integer NO,service_id uuid NO"
 actual_cap_columns="$(sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by ordinal_position) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity'" 2>/dev/null || true)"
-check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: exactly the 5 columns exist with their type and nullability" "$([ "$actual_cap_columns" = "$expected_cap_columns" ]; echo $?)"
+check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: exactly the 6 columns exist with their type and nullability" "$([ "$actual_cap_columns" = "$expected_cap_columns" ]; echo $?)"
 check "a complete capacity row is accepted, with the held seats set by the fixture" "$(sql "$(cap_insert "$tenant" "$salida" 20 3)" >/dev/null 2>&1; echo $?)"
 check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: zero held seats are accepted" "$(sql "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c2 20 0)" >/dev/null 2>&1; echo $?)"
 check "capacityEntityHoldsCapacityAndNonNegativeHeldSeats: a negative held seat count is refused" "$(refused "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c3 20 -1)" 'chk_salida_capacity_held_seats')"
@@ -191,10 +191,20 @@ check "the same departure under another tenant is accepted" "$(sql "$(cap_insert
 cap_defaults="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity' and column_name in ('salida_id','effective_capacity') and column_default is not null" 2>/dev/null || true)"
 cap_judged="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity' and column_name in ('salida_id','effective_capacity')" 2>/dev/null || true)"
 check "salida_id and effective_capacity have no DEFAULT" "$([ "$cap_judged" = 2 ] && [ "$cap_defaults" = 0 ]; echo $?)"
-# the departure belongs to operations-cost, so it is a logical reference only (Annex J.3.4)
-cap_constraints="$(sql "select count(*) from pg_constraint where conrelid = '$cap_table'::regclass" 2>/dev/null || true)"
-cap_foreign_keys="$(sql "select count(*) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'f'" 2>/dev/null || true)"
-check "no foreign key leaves salida_capacity" "$([ "${cap_constraints:-0}" -gt 0 ] && [ "$cap_foreign_keys" = 0 ]; echo $?)"
+# the departure belongs to operations-cost, so it is a logical reference only (Annex J.3.4); the one
+# foreign key of the table points inside this schema, at the catalog service (spec.md DD-6)
+cap_foreign_keys="$(sql "select string_agg(c.conname || '->' || n.nspname || '.' || r.relname || '(' || c.confdeltype::text || ')', ',' order by c.conname) from pg_constraint c join pg_class r on r.oid = c.confrelid join pg_namespace n on n.oid = r.relnamespace where c.conrelid = '$cap_table'::regclass and c.contype = 'f'" 2>/dev/null || true)"
+check "the only foreign key of salida_capacity is fk_salida_capacity_service, to catalog_service, ON DELETE RESTRICT; none to another domain" "$([ "$cap_foreign_keys" = "fk_salida_capacity_service->$SCHEMA.catalog_service(r)" ]; echo $?)"
+cap_salida_fk="$(sql "select count(*) from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey) where c.conrelid = '$cap_table'::regclass and c.contype = 'f' and a.attname = 'salida_id'" 2>/dev/null || true)"
+check "salida_id still has no foreign key" "$([ "$cap_salida_fk" = 0 ]; echo $?)"
+cap_service_default="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity' and column_name = 'service_id' and data_type = 'uuid' and is_nullable = 'NO' and column_default is null" 2>/dev/null || true)"
+check "service_id is uuid NOT NULL with no DEFAULT: the service decides it" "$([ "$cap_service_default" = 1 ]; echo $?)"
+cap_service_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'salida_capacity' and indexname = 'idx_salida_capacity_tenant_id_service_id' and indexdef like '%(tenant_id, service_id)%'" 2>/dev/null || true)"
+check "the capacity check has its index: idx_salida_capacity_tenant_id_service_id on (tenant_id, service_id)" "$([ "$cap_service_index" = 1 ]; echo $?)"
+cap_without_service="insert into $cap_table (salida_capacity_id, tenant_id, salida_id, effective_capacity, held_seats) values (gen_random_uuid(), '$tenant', '00000000-0000-0000-0000-0000000000c5', 10, 0)"
+check "a capacity row without service_id is refused by NOT NULL" "$(refused "$cap_without_service" 'null value in column "service_id".*not-null constraint')"
+check "a capacity row for a service that does not exist is refused by fk_salida_capacity_service" "$(refused "$(cap_insert "$tenant" 00000000-0000-0000-0000-0000000000c6 10 0 00000000-0000-0000-0000-00000000dead)" 'fk_salida_capacity_service')"
+check "a catalog service that has capacity rows cannot be deleted (RESTRICT)" "$(refused "delete from $SCHEMA.catalog_service where service_id = '$svc'" 'fk_salida_capacity_service')"
 # the lower bound of the capacity is only PROPOSED in 06-data, which orders not to implement it
 cap_checks="$(sql "select string_agg(conname, ',' order by conname) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'c'" 2>/dev/null || true)"
 check "effective_capacity has no lower bound: the only CHECK is the one on held_seats" "$([ "$cap_checks" = "chk_salida_capacity_held_seats" ]; echo $?)"
@@ -278,6 +288,20 @@ check "the application user, created by CI, is left alone" "$([ "$(sql "select c
 echo "step 4 - update rebuilds"
 liquibase update >/dev/null
 check "the schema $SCHEMA exists again" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ]; echo $?)"
+
+# The two changesets of service_id (ddl-alter-002, ddl-indexes-003) must undo cleanly: the table goes
+# back to its five columns, with no foreign key to the catalog and no index on the service, and a new
+# update brings the sixth column back. Liquibase rolls back whole runs, so the count is taken from the
+# control table: everything applied from ddl-alter-002 onward.
+echo "step 5 - the service_id changesets roll back to the table as it was"
+undo="$(sql "select count(*) from $CONTROL where orderexecuted >= (select orderexecuted from $CONTROL where id = 'ddl-alter-002')")"
+liquibase rollback-count "$undo" >/dev/null
+cap_cols_now() { sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by ordinal_position) from information_schema.columns where table_schema = '$SCHEMA' and table_name = 'salida_capacity'" 2>/dev/null || true; }
+check "after the rollback salida_capacity has its five original columns" "$([ "$(cap_cols_now)" = "${expected_cap_columns%,service_id uuid NO}" ]; echo $?)"
+check "after the rollback no foreign key and no service index remain on salida_capacity" "$([ "$(sql "select (select count(*) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'f') + (select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'salida_capacity' and indexname = 'idx_salida_capacity_tenant_id_service_id')")" = 0 ]; echo $?)"
+liquibase update >/dev/null
+check "a new update brings the sixth column back" "$([ "$(cap_cols_now)" = "$expected_cap_columns" ]; echo $?)"
+check "the control table holds the 16 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 
 # T-04, the third probe: a second domain migrating the same instance with its own control table
 # neither fails nor touches this one (Annex J.6).

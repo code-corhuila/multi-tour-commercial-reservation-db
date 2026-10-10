@@ -14,3 +14,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/001_add_outbox_event_service_foreign_key.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,04_alter"
+      comment: "PROPOSED service_id on salida_capacity with fk_salida_capacity_service, so RN-05 can compare a tour's new capacity against the held seats of its own departures (spec.md DD-6)."
+      changes:
+        - sqlFile:
+            path: 002_add_salida_capacity_service_id.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/002_add_salida_capacity_service_id.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
