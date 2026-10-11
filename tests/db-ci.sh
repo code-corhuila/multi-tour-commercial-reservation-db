@@ -67,6 +67,9 @@ as_role() { # role, statement
 
 echo "step 1 - update builds everything"
 liquibase update >/dev/null
+check "HU-COM-002 T-05: an empty database applies exactly 23 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
+echo "HU-COM-002 T-06 - liquibase validate (literal runner answer)"
+liquibase validate
 check "the schema $SCHEMA exists" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ]; echo $?)"
 # T-03, AC-D1.1: nothing of this domain lives in public (Annex A rule 9, Annex J.4)
 in_public="$(sql "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")"
@@ -329,6 +332,57 @@ img_app_delete="$(as_role "$app" "delete from $img_table")"
 check "the application user's DELETE on the image table is refused by permission" "$(echo "$img_app_delete" | grep -q 'permission denied for table associated_establishment_image'; echo $?)"
 echo "      $(echo "$img_app_delete" | grep -i 'permission denied' | head -1)"
 
+# HU-COM-002 T-04 / AC-D2.8: use the existing outbox, never a parallel table or a
+# catalog-service fixture masquerading as an association. These checks were observed
+# red before the new outbox generalization changesets made this story possible.
+# Every engine answer and statement is printed for T-06; a rejected transaction
+# must fail even if the subsequent absence check happens to hold.
+engine() { # SQL, role (application by default). One session, fail on SQL errors.
+  local statement="$1" role="${2:-$app}" result=0
+  printf '\nSQL (SET ROLE %s):\n%s\n' "$role" "$statement"
+  printf '%s\n' "set role $role;" "$statement" | docker exec -i -e PGPASSWORD "$container" \
+    psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 -f - || result=$?
+  printf 'psql exit status: %s\n' "$result"
+  return "$result"
+}
+association_event() { # event id, association id, event type, previous SQL value, new status
+  echo "insert into $SCHEMA.outbox_event (outbox_event_id, tenant_id, event_type, association_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$1', '$tenant', '$3', '$2', $4, '$5', '$actor', now())"
+}
+association_state() { # association id, event id: exact identity/tenant plus total event count
+  sql "select coalesce((select association_status from $ae_table where association_id = '$1' and tenant_id = '$tenant'), 'ABSENT') || '/' || (select count(*) from $SCHEMA.outbox_event where outbox_event_id = '$2') || '/' || (select count(*) from $SCHEMA.outbox_event where outbox_event_id = '$2' and association_id = '$1' and tenant_id = '$tenant')"
+}
+association_transition() { # suffix, event type, previous SQL value, new status
+  local association="$(aid "$1")" event="$(aid "$(( $1 + 100 ))")"
+  local rollback_event="$(aid "$(( $1 + 200 ))")" change prior status=0
+  if [ "$2" = EstablishmentAssociationPublished ]; then
+    change="$(ae_row "'$association'")"; prior=ABSENT
+  else
+    engine "$(ae_insert HOTEL "'Outbox fixture'" "'T-04'" "${3//\'/}" "'$association'");" || return
+    change="update $ae_table set association_status = '$4', updated_at = now() where association_id = '$association' and tenant_id = '$tenant'"
+    prior="${3//\'/}"
+  fi
+  engine "begin; $change; $(association_event "$rollback_event" "$association" "$2" "$3" "$4"); rollback;" || status=$?
+  check "visibilityChangeWritesItsOutboxRowInTheSameTransaction: $2 rollback executes successfully as $app" "$status"
+  check "$2 rollback leaves neither its event nor its association change" "$([ "$(association_state "$association" "$rollback_event")" = "$prior/0/0" ]; echo $?)"
+  status=0
+  engine "begin; $change; $(association_event "$event" "$association" "$2" "$3" "$4"); commit;" || status=$?
+  check "visibilityChangeWritesItsOutboxRowInTheSameTransaction: $2 commits successfully as $app" "$status"
+  check "$2 commits the change and exactly one event with the association id and tenant" "$([ "$(association_state "$association" "$event")" = "$4/1/1" ]; echo $?)"
+  engine "select outbox_event_id, event_type, tenant_id, service_id, association_id, previous_catalog_status, new_catalog_status from $SCHEMA.outbox_event where outbox_event_id in ('$event', '$rollback_event');"
+}
+echo "HU-COM-002 T-04 - all three association transitions, not catalog events"
+association_transition 201 EstablishmentAssociationPublished NULL ACTIVE
+association_transition 202 EstablishmentAssociationInactivated "'ACTIVE'" INACTIVE
+# A second tenant makes an accidentally hardcoded tenant observable.
+saved_tenant="$tenant"; tenant="$other_tenant"
+association_transition 203 EstablishmentAssociationReactivated "'INACTIVE'" ACTIVE
+tenant="$saved_tenant"
+trigger_writers="$(sql "select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = '$SCHEMA' and not t.tgisinternal and (c.relname in ('associated_establishment', 'associated_establishment_image', 'outbox_event') or pg_get_functiondef(t.tgfoid) ilike '%outbox_event%')")"
+check "D-07: no application trigger on the associations or outbox and no trigger function writes outbox_event" "$([ "$trigger_writers" = 0 ]; echo $?)"
+events_before="$(sql "select count(*) from $SCHEMA.outbox_event")"
+engine "begin; $(ae_row "'$(aid 204)'"); update $ae_table set association_status = 'INACTIVE' where association_id = '$(aid 204)'; update $ae_table set association_status = 'ACTIVE' where association_id = '$(aid 204)'; commit;"
+check "D-07: insert, inactivation and reactivation without an application event write no outbox row" "$([ "$(sql "select count(*) from $SCHEMA.outbox_event")" = "$events_before" ]; echo $?)"
+
 # AC-D1.5, RNF-D4, RNF-D5: rules every table of the schema must keep, judged over the catalog so that T-08 inherits them
 tables="$(sql "select count(*) from pg_tables where schemaname = '$SCHEMA'")"
 no_tenant="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_attribute a where a.attrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id' and a.attnum > 0 and a.attnotnull and a.atttypid = 'uuid'::regtype)")"
@@ -389,12 +443,12 @@ check "after the rollback salida_capacity has its five original columns" "$([ "$
 check "after the rollback no foreign key and no service index remain on salida_capacity" "$([ "$(sql "select (select count(*) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'f') + (select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'salida_capacity' and indexname = 'idx_salida_capacity_tenant_id_service_id')")" = 0 ]; echo $?)"
 liquibase update >/dev/null
 check "a new update brings the sixth column back" "$([ "$(cap_cols_now)" = "$expected_cap_columns" ]; echo $?)"
-check "the control table holds the 21 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 21 ]; echo $?)"
+check "the control table holds the 23 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
 
-# HU-COM-002: its five changesets (label HU-COM-002) go on top of the 16 of HU-COM-001, exactly as they do
+# HU-COM-002: its seven changesets (label HU-COM-002) go on top of the 16 of HU-COM-001, exactly as they do
 # on a database that already has the 16. The label filter rebuilds that database; rolling back the five must
 # leave the schema as it was (columns, constraints, indexes and privileges), and a new update brings them back.
-echo "step 6 - the HU-COM-002 changesets roll back to the 16 of HU-COM-001 and come back"
+echo "step 6 - the seven HU-COM-002 changesets roll back to the 16 of HU-COM-001 and come back"
 snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
     select 'c:' || table_name || '.' || column_name || ' ' || data_type || ' ' || is_nullable || ' ' || coalesce(column_default, '') as x from information_schema.columns where table_schema = '$SCHEMA'
     union all select 'k:' || conrelid::regclass::text || ' ' || conname || ' ' || pg_get_constraintdef(oid) from pg_constraint where connamespace = '$SCHEMA'::regnamespace
@@ -406,16 +460,18 @@ check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002
 tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
 check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
 before_snapshot="$(snapshot)"
+base_tables="$(sql "select string_agg(tablename, ',' order by tablename) from pg_tables where schemaname = '$SCHEMA'")"
 liquibase update >/dev/null
 new_changesets="$(sql "select count(*) from $CONTROL where labels ilike '%HU-COM-002%'" 2>/dev/null || echo 0)"
-check "an update on that base applies exactly the 5 changesets of HU-COM-002" "$([ "$new_changesets" = 5 ] && [ "$(sql "select count(*) from $CONTROL")" = 21 ]; echo $?)"
+check "an update on that base applies exactly the 7 changesets of HU-COM-002" "$([ "$new_changesets" = 7 ] && [ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
 check "both HU-COM-002 tables exist after it" "$([ "$(tables_now)" = 2 ]; echo $?)"
 if [ "$new_changesets" -gt 0 ]; then liquibase rollback-count "$new_changesets" >/dev/null; fi
 check "rolling back the HU-COM-002 changesets leaves the control table at the 16" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 check "...neither of its tables remains" "$([ "$(tables_now)" = 0 ]; echo $?)"
+check "HU-COM-002 T-05: all HU-COM-001 tables survive the seven-change revert" "$([ "$(sql "select string_agg(tablename, ',' order by tablename) from pg_tables where schemaname = '$SCHEMA'")" = "$base_tables" ]; echo $?)"
 check "...and the schema is as it was before them: same columns, constraints, indexes and privileges" "$([ -n "$before_snapshot" ] && [ "$(snapshot)" = "$before_snapshot" ]; echo $?)"
 liquibase update >/dev/null
-check "a new update creates them again" "$([ "$(tables_now)" = 2 ] && [ "$(sql "select count(*) from $CONTROL")" = 21 ]; echo $?)"
+check "a new update creates them again" "$([ "$(tables_now)" = 2 ] && [ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
 
 # T-04, the third probe: a second domain migrating the same instance with its own control table
 # neither fails nor touches this one (Annex J.6).
@@ -460,5 +516,52 @@ check "the runner points at the single instance" "$(echo "$composed" | grep -q '
 check "the runner passes the control table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-table-name=$CONTROL"; echo $?)"
 check "the runner passes the lock table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-lock-table-name=$LOCK"; echo $?)"
 check "the runner sits on the external platform network" "$(echo "$composed" | grep -q 'external: true'; echo $?)"
+
+# T-06: literal reconstruction record, in section 8's order. Reuse this single
+# disposable instance; never roll back a developer's infrastructure database.
+echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
+liquibase rollback-count 999
+liquibase update --label-filter='!HU-COM-002'
+record_base="$(snapshot)"
+echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
+liquibase update
+engine "select count(*) as changesets from $CONTROL; select schemaname, tablename from pg_tables where schemaname in ('$SCHEMA','public') order by 1,2;" postgres
+echo "T-06 STEP 2 - inspect attributes and forbidden columns"
+engine "select table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = '$SCHEMA' and table_name like 'associated_establishment%' order by table_name, ordinal_position;"
+echo "T-06 STEP 3 - a third establishment type"
+engine "$(ae_insert LODGING "'Rejected type'" "'T-06'" ACTIVE);" || true
+echo "T-06 STEP 4 - a null tenant"
+engine "insert into $ae_table (association_id, tenant_id, establishment_type, commercial_name, commercial_information, association_status, created_at, updated_at) values (gen_random_uuid(), null, 'HOTEL', 'Rejected tenant', 'T-06', 'ACTIVE', now(), now());" || true
+echo "T-06 STEP 5 - application DELETE"
+engine "delete from $ae_table;" || true
+echo "T-06 STEP 6 - association with image, without image, and explicit rollback"
+engine "begin; $(ae_row "'$(aid 301)'"); $(img_insert "$(aid 301)" image/png 1024); commit; select a.association_id, a.tenant_id, i.image_id from $ae_table a join $img_table i using (association_id) where a.association_id = '$(aid 301)';"
+engine "begin; $(ae_row "'$(aid 302)'"); commit; select association_id from $ae_table where association_id = '$(aid 302)';"
+echo "STEP 6 LIMITATION: the engine accepts no image. DP-03 is open in the supplied spec; no closed decision is asserted here."
+engine "begin; $(ae_row "'$(aid 303)'"); $(img_insert "$(aid 303)" image/png 1024); rollback; select (select count(*) from $ae_table where association_id = '$(aid 303)') as associations, (select count(*) from $img_table where association_id = '$(aid 303)') as images;"
+echo "T-06 STEP 7 - inspect image content, type, size, checksum and tenant"
+engine "select image_id, tenant_id, association_id, encode(content, 'hex') as content_hex, content_type, size_bytes, sha256 from $img_table;"
+echo "T-06 STEP 8 - three visibility transitions (same transaction, application role)"
+association_transition 401 EstablishmentAssociationPublished NULL ACTIVE
+association_transition 402 EstablishmentAssociationInactivated "'ACTIVE'" INACTIVE
+association_transition 403 EstablishmentAssociationReactivated "'INACTIVE'" ACTIVE
+echo "T-06 STEP 9 - second update, no pending changesets"
+record_second="$(liquibase update 2>&1)"; printf '%s\n' "$record_second"
+check "secondRunAppliesZeroChangesets: T-06 incremental second update applies zero" "$(echo "$record_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
+echo "T-06 STEP 10 - revert exactly seven changesets to HU-COM-001"
+engine "delete from $SCHEMA.outbox_event where association_id is not null;"
+liquibase rollback-count 7
+engine "select count(*) as changesets from $CONTROL; select tablename from pg_tables where schemaname = '$SCHEMA' order by 1;" postgres
+record_reverted="$(snapshot)"
+printf 'HU-COM-001 columns/constraints/indexes/privileges MD5: %s\nReverted MD5: %s\n' "$record_base" "$record_reverted"
+check "revertRemovesTheTwoTablesAndLeavesTheSchemaAsOneHadIt: T-06 MD5 matches HU-COM-001" "$([ -n "$record_base" ] && [ "$record_base" = "$record_reverted" ]; echo $?)"
+echo "T-06 STEP 11 - rule coverage and specification trace"
+echo "RN-01 typeOutsideHotelAndRestaurantIsRefusedByTheEngine; RN-02 forbidden columns; RN-03 everyRowCarriesANonNullTenantId; RN-07 applicationUserCannotDeleteAnAssociation; RN-08 sizeAbove800KbOrTypeOutsidePngJpegWebpIsRefusedByTheEngine; RN-09 associationAndImageAreWrittenInOneTransaction; RN-10 transport only (no engine test); RN-11 visibilityChangeWritesItsOutboxRowInTheSameTransaction."
+if [ "$fail" -eq 0 ]; then
+  echo "STEP 11 READY: all engine rule checks pass, including RN-11. The mapping above is ready for the spec's trace cells; no external spec was edited."
+else
+  echo "STEP 11 BLOCKED: at least one engine rule check failed."
+fi
+liquibase update
 
 exit "$fail"
