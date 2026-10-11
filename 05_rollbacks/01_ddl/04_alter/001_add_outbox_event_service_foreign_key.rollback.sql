@@ -1,0 +1,1 @@
+ALTER TABLE commercial_reservation.outbox_event DROP CONSTRAINT fk_outbox_event_service;
