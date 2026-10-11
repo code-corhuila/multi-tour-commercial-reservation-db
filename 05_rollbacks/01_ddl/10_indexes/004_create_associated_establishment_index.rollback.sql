@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_associated_establishment_tenant_status_created;
