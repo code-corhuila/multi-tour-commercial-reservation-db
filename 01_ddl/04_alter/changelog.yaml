@@ -29,3 +29,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/002_add_salida_capacity_service_id.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-003
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,04_alter"
+      comment: "fk_associated_establishment_image_association: an image must name an existing association, ON DELETE RESTRICT (RN-09)."
+      changes:
+        - sqlFile:
+            path: 003_add_associated_establishment_image_association_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/003_add_associated_establishment_image_association_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

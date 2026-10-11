@@ -1,0 +1,1 @@
+ALTER TABLE commercial_reservation.associated_establishment_image DROP CONSTRAINT fk_associated_establishment_image_association;
