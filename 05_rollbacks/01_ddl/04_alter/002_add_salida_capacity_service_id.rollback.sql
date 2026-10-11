@@ -1,0 +1,2 @@
+ALTER TABLE commercial_reservation.salida_capacity DROP CONSTRAINT fk_salida_capacity_service;
+ALTER TABLE commercial_reservation.salida_capacity DROP COLUMN service_id;

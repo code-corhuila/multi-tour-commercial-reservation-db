@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-indexes-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,10_indexes"
+      comment: "outbox_event indexes: by tenant, and a partial one on the events not yet published. idempotency_key needs none: its primary key starts with tenant_id."
+      changes:
+        - sqlFile:
+            path: 001_create_outbox_event_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/001_create_outbox_event_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,10_indexes"
+      comment: "catalog_service listing index led by tenant_id, and the index on the outbox_event foreign key column (Annex A rule 3)."
+      changes:
+        - sqlFile:
+            path: 002_create_catalog_service_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/002_create_catalog_service_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-003
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,10_indexes"
+      comment: "Index (tenant_id, service_id) on salida_capacity: the capacity check sums the held seats of one service's departures."
+      changes:
+        - sqlFile:
+            path: 003_create_salida_capacity_service_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/003_create_salida_capacity_service_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

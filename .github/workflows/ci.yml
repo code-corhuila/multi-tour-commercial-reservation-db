@@ -1,0 +1,24 @@
+name: ci
+
+# Static checks of the repository, with no Docker. The four steps of Annex A are in db-ci.yml.
+# Pull requests toward develop and qa only, to save the course's automation minutes.
+on:
+  pull_request:
+    branches: [develop, qa]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tree, master changelog, common files, workflows and secrets
+        run: bash tests/check-structure.sh

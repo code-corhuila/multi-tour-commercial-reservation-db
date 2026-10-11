@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-tables-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "idempotency_key: one key table for the whole domain, unique per tenant and key, 8 to 128 characters (norm 5.3.8)."
+      changes:
+        - sqlFile:
+            path: 001_create_idempotency_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/001_create_idempotency_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "outbox_event: events written with the change they announce, read by the relay through the API (norm 5.3.11)."
+      changes:
+        - sqlFile:
+            path: 002_create_outbox_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/002_create_outbox_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-003
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "catalog_service: the services a tenant offers, with closed value sets as CHECKs and no defaults (plan.md DD-8, DD-16)."
+      changes:
+        - sqlFile:
+            path: 003_create_catalog_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/003_create_catalog_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-004
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "salida_capacity: the capacity and held seats of a departure, one row per tenant and departure (plan.md DD-19; name and columns proposed in 06-data)."
+      changes:
+        - sqlFile:
+            path: 004_create_salida_capacity.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/004_create_salida_capacity.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
