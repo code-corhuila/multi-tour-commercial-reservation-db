@@ -44,3 +44,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/003_create_salida_capacity_service_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-004
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,10_indexes"
+      comment: "associated_establishment listing index led by tenant_id: tenant, status, most recent first."
+      changes:
+        - sqlFile:
+            path: 004_create_associated_establishment_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/004_create_associated_establishment_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-005
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,10_indexes"
+      comment: "Index (tenant_id, association_id) on associated_establishment_image: it covers the foreign key column (Annex A rule 3)."
+      changes:
+        - sqlFile:
+            path: 005_create_associated_establishment_image_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/005_create_associated_establishment_image_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
