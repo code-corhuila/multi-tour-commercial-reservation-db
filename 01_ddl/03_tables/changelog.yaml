@@ -89,3 +89,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/006_create_associated_establishment_image.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-007
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-table,ddl,03_tables"
+      comment: "DP-03: discount rule values in integer basis points or cents; open decisions stay absent."
+      changes:
+        - sqlFile:
+            path: 007_create_discount_rule.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/007_create_discount_rule.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
