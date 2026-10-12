@@ -59,3 +59,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/004_create_salida_capacity.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-005
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,03_tables"
+      comment: "associated_establishment: the hotels and restaurants a tenant associates, closed value sets as CHECKs, no defaults and no columns of rooms, dishes, menus, seats, rates or availability (HU-COM-002, RN-01, RN-02)."
+      changes:
+        - sqlFile:
+            path: 005_create_associated_establishment.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/005_create_associated_establishment.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-006
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,03_tables"
+      comment: "PROPOSED associated_establishment_image: the promotional image in a table of its own, one per association, 800 KB at most and PNG, JPEG or WebP only (ADR-005 E6, plan.md D-02)."
+      changes:
+        - sqlFile:
+            path: 006_create_associated_establishment_image.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/006_create_associated_establishment_image.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
