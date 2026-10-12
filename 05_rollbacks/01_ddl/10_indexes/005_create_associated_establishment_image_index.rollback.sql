@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_associated_establishment_image_tenant_id_association_id;

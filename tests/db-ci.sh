@@ -67,6 +67,9 @@ as_role() { # role, statement
 
 echo "step 1 - update builds everything"
 liquibase update >/dev/null
+check "HU-COM-002 T-05: an empty database applies exactly 23 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
+echo "HU-COM-002 T-06 - liquibase validate (literal runner answer)"
+liquibase validate
 check "the schema $SCHEMA exists" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ]; echo $?)"
 # T-03, AC-D1.1: nothing of this domain lives in public (Annex A rule 9, Annex J.4)
 in_public="$(sql "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")"
@@ -76,6 +79,19 @@ own="$(sql "select count(*) from information_schema.tables where table_name = '$
 default_table="$(sql "select count(*) from information_schema.tables where table_name = 'databasechangelog'")"
 check "the control table $CONTROL exists" "$([ "$own" = 1 ]; echo $?)"
 check "the default control table databasechangelog does not exist" "$([ "$default_table" = 0 ]; echo $?)"
+
+# HU-COM-002 T-01: creates nothing. It records the four preconditions that the -db of HU-COM-001 leaves,
+# and the first one that fails ends the run there: the answer is to finish HU-COM-001, never to create
+# the missing piece here (two control tables would be two sources of truth).
+echo "HU-COM-002 T-01 - preconditions left by HU-COM-001 (nothing is created)"
+precondition() { # description, condition result (0 = holds)
+  if [ "$2" -eq 0 ]; then echo "  ok    precondition: $1"
+  else echo "  FAIL  precondition: $1"; echo "        T-01 ends here: the -db of HU-COM-001 is not applied. Finish it first; this slice creates none of these."; exit 1; fi
+}
+precondition "the schema $SCHEMA exists" "$([ "$(sql "select count(*) from pg_namespace where nspname = '$SCHEMA'")" = 1 ]; echo $?)"
+precondition "the control table $CONTROL exists and holds changesets" "$([ "$(sql "select count(*) from $CONTROL" 2>/dev/null || echo 0)" -gt 0 ]; echo $?)"
+precondition "commercial_reservation_app exists and holds no DELETE outside the two technical tables" "$([ "$(sql "select count(*) from pg_roles where rolname = 'commercial_reservation_app'")" = 1 ] && [ "$(sql "select count(*) from information_schema.tables t where t.table_schema = '$SCHEMA' and t.table_name not in ('idempotency_key', 'outbox_event') and has_table_privilege('commercial_reservation_app', format('%I.%I', t.table_schema, t.table_name), 'DELETE')")" = 0 ]; echo $?)"
+precondition "outbox_event and idempotency_key are present" "$([ "$(sql "select count(*) from information_schema.tables where table_schema = '$SCHEMA' and table_name in ('outbox_event', 'idempotency_key')")" = 2 ]; echo $?)"
 
 # T-06, AC-D1.6: roles without login, DELETE withheld by the engine (plan.md D-04, D-08)
 echo "T-06 - roles, grants and DELETE withheld"
@@ -241,6 +257,132 @@ check "an inactivation that ends active is refused" "$(refused "$(outbox_insert 
 partial="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and indexname = 'idx_outbox_event_unpublished' and indexdef like '%WHERE (published_at IS NULL)%'")"
 check "the relay's unpublished events have a partial index" "$([ "$partial" = 1 ]; echo $?)"
 
+# HU-COM-002 T-02: associated_establishment (spec.md AC-D2.2 to AC-D2.5). Placed before the checks over every
+# table of the schema, so that those judge the new tables too.
+echo "HU-COM-002 T-02 - associated_establishment"
+ae_table="$SCHEMA.associated_establishment"; img_table="$SCHEMA.associated_establishment_image"
+aid() { printf '00000000-0000-0000-0000-%012d' "$1"; }
+ae_insert() { # type, name expression, information expression, status, and an optional id expression
+  echo "insert into $ae_table (association_id, tenant_id, establishment_type, commercial_name, commercial_information, association_status, created_at, updated_at) values (${5:-gen_random_uuid()}, '$tenant', '$1', $2, $3, '$4', now(), now())"
+}
+ae_row() { ae_insert HOTEL "'Hotel Andino'" "'Breakfast included, open all year'" ACTIVE "${1:-}"; }
+cols_of() { sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by ordinal_position) from information_schema.columns where table_schema = '$SCHEMA' and table_name = '$1'" 2>/dev/null || true; }
+privileges_of() { sql "select string_agg(p, ',' order by p) from unnest(array['SELECT','INSERT','UPDATE','DELETE']) p where has_table_privilege('$app', '$1', p)" 2>/dev/null || true; }
+expected_ae_columns="association_id uuid NO,tenant_id uuid NO,establishment_type text NO,commercial_name text NO,commercial_information text NO,association_status text NO,created_at timestamp with time zone NO,updated_at timestamp with time zone NO"
+check "associationTableHoldsTheStoryAttributes: exactly the 8 columns exist with their type and nullability" "$([ "$(cols_of associated_establishment)" = "$expected_ae_columns" ]; echo $?)"
+# RN-02 is held by absence (AC-02.7): no column of a room, a dish, a menu, a seat, a rate or availability, in either table
+judged="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name like 'associated_establishment%'" 2>/dev/null || true)"
+forbidden_found="$(sql "select string_agg(table_name || '.' || column_name, ',') from information_schema.columns where table_schema = '$SCHEMA' and table_name like 'associated_establishment%' and column_name ~ '(room|dish|menu|seat|rate|availab)'" 2>/dev/null || true)"
+check "none of the six forbidden columns (room, dish, menu, seat, rate, availability) exists in either table" "$([ "${judged:-0}" -gt 0 ] && [ -z "$forbidden_found" ]; echo $?)"
+defaults_found="$(sql "select count(*) from information_schema.columns where table_schema = '$SCHEMA' and table_name like 'associated_establishment%' and column_default is not null" 2>/dev/null || true)"
+check "no column of either table has a DEFAULT: the service decides every value" "$([ "${judged:-0}" -gt 0 ] && [ "$defaults_found" = 0 ]; echo $?)"
+check "a complete HOTEL row is accepted as the application user" "$(as_role "$app" "$(ae_row)" | grep -q '^INSERT 0 1'; echo $?)"
+check "a complete RESTAURANT row is accepted as the application user" "$(as_role "$app" "$(ae_insert RESTAURANT "'Cafe del Valle'" "'Local food, lunch only'" ACTIVE)" | grep -q '^INSERT 0 1'; echo $?)"
+check "typeOutsideHotelAndRestaurantIsRefusedByTheEngine: a third type is refused" "$(refused "$(ae_insert LODGING "'Hostel'" "'Info'" ACTIVE)" 'chk_associated_establishment_establishment_type')"
+check "a lowercase type is refused: the values are the contract's, in capitals" "$(refused "$(ae_insert hotel "'Hostel'" "'Info'" ACTIVE)" 'chk_associated_establishment_establishment_type')"
+check "everyRowCarriesANonNullTenantId: a null tenant is refused" "$(refused "insert into $ae_table (association_id, tenant_id, establishment_type, commercial_name, commercial_information, association_status, created_at, updated_at) values (gen_random_uuid(), null, 'HOTEL', 'No tenant', 'Info', 'ACTIVE', now(), now())" 'null value in column "tenant_id".*not-null constraint')"
+check "a status outside ACTIVE and INACTIVE is refused" "$(refused "$(ae_insert HOTEL "'Hostel'" "'Info'" DELETED)" 'chk_associated_establishment_association_status')"
+check "a lowercase status is refused" "$(refused "$(ae_insert HOTEL "'Hostel'" "'Info'" active)" 'chk_associated_establishment_association_status')"
+check "an INACTIVE row is accepted: the status has exactly two values" "$(sql "$(ae_insert HOTEL "'Closed hotel'" "'Info'" INACTIVE)" >/dev/null 2>&1; echo $?)"
+check "a null commercial_information is refused by NOT NULL (PDR RF-018)" "$(refused "$(ae_insert HOTEL "'Hostel'" null ACTIVE)" 'null value in column "commercial_information".*not-null constraint')"
+check "an empty commercial_name is refused" "$(refused "$(ae_insert HOTEL "''" "'Info'" ACTIVE)" 'chk_associated_establishment_commercial_name_length')"
+check "a commercial_name of 256 characters is refused" "$(refused "$(ae_insert HOTEL "repeat('n', 256)" "'Info'" ACTIVE)" 'chk_associated_establishment_commercial_name_length')"
+check "a commercial_name of 255 characters is accepted" "$(sql "$(ae_insert HOTEL "repeat('n', 255)" "'Info'" ACTIVE)" >/dev/null 2>&1; echo $?)"
+check "the application user holds SELECT, INSERT and UPDATE on associated_establishment and no DELETE" "$([ "$(privileges_of "$ae_table")" = "INSERT,SELECT,UPDATE" ]; echo $?)"
+ae_app_update="$(as_role "$app" "update $ae_table set association_status = 'INACTIVE', updated_at = now() where commercial_name = 'Hotel Andino'")"
+ae_app_delete="$(as_role "$app" "delete from $ae_table")"
+check "the application user can UPDATE an association" "$(echo "$ae_app_update" | grep -q '^UPDATE 1'; echo $?)"
+check "applicationUserCannotDeleteAnAssociation: its DELETE is refused by permission" "$(echo "$ae_app_delete" | grep -Eq 'permission denied for table associated_establishment$'; echo $?)"
+echo "      $(echo "$ae_app_delete" | grep -i 'permission denied' | head -1)"
+ae_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'associated_establishment' and indexname = 'idx_associated_establishment_tenant_status_created' and indexdef like '%(tenant_id, association_status, created_at DESC)%'" 2>/dev/null || true)"
+check "the management listing has its index: idx_associated_establishment_tenant_status_created on (tenant_id, association_status, created_at DESC)" "$([ "$ae_index" = 1 ]; echo $?)"
+check "associated_establishment has no foreign key: the image points at it, not the other way round" "$([ "$(sql "select count(*) from pg_constraint where conrelid = '$ae_table'::regclass and contype = 'f'" 2>/dev/null || echo x)" = 0 ]; echo $?)"
+
+# HU-COM-002 T-03: the image in a table of its own (spec.md AC-D2.6, AC-D2.7; RN-08, RN-09)
+echo "HU-COM-002 T-03 - associated_establishment_image"
+img_insert() { # association id, content type, size_bytes, and an optional sha256 expression
+  echo "insert into $img_table (image_id, tenant_id, association_id, content, content_type, size_bytes, sha256) values (gen_random_uuid(), '$tenant', '$1', decode('89504e470d0a1a0a', 'hex'), '$2', $3, ${4:-repeat('a', 64)})"
+}
+expected_img_columns="image_id uuid NO,tenant_id uuid NO,association_id uuid NO,content bytea NO,content_type text NO,size_bytes integer NO,sha256 character NO"
+check "imageRowHoldsContentTypeSizeChecksumAndTenant: exactly the 7 columns exist with their type and nullability" "$([ "$(cols_of associated_establishment_image)" = "$expected_img_columns" ]; echo $?)"
+for n in 101 102 103 104 105 106; do sql "$(ae_row "'$(aid $n)'")" >/dev/null 2>&1 || true; done
+a1="$(aid 101)"
+check "associationAndImageAreWrittenInOneTransaction: association and image commit together as the application user" "$(printf '%s\n' "begin;" "$(ae_row "'$(aid 107)'");" "$(img_insert "$(aid 107)" image/png 1024);" "commit;" | docker exec -i -e PGPASSWORD "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "set role $app" -f - >/dev/null 2>&1; echo $?)"
+check "...and a rolled back transaction leaves neither of them" "$(printf '%s\n' "begin;" "$(ae_row "'$(aid 108)'");" "$(img_insert "$(aid 108)" image/png 1024);" "rollback;" | docker exec -i -e PGPASSWORD "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 >/dev/null 2>&1; [ "$(sql "select (select count(*) from $ae_table where association_id = '$(aid 108)') + (select count(*) from $img_table where association_id = '$(aid 108)')" 2>/dev/null || echo x)" = 0 ]; echo $?)"
+check "a complete PNG image row is accepted as the application user" "$(as_role "$app" "$(img_insert "$a1" image/png 1024)" | grep -q '^INSERT 0 1'; echo $?)"
+check "a JPEG image is accepted" "$(sql "$(img_insert "$(aid 102)" image/jpeg 1024)" >/dev/null 2>&1; echo $?)"
+check "a WebP image is accepted" "$(sql "$(img_insert "$(aid 103)" image/webp 1024)" >/dev/null 2>&1; echo $?)"
+check "an image of exactly 819200 bytes (800 KB) is accepted" "$(sql "$(img_insert "$(aid 104)" image/png 819200)" >/dev/null 2>&1; echo $?)"
+check "sizeAbove800KbOrTypeOutsidePngJpegWebpIsRefusedByTheEngine: an image of 819201 bytes is refused" "$(refused "$(img_insert "$(aid 105)" image/png 819201)" 'chk_associated_establishment_image_size_bytes')"
+check "an image of zero bytes is refused" "$(refused "$(img_insert "$(aid 105)" image/png 0)" 'chk_associated_establishment_image_size_bytes')"
+check "...image/svg+xml is refused" "$(refused "$(img_insert "$(aid 105)" image/svg+xml 1024)" 'chk_associated_establishment_image_content_type')"
+check "...image/gif is refused" "$(refused "$(img_insert "$(aid 105)" image/gif 1024)" 'chk_associated_establishment_image_content_type')"
+check "...application/pdf is refused" "$(refused "$(img_insert "$(aid 105)" application/pdf 1024)" 'chk_associated_establishment_image_content_type')"
+check "a sha256 that is not 64 lowercase hexadecimal characters is refused" "$(refused "$(img_insert "$(aid 105)" image/png 1024 "repeat('A', 64)")" 'chk_associated_establishment_image_sha256')"
+check "a second image for the same association is refused (one image per association)" "$(refused "$(img_insert "$a1" image/png 1024)" 'uq_associated_establishment_image_association_id')"
+check "an image for an association that does not exist is refused by fk_associated_establishment_image_association" "$(refused "$(img_insert "$(aid 999)" image/png 1024)" 'fk_associated_establishment_image_association')"
+check "an association that has an image cannot be deleted (RESTRICT)" "$(refused "delete from $ae_table where association_id = '$a1'" 'fk_associated_establishment_image_association')"
+check "a null tenant on an image is refused" "$(refused "insert into $img_table (image_id, tenant_id, association_id, content, content_type, size_bytes, sha256) values (gen_random_uuid(), null, '$(aid 105)', decode('89', 'hex'), 'image/png', 1, repeat('a', 64))" 'null value in column "tenant_id".*not-null constraint')"
+img_foreign_keys="$(sql "select string_agg(c.conname || '->' || n.nspname || '.' || r.relname || '(' || c.confdeltype::text || ')', ',' order by c.conname) from pg_constraint c join pg_class r on r.oid = c.confrelid join pg_namespace n on n.oid = r.relnamespace where c.conrelid = '$img_table'::regclass and c.contype = 'f'" 2>/dev/null || true)"
+check "the only foreign key of the image table is fk_associated_establishment_image_association, to associated_establishment, ON DELETE RESTRICT" "$([ "$img_foreign_keys" = "fk_associated_establishment_image_association->$SCHEMA.associated_establishment(r)" ]; echo $?)"
+img_index="$(sql "select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'associated_establishment_image' and indexname = 'idx_associated_establishment_image_tenant_id_association_id' and indexdef like '%(tenant_id, association_id)%'" 2>/dev/null || true)"
+check "the foreign key has its index: idx_associated_establishment_image_tenant_id_association_id on (tenant_id, association_id)" "$([ "$img_index" = 1 ]; echo $?)"
+check "the application user holds SELECT, INSERT and UPDATE on the image table and no DELETE" "$([ "$(privileges_of "$img_table")" = "INSERT,SELECT,UPDATE" ]; echo $?)"
+img_app_delete="$(as_role "$app" "delete from $img_table")"
+check "the application user's DELETE on the image table is refused by permission" "$(echo "$img_app_delete" | grep -q 'permission denied for table associated_establishment_image'; echo $?)"
+echo "      $(echo "$img_app_delete" | grep -i 'permission denied' | head -1)"
+
+# HU-COM-002 T-04 / AC-D2.8: use the existing outbox, never a parallel table or a
+# catalog-service fixture masquerading as an association. These checks were observed
+# red before the new outbox generalization changesets made this story possible.
+# Every engine answer and statement is printed for T-06; a rejected transaction
+# must fail even if the subsequent absence check happens to hold.
+engine() { # SQL, role (application by default). One session, fail on SQL errors.
+  local statement="$1" role="${2:-$app}" result=0
+  printf '\nSQL (SET ROLE %s):\n%s\n' "$role" "$statement"
+  printf '%s\n' "set role $role;" "$statement" | docker exec -i -e PGPASSWORD "$container" \
+    psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 -f - || result=$?
+  printf 'psql exit status: %s\n' "$result"
+  return "$result"
+}
+association_event() { # event id, association id, event type, previous SQL value, new status
+  echo "insert into $SCHEMA.outbox_event (outbox_event_id, tenant_id, event_type, association_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$1', '$tenant', '$3', '$2', $4, '$5', '$actor', now())"
+}
+association_state() { # association id, event id: exact identity/tenant plus total event count
+  sql "select coalesce((select association_status from $ae_table where association_id = '$1' and tenant_id = '$tenant'), 'ABSENT') || '/' || (select count(*) from $SCHEMA.outbox_event where outbox_event_id = '$2') || '/' || (select count(*) from $SCHEMA.outbox_event where outbox_event_id = '$2' and association_id = '$1' and tenant_id = '$tenant')"
+}
+association_transition() { # suffix, event type, previous SQL value, new status
+  local association="$(aid "$1")" event="$(aid "$(( $1 + 100 ))")"
+  local rollback_event="$(aid "$(( $1 + 200 ))")" change prior status=0
+  if [ "$2" = EstablishmentAssociationPublished ]; then
+    change="$(ae_row "'$association'")"; prior=ABSENT
+  else
+    engine "$(ae_insert HOTEL "'Outbox fixture'" "'T-04'" "${3//\'/}" "'$association'");" || return
+    change="update $ae_table set association_status = '$4', updated_at = now() where association_id = '$association' and tenant_id = '$tenant'"
+    prior="${3//\'/}"
+  fi
+  engine "begin; $change; $(association_event "$rollback_event" "$association" "$2" "$3" "$4"); rollback;" || status=$?
+  check "visibilityChangeWritesItsOutboxRowInTheSameTransaction: $2 rollback executes successfully as $app" "$status"
+  check "$2 rollback leaves neither its event nor its association change" "$([ "$(association_state "$association" "$rollback_event")" = "$prior/0/0" ]; echo $?)"
+  status=0
+  engine "begin; $change; $(association_event "$event" "$association" "$2" "$3" "$4"); commit;" || status=$?
+  check "visibilityChangeWritesItsOutboxRowInTheSameTransaction: $2 commits successfully as $app" "$status"
+  check "$2 commits the change and exactly one event with the association id and tenant" "$([ "$(association_state "$association" "$event")" = "$4/1/1" ]; echo $?)"
+  engine "select outbox_event_id, event_type, tenant_id, service_id, association_id, previous_catalog_status, new_catalog_status from $SCHEMA.outbox_event where outbox_event_id in ('$event', '$rollback_event');"
+}
+echo "HU-COM-002 T-04 - all three association transitions, not catalog events"
+association_transition 201 EstablishmentAssociationPublished NULL ACTIVE
+association_transition 202 EstablishmentAssociationInactivated "'ACTIVE'" INACTIVE
+# A second tenant makes an accidentally hardcoded tenant observable.
+saved_tenant="$tenant"; tenant="$other_tenant"
+association_transition 203 EstablishmentAssociationReactivated "'INACTIVE'" ACTIVE
+tenant="$saved_tenant"
+trigger_writers="$(sql "select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = '$SCHEMA' and not t.tgisinternal and (c.relname in ('associated_establishment', 'associated_establishment_image', 'outbox_event') or pg_get_functiondef(t.tgfoid) ilike '%outbox_event%')")"
+check "D-07: no application trigger on the associations or outbox and no trigger function writes outbox_event" "$([ "$trigger_writers" = 0 ]; echo $?)"
+events_before="$(sql "select count(*) from $SCHEMA.outbox_event")"
+engine "begin; $(ae_row "'$(aid 204)'"); update $ae_table set association_status = 'INACTIVE' where association_id = '$(aid 204)'; update $ae_table set association_status = 'ACTIVE' where association_id = '$(aid 204)'; commit;"
+check "D-07: insert, inactivation and reactivation without an application event write no outbox row" "$([ "$(sql "select count(*) from $SCHEMA.outbox_event")" = "$events_before" ]; echo $?)"
+
 # AC-D1.5, RNF-D4, RNF-D5: rules every table of the schema must keep, judged over the catalog so that T-08 inherits them
 tables="$(sql "select count(*) from pg_tables where schemaname = '$SCHEMA'")"
 no_tenant="$(sql "select count(*) from pg_tables t where t.schemaname = '$SCHEMA' and not exists (select 1 from pg_attribute a where a.attrelid = format('%I.%I', t.schemaname, t.tablename)::regclass and a.attname = 'tenant_id' and a.attnum > 0 and a.attnotnull and a.atttypid = 'uuid'::regtype)")"
@@ -301,7 +443,35 @@ check "after the rollback salida_capacity has its five original columns" "$([ "$
 check "after the rollback no foreign key and no service index remain on salida_capacity" "$([ "$(sql "select (select count(*) from pg_constraint where conrelid = '$cap_table'::regclass and contype = 'f') + (select count(*) from pg_indexes where schemaname = '$SCHEMA' and tablename = 'salida_capacity' and indexname = 'idx_salida_capacity_tenant_id_service_id')")" = 0 ]; echo $?)"
 liquibase update >/dev/null
 check "a new update brings the sixth column back" "$([ "$(cap_cols_now)" = "$expected_cap_columns" ]; echo $?)"
-check "the control table holds the 16 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
+check "the control table holds the 23 changesets" "$([ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
+
+# HU-COM-002: its seven changesets (label HU-COM-002) go on top of the 16 of HU-COM-001, exactly as they do
+# on a database that already has the 16. The label filter rebuilds that database; rolling back the five must
+# leave the schema as it was (columns, constraints, indexes and privileges), and a new update brings them back.
+echo "step 6 - the seven HU-COM-002 changesets roll back to the 16 of HU-COM-001 and come back"
+snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
+    select 'c:' || table_name || '.' || column_name || ' ' || data_type || ' ' || is_nullable || ' ' || coalesce(column_default, '') as x from information_schema.columns where table_schema = '$SCHEMA'
+    union all select 'k:' || conrelid::regclass::text || ' ' || conname || ' ' || pg_get_constraintdef(oid) from pg_constraint where connamespace = '$SCHEMA'::regnamespace
+    union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
+    union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
+liquibase rollback-count 999 >/dev/null
+liquibase update --label-filter='!HU-COM-002' >/dev/null
+check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
+tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
+check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
+before_snapshot="$(snapshot)"
+base_tables="$(sql "select string_agg(tablename, ',' order by tablename) from pg_tables where schemaname = '$SCHEMA'")"
+liquibase update >/dev/null
+new_changesets="$(sql "select count(*) from $CONTROL where labels ilike '%HU-COM-002%'" 2>/dev/null || echo 0)"
+check "an update on that base applies exactly the 7 changesets of HU-COM-002" "$([ "$new_changesets" = 7 ] && [ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
+check "both HU-COM-002 tables exist after it" "$([ "$(tables_now)" = 2 ]; echo $?)"
+if [ "$new_changesets" -gt 0 ]; then liquibase rollback-count "$new_changesets" >/dev/null; fi
+check "rolling back the HU-COM-002 changesets leaves the control table at the 16" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
+check "...neither of its tables remains" "$([ "$(tables_now)" = 0 ]; echo $?)"
+check "HU-COM-002 T-05: all HU-COM-001 tables survive the seven-change revert" "$([ "$(sql "select string_agg(tablename, ',' order by tablename) from pg_tables where schemaname = '$SCHEMA'")" = "$base_tables" ]; echo $?)"
+check "...and the schema is as it was before them: same columns, constraints, indexes and privileges" "$([ -n "$before_snapshot" ] && [ "$(snapshot)" = "$before_snapshot" ]; echo $?)"
+liquibase update >/dev/null
+check "a new update creates them again" "$([ "$(tables_now)" = 2 ] && [ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
 
 # T-04, the third probe: a second domain migrating the same instance with its own control table
 # neither fails nor touches this one (Annex J.6).
@@ -346,5 +516,52 @@ check "the runner points at the single instance" "$(echo "$composed" | grep -q '
 check "the runner passes the control table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-table-name=$CONTROL"; echo $?)"
 check "the runner passes the lock table of this domain" "$(echo "$composed" | grep -q -e "--database-changelog-lock-table-name=$LOCK"; echo $?)"
 check "the runner sits on the external platform network" "$(echo "$composed" | grep -q 'external: true'; echo $?)"
+
+# T-06: literal reconstruction record, in section 8's order. Reuse this single
+# disposable instance; never roll back a developer's infrastructure database.
+echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
+liquibase rollback-count 999
+liquibase update --label-filter='!HU-COM-002'
+record_base="$(snapshot)"
+echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
+liquibase update
+engine "select count(*) as changesets from $CONTROL; select schemaname, tablename from pg_tables where schemaname in ('$SCHEMA','public') order by 1,2;" postgres
+echo "T-06 STEP 2 - inspect attributes and forbidden columns"
+engine "select table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = '$SCHEMA' and table_name like 'associated_establishment%' order by table_name, ordinal_position;"
+echo "T-06 STEP 3 - a third establishment type"
+engine "$(ae_insert LODGING "'Rejected type'" "'T-06'" ACTIVE);" || true
+echo "T-06 STEP 4 - a null tenant"
+engine "insert into $ae_table (association_id, tenant_id, establishment_type, commercial_name, commercial_information, association_status, created_at, updated_at) values (gen_random_uuid(), null, 'HOTEL', 'Rejected tenant', 'T-06', 'ACTIVE', now(), now());" || true
+echo "T-06 STEP 5 - application DELETE"
+engine "delete from $ae_table;" || true
+echo "T-06 STEP 6 - association with image, without image, and explicit rollback"
+engine "begin; $(ae_row "'$(aid 301)'"); $(img_insert "$(aid 301)" image/png 1024); commit; select a.association_id, a.tenant_id, i.image_id from $ae_table a join $img_table i using (association_id) where a.association_id = '$(aid 301)';"
+engine "begin; $(ae_row "'$(aid 302)'"); commit; select association_id from $ae_table where association_id = '$(aid 302)';"
+echo "STEP 6 LIMITATION: the engine accepts no image. DP-03 is open in the supplied spec; no closed decision is asserted here."
+engine "begin; $(ae_row "'$(aid 303)'"); $(img_insert "$(aid 303)" image/png 1024); rollback; select (select count(*) from $ae_table where association_id = '$(aid 303)') as associations, (select count(*) from $img_table where association_id = '$(aid 303)') as images;"
+echo "T-06 STEP 7 - inspect image content, type, size, checksum and tenant"
+engine "select image_id, tenant_id, association_id, encode(content, 'hex') as content_hex, content_type, size_bytes, sha256 from $img_table;"
+echo "T-06 STEP 8 - three visibility transitions (same transaction, application role)"
+association_transition 401 EstablishmentAssociationPublished NULL ACTIVE
+association_transition 402 EstablishmentAssociationInactivated "'ACTIVE'" INACTIVE
+association_transition 403 EstablishmentAssociationReactivated "'INACTIVE'" ACTIVE
+echo "T-06 STEP 9 - second update, no pending changesets"
+record_second="$(liquibase update 2>&1)"; printf '%s\n' "$record_second"
+check "secondRunAppliesZeroChangesets: T-06 incremental second update applies zero" "$(echo "$record_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
+echo "T-06 STEP 10 - revert exactly seven changesets to HU-COM-001"
+engine "delete from $SCHEMA.outbox_event where association_id is not null;"
+liquibase rollback-count 7
+engine "select count(*) as changesets from $CONTROL; select tablename from pg_tables where schemaname = '$SCHEMA' order by 1;" postgres
+record_reverted="$(snapshot)"
+printf 'HU-COM-001 columns/constraints/indexes/privileges MD5: %s\nReverted MD5: %s\n' "$record_base" "$record_reverted"
+check "revertRemovesTheTwoTablesAndLeavesTheSchemaAsOneHadIt: T-06 MD5 matches HU-COM-001" "$([ -n "$record_base" ] && [ "$record_base" = "$record_reverted" ]; echo $?)"
+echo "T-06 STEP 11 - rule coverage and specification trace"
+echo "RN-01 typeOutsideHotelAndRestaurantIsRefusedByTheEngine; RN-02 forbidden columns; RN-03 everyRowCarriesANonNullTenantId; RN-07 applicationUserCannotDeleteAnAssociation; RN-08 sizeAbove800KbOrTypeOutsidePngJpegWebpIsRefusedByTheEngine; RN-09 associationAndImageAreWrittenInOneTransaction; RN-10 transport only (no engine test); RN-11 visibilityChangeWritesItsOutboxRowInTheSameTransaction."
+if [ "$fail" -eq 0 ]; then
+  echo "STEP 11 READY: all engine rule checks pass, including RN-11. The mapping above is ready for the spec's trace cells; no external spec was edited."
+else
+  echo "STEP 11 BLOCKED: at least one engine rule check failed."
+fi
+liquibase update
 
 exit "$fail"
