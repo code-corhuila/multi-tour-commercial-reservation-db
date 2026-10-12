@@ -86,8 +86,8 @@ for file in README.md .gitignore .env.example .github/CODEOWNERS .github/pull_re
   [ -f "$file" ] || bad "$file is missing"
 done
 grep -q '@ariel5253' .github/CODEOWNERS 2>/dev/null || bad ".github/CODEOWNERS no longer names @ariel5253"
-for ignored in '^\.env$' '^\*\.pem$' '^keys/$'; do
-  grep -q "$ignored" .gitignore 2>/dev/null || bad ".gitignore does not ignore the pattern $ignored"
+for ignored in '^\.env' '^\*\.pem' '^keys/'; do
+  grep -qE "${ignored}\\r?$" .gitignore 2>/dev/null || bad ".gitignore does not ignore the pattern $ignored"
 done
 
 # ---- 5. .env.example lists every key with a placeholder and never a real value (constitution article XI)
@@ -124,5 +124,13 @@ if [ -f README.md ]; then
   done
 fi
 
+# HU-COM-003: written before the table/index migrations they require.
+for entry in '03_tables/007_create_discount_rule' '10_indexes/007_create_discount_rule_indexes' \
+  '04_alter/005_generalize_outbox_event_discount_rules' '10_indexes/008_create_outbox_event_discount_rule_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-003 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-003 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
