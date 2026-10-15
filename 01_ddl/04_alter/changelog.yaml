@@ -59,3 +59,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/004_generalize_outbox_event_aggregates.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-005
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-outbox,ddl,04_alter"
+      comment: "PROPOSED API D-10: DiscountRuleChanged with one aggregate and full audit snapshots."
+      changes:
+        - sqlFile:
+            path: 005_generalize_outbox_event_discount_rules.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/005_generalize_outbox_event_discount_rules.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
