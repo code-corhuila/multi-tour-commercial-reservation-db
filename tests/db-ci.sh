@@ -8,10 +8,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Git Bash may resolve Docker Desktop's shell wrapper before docker.exe; invoke the CLI directly.
+if command -v docker.exe >/dev/null 2>&1; then
+  docker() { command docker.exe "$@"; }
+fi
+
 POSTGRES_IMAGE="postgres:18"
 SCHEMA="commercial_reservation"
 CONTROL="databasechangelog_commercial_reservation"
 LOCK="databasechangeloglock_commercial_reservation"
+db_labels='!HU-COM-003' # Keep all 181 existing checks on their original 23-changeset schema.
 
 suffix="$$"
 runner_image="cr-db-runner:ci-$suffix"
@@ -32,12 +38,14 @@ check() { # description, condition result (0 = holds)
 }
 sql() { docker exec -e PGPASSWORD "$container" psql -U postgres -d postgres -tAc "$1"; }
 liquibase() {
+  local args=("$@")
+  if [ -n "$db_labels" ] && [ "${1:-}" = update ] && [[ "$*" != *--label-filter* ]]; then args+=("--label-filter=$db_labels"); fi
   # no volume: the migrations are inside the image, exactly as the compose file runs it
   docker run --rm --network "$network" -e LIQUIBASE_COMMAND_PASSWORD "$runner_image" \
     --url="jdbc:postgresql://$container:5432/postgres" --username=postgres \
     --changelog-file=changelog/changelog-master.yaml \
     --database-changelog-table-name="$CONTROL" \
-    --database-changelog-lock-table-name="$LOCK" "$@"
+    --database-changelog-lock-table-name="$LOCK" "${args[@]}"
 }
 
 echo "building the runner image (deploy/Dockerfile)"
@@ -341,7 +349,7 @@ engine() { # SQL, role (application by default). One session, fail on SQL errors
   local statement="$1" role="${2:-$app}" result=0
   printf '\nSQL (SET ROLE %s):\n%s\n' "$role" "$statement"
   printf '%s\n' "set role $role;" "$statement" | docker exec -i -e PGPASSWORD "$container" \
-    psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 -f - || result=$?
+    psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -f - || result=$?
   printf 'psql exit status: %s\n' "$result"
   return "$result"
 }
@@ -455,7 +463,7 @@ snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
     union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
     union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
 liquibase rollback-count 999 >/dev/null
-liquibase update --label-filter='!HU-COM-002' >/dev/null
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003' >/dev/null
 check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
 check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
@@ -521,7 +529,7 @@ check "the runner sits on the external platform network" "$(echo "$composed" | g
 # disposable instance; never roll back a developer's infrastructure database.
 echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
 liquibase rollback-count 999
-liquibase update --label-filter='!HU-COM-002'
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003'
 record_base="$(snapshot)"
 echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
 liquibase update
@@ -564,4 +572,5 @@ else
 fi
 liquibase update
 
+source tests/discount-rule-checks.sh
 exit "$fail"

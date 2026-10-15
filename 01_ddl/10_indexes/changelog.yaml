@@ -90,3 +90,35 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/006_create_outbox_event_association_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-007
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-003,discount-table,ddl,10_indexes"
+      comment: "Discount rule tenant listing and validity evaluation indexes, built concurrently."
+      changes:
+        - sqlFile:
+            path: 007_create_discount_rule_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/007_create_discount_rule_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-008
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-003,discount-outbox,ddl,10_indexes"
+      comment: "Tenant and discount rule index for the new outbox foreign key, built concurrently."
+      changes:
+        - sqlFile:
+            path: 008_create_outbox_event_discount_rule_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/008_create_outbox_event_discount_rule_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

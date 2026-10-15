@@ -1,0 +1,2 @@
+DROP INDEX CONCURRENTLY commercial_reservation.idx_discount_rule_tenant_validity;
+DROP INDEX CONCURRENTLY commercial_reservation.idx_discount_rule_tenant_id;
