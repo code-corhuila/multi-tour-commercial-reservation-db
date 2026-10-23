@@ -100,12 +100,12 @@ databaseChangeLog:
         - sqlFile:
             path: 007_create_discount_rule_indexes.sql
             relativeToChangelogFile: true
-            splitStatements: false
+            splitStatements: true
       rollback:
         - sqlFile:
             path: ../../05_rollbacks/01_ddl/10_indexes/007_create_discount_rule_indexes.rollback.sql
             relativeToChangelogFile: true
-            splitStatements: false
+            splitStatements: true
   - changeSet:
       id: ddl-indexes-008
       author: FernandaRobayo
