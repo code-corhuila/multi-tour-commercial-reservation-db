@@ -14,6 +14,12 @@ discount_refusal() { # SQL, named engine constraint
   answer="$(engine "$1" 2>&1 || true)"; printf '%s\n' "$answer"
   check "HU-COM-003 invalid insert is rejected by $2" "$(printf '%s\n' "$answer" | grep -q "$2"; echo $?)"
 }
+discount_not_null_refusal() { # SQL, named NOT NULL constraint, column (PostgreSQL 18 reports the column in the error, not the constraint name)
+  local answer
+  answer="$(engine "$1" 2>&1 || true)"; printf '%s\n' "$answer"
+  check "HU-COM-003 invalid insert is rejected by $2 (SQLSTATE 23502, column $3)" "$(printf '%s\n' "$answer" | grep -q "ERROR:  23502.*column \"$3\""; echo $?)"
+  check "$2 exists in the catalog as a NOT NULL constraint" "$([ "$(sql "select count(*) from pg_constraint where conrelid=to_regclass('$discount_table') and contype='n' and conname='$2'")" = 1 ]; echo $?)"
+}
 discount_table_checks() {
   echo 'T-07 STEP 2 - table in the domain schema, no new domain object in public'
   check 'AC-D3.1 discount_rule exists only in commercial_reservation' "$([ "$(sql "select count(*) from pg_tables where tablename='discount_rule' and schemaname='$SCHEMA'")" = 1 ] && [ "$(sql "select count(*) from pg_tables where tablename='discount_rule' and schemaname='public'")" = 0 ]; echo $?)"
@@ -25,8 +31,8 @@ discount_table_checks() {
   check 'AC-D3.2/6 exact confirmed columns and mandatory UUID tenant; open decisions absent' "$([ "$actual" = "$expected" ]; echo $?)"
   check 'DP-07 status has no CHECK; DP-08 priority has no UNIQUE' "$([ "$(sql "select count(*) from pg_constraint where conrelid=to_regclass('$discount_table') and ((contype='c' and pg_get_constraintdef(oid) ~ '\\mstatus\\M') or contype='u')")" = 0 ]; echo $?)"
   echo 'T-07 STEP 4 - six invalid inserts rejected by their named constraints'
-  discount_refusal "$(discount_row '' '' NULL);" chk_discount_rule_starts_on_required
-  discount_refusal "$(discount_row '' NULL);" chk_discount_rule_ends_on_required
+  discount_not_null_refusal "$(discount_row '' '' NULL);" chk_discount_rule_starts_on_required starts_on
+  discount_not_null_refusal "$(discount_row '' NULL);" chk_discount_rule_ends_on_required ends_on
   discount_refusal "$(discount_row '' "'2025-12-31'");" chk_discount_rule_validity
   discount_refusal "$(discount_row '' '' '' UNKNOWN);" chk_discount_rule_calculation_base
   discount_refusal "$(discount_row '' '' '' '' 1250 100);" chk_discount_rule_value
@@ -36,7 +42,7 @@ discount_table_checks() {
   discount_refusal "$(discount_row '' '' '' '' 1250 NULL 'Valor fijo');" chk_discount_rule_value
   discount_refusal "$(discount_row '' '' '' '' 1250 NULL UNKNOWN);" chk_discount_rule_type
   discount_refusal "$(discount_row '' '' '' '' '' '' '' 0);" chk_discount_rule_priority
-  discount_refusal "$(discount_row '' '' '' '' '' '' '' '' NULL);" chk_discount_rule_tenant_required
+  discount_not_null_refusal "$(discount_row '' '' '' '' '' '' '' '' NULL);" chk_discount_rule_tenant_required tenant_id
   echo 'T-07 STEP 5 - writer and inherited application role cannot DELETE'
   check 'T-04 app inherits real commercial_reservation_writer role' "$([ "$(sql "select pg_has_role('$app','$writer','member')")" = t ]; echo $?)"
   local role answer
@@ -117,7 +123,7 @@ discount_outbox_checks() {
   # An UPDATE after the insert is a separate statement: PostgreSQL data-changing CTEs share a snapshot.
   discount_refusal "begin; $event_sql; update $SCHEMA.outbox_event set service_id='$(aid 801)', association_id='$(aid 802)' where event_type='DiscountRuleChanged'; commit;" chk_outbox_event_exactly_one_aggregate
   discount_refusal "begin; $event_sql; update $SCHEMA.outbox_event set discount_rule_id=null where event_type='DiscountRuleChanged'; commit;" chk_outbox_event_exactly_one_aggregate
-  discount_refusal "begin; $event_sql; update $SCHEMA.outbox_event set event_type='CatalogServiceReactivated', previous_catalog_status='INACTIVE', new_catalog_status='ACTIVE' where event_type='DiscountRuleChanged'; commit;" chk_outbox_event_exactly_one_aggregate
+  discount_refusal "begin; $event_sql; update $SCHEMA.outbox_event set event_type='CatalogServiceReactivated', previous_catalog_status='INACTIVE', new_catalog_status='ACTIVE', previous_discount_rule_state=null, new_discount_rule_state=null where event_type='DiscountRuleChanged'; commit;" chk_outbox_event_exactly_one_aggregate
   discount_refusal "begin; $event_sql; update $SCHEMA.outbox_event set discount_rule_id='$(aid 999)' where event_type='DiscountRuleChanged'; commit;" fk_outbox_event_discount_rule
   # Generalizing the aggregate selector must preserve catalog/association event semantics.
   engine "$(catalog_row "'$(aid 811)'"); $(ae_row "'$(aid 812)'");" || true
