@@ -65,14 +65,14 @@ discount_table_checks() {
 }
 echo 'HU-COM-003 T-07 STEP 1 - rebuild prerequisite HU-COM-001 + HU-COM-002 (23)'
 liquibase rollback-count 999
-db_labels='!HU-COM-003 and !HU-COM-005'
+db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005'
 liquibase update
 discount_base_snapshot="$(snapshot)"
 check 'T-01 schema, own control table, outbox, writer and no business DELETE exist' "$([ "$(sql "select (to_regnamespace('$SCHEMA') is not null and to_regclass('$CONTROL') is not null and to_regclass('$SCHEMA.outbox_event') is not null and exists(select 1 from pg_roles where rolname='$writer') and (select count(*) from information_schema.tables t where t.table_schema='$SCHEMA' and t.table_name not in ('idempotency_key','outbox_event') and has_table_privilege('$writer',format('%I.%I',t.table_schema,t.table_name),'DELETE'))=0)")" = t ]; echo $?)"
 check 'T-01 commercial_reservation_app inherits the NOLOGIN writer bundle' "$([ "$(sql "select pg_has_role('$app','$writer','member')")" = t ] && [ "$(sql "select rolcanlogin from pg_roles where rolname='$writer'")" = f ]; echo $?)"
 check 'T-01 prior stories applied exactly 23 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 23 ]; echo $?)"
 if [ "${TDD_PHASE:-all}" = table ]; then
-  db_labels='!HU-COM-003 and !HU-COM-005'
+  db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005'
 else
   db_labels='HU-COM-003 and discount-table'
 fi
@@ -167,7 +167,7 @@ check 'HU-COM-003 reapplies to the identical 27-changeset schema' "$([ "$(sql "s
 
 # Also build all 27 in master-changelog order, without staging labels, from empty.
 liquibase rollback-count 999
-db_labels='!HU-COM-005' # HU-COM-005 has its own staged checks in customer-checks.sh
+db_labels='!HU-COM-004 and !HU-COM-005' # HU-COM-005 has its own staged checks in customer-checks.sh
 liquibase update
 liquibase validate
 check 'full update from empty applies exactly 27 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 27 ]; echo $?)"
