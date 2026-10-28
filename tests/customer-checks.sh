@@ -135,7 +135,7 @@ iso_status=0
 iso_answer="$(engine "begin; $(b_cust_row "'$tenant'" "'Same'" "'v1:same'"); $(b_cust_row "'$other_tenant'" "'Same'" "'v1:same'"); select count(*) as scoped from $cust_table where tenant_id = '$tenant' and document_number = 'v1:same'; rollback;" 2>&1)" || iso_status=$?
 printf '%s\n' "$iso_answer"
 check 'AC-D5.5 two tenants accept the same customer document and a scoped query returns one row' "$([ "$iso_status" -eq 0 ] && printf '%s\n' "$iso_answer" | grep -Eq '^ +1$'; echo $?)"
-b_accepted 'AC-D5.5 two tenants accept the same companion document under the same reservation id' "$(b_comp_row "'$tenant'" "'$comp_reservation'" "'CC9'"); $(b_comp_row "'$other_tenant'" "'$comp_reservation'" "'CC9'");"
+b_accepted 'AC-D5.5 two tenants accept the same companion document, each under its own reservation' "$(b_comp_row "'$tenant'" "'$comp_reservation'" "'CC9'"); $(b_comp_row "'$other_tenant'" "'$comp_reservation_2'" "'CC9'");"
 # AC-D5.7: sensitive tables revoked from the reader; the writer inserts
 for t in "$sens_cust" "$sens_comp"; do
   check "AC-D5.7 the reader role has no SELECT on ${t#$SCHEMA.}" "$([ "$(sql "select has_table_privilege('$reader', '$t', 'SELECT')" 2>/dev/null || true)" = f ]; echo $?)"
