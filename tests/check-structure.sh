@@ -137,5 +137,13 @@ entry="03_tables/010_create_reservation_additional_discount"
 [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-004 migration 01_ddl/$entry.sql is missing"
 [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-004 rollback $entry is missing"
 grep -q "path: 010_create_reservation_additional_discount.sql" 01_ddl/03_tables/changelog.yaml || bad "HU-COM-004 010 is not included"
+# HU-COM-003 persistence of the defaults of 2026-10-28 (coverage, optional cap, status); numbers follow the free ones.
+for entry in '03_tables/013_create_discount_rule_service' '04_alter/008_add_discount_rule_coverage_cap_and_status' \
+  '10_indexes/010_create_discount_rule_service_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-003 persistence migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 persistence rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-003 persistence $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
