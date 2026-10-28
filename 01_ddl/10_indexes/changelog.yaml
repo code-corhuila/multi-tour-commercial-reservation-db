@@ -137,3 +137,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/009_create_customer_account_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-010
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-003,discount-persistence,ddl,10_indexes"
+      comment: "Index of the service foreign key of discount_rule_service, built concurrently."
+      changes:
+        - sqlFile:
+            path: 010_create_discount_rule_service_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/010_create_discount_rule_service_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY commercial_reservation.idx_discount_rule_service_service_id;
