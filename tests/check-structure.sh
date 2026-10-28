@@ -145,5 +145,10 @@ for entry in '03_tables/013_create_discount_rule_service' '04_alter/008_add_disc
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 persistence rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-003 persistence $stem is not included"
 done
+# HU-COM-003 codes and audit columns (ddl-alter-009): written before the migration it requires.
+entry='04_alter/009_migrate_discount_rule_codes_and_add_audit_columns'
+[ -f "01_ddl/$entry.sql" ] || bad "HU-COM-003 codes migration 01_ddl/$entry.sql is missing"
+[ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 codes rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 01_ddl/04_alter/changelog.yaml || bad "HU-COM-003 codes ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
