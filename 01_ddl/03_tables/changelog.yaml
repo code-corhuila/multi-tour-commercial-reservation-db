@@ -134,3 +134,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/009_create_reservation_companion.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-010
+      author: FernandaRobayo
+      labels: "HU-COM-004,additional-discount,ddl,03_tables"
+      comment: "PROPOSED reservation_additional_discount: one per reservation, six port fields, no cap, no foreign key yet (HU-COM-004 -db plan D-02, D-03; the authorizable_reason table stays out, still blocked by G-C and DP-04-3)."
+      changes:
+        - sqlFile:
+            path: 010_create_reservation_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/010_create_reservation_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
