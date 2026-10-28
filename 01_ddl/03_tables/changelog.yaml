@@ -104,3 +104,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/007_create_discount_rule.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-008
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-tables,ddl,03_tables"
+      comment: "customer: identity, tenant, full name and creation time only; columns of open decisions stay absent (HU-COM-005 plan D-02, D-07)."
+      changes:
+        - sqlFile:
+            path: 008_create_customer.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/008_create_customer.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-009
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-tables,ddl,03_tables"
+      comment: "reservation_companion: identity, tenant, reservation and full name only; document, birth, contact and sensitive data wait for decisions, the reservation key for HU-COM-007 (plan D-08)."
+      changes:
+        - sqlFile:
+            path: 009_create_reservation_companion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/009_create_reservation_companion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
