@@ -1,0 +1,2 @@
+GRANT SELECT ON commercial_reservation.customer_sensitive_data TO commercial_reservation_reader;
+GRANT SELECT ON commercial_reservation.reservation_companion_sensitive_data TO commercial_reservation_reader;

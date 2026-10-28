@@ -149,3 +149,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/010_create_reservation_additional_discount.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-011
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,ddl,03_tables"
+      comment: "customer_sensitive_data: emergency data apart from the ordinary row (HU-COM-005 DP-D5-7 default, PROPOSED 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 011_create_customer_sensitive_data.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/011_create_customer_sensitive_data.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-012
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,ddl,03_tables"
+      comment: "reservation_companion_sensitive_data: activity requirements apart from the ordinary row (DP-D5-7 default)."
+      changes:
+        - sqlFile:
+            path: 012_create_reservation_companion_sensitive_data.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/012_create_reservation_companion_sensitive_data.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
