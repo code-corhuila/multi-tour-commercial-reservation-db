@@ -104,3 +104,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/007_add_reservation_companion_columns.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-008
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-persistence,ddl,04_alter"
+      comment: "PROPOSED discount_rule: covers_all_services, optional cap_cents and status ACTIVE/INACTIVE; defaults DP-01, DP-05, DP-07 of 2026-10-28."
+      changes:
+        - sqlFile:
+            path: 008_add_discount_rule_coverage_cap_and_status.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/008_add_discount_rule_coverage_cap_and_status.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
