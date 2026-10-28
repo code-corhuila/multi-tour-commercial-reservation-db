@@ -83,7 +83,7 @@ check 'starts_on and ends_on are date, not timestamp' "$([ "$(sql "select string
 dp_accepted "$(dp_rule '' true '' '' "'2026-03-01'" "'2026-03-01'")" 'a one-day validity (starts_on = ends_on)'
 dp_refusal "$(dp_rule '' true '' '' "'2026-02-28'" "'2026-03-01'");" chk_discount_rule_validity 'an end date before the start date'
 engine "$(dp_rule "'$(aid 1401)'" true '' '' "'2026-03-31'" "'2026-03-01'");" >/dev/null || true
-check 'a rule is in force on its first and last day, and not the day after' "$([ "$(sql "select (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-03-01' between starts_on and ends_on) || (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-03-31' between starts_on and ends_on) || (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-04-01' between starts_on and ends_on)")" = 110 ]; echo $?)"
+check 'a rule is in force on its first and last day, and not the day after' "$([ "$(sql "select (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-03-01' between starts_on and ends_on)::text || (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-03-31' between starts_on and ends_on)::text || (select count(*) from $dp_rule_table where discount_rule_id='$(aid 1401)' and date '2026-04-01' between starts_on and ends_on)")" = 110 ]; echo $?)"
 
 echo 'DP-08 priority ties accepted: no UNIQUE on tenant and priority'
 dp_accepted "$(dp_rule '' true '' '' '' '' 7); $(dp_rule '' true '' '' '' '' 7)" 'two rules of one tenant with equal priority'
