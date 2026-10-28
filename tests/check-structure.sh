@@ -132,5 +132,10 @@ for entry in '03_tables/007_create_discount_rule' '10_indexes/007_create_discoun
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-003 $stem is not included"
 done
+# HU-COM-004 T-02: written before the table migration it requires (T-01 is not built: G-C, DP-04-3).
+entry="03_tables/010_create_reservation_additional_discount"
+[ -f "01_ddl/$entry.sql" ] || bad "HU-COM-004 migration 01_ddl/$entry.sql is missing"
+[ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-004 rollback $entry is missing"
+grep -q "path: 010_create_reservation_additional_discount.sql" 01_ddl/03_tables/changelog.yaml || bad "HU-COM-004 010 is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
