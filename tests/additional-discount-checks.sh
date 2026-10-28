@@ -56,8 +56,10 @@ check 'a valid discount and a full 100 percent discount are accepted' "$ad_ok"
 ad_refusal "$(ad_row '' '' '' 0);" chk_reservation_additional_discount_percentage
 ad_refusal "$(ad_row '' '' '' 10001);" chk_reservation_additional_discount_percentage
 ad_refusal "$(ad_row '' '' '' '' '' '' '' '' 0);" chk_reservation_additional_discount_amount
-ad_refusal "$(ad_row '' '' '' '' '' '' '' 0 0);" chk_reservation_additional_discount_previous_value
-ad_refusal "$(ad_row '' '' '' '' '' '' '' -5 10);" chk_reservation_additional_discount_previous_value
+# PostgreSQL reports the first violated CHECK by name: with amounts that make previous_value fail, the amount checks fail first, so previous_value is also asserted from the catalog.
+ad_refusal "$(ad_row '' '' '' '' '' '' '' 0 0);" chk_reservation_additional_discount_amount
+ad_refusal "$(ad_row '' '' '' '' '' '' '' -5 10);" chk_reservation_additional_discount_amount_within_previous
+check 'chk_reservation_additional_discount_previous_value exists as a CHECK on previous_value_cents > 0' "$([ "$(sql "select count(*) from pg_constraint where conrelid=to_regclass('$ad_table') and contype='c' and conname='chk_reservation_additional_discount_previous_value' and pg_get_constraintdef(oid) like '%previous_value_cents > 0%'")" = 1 ]; echo $?)"
 ad_refusal "$(ad_row '' '' '' '' '' '' '' 100 101);" chk_reservation_additional_discount_amount_within_previous
 ad_refusal "$(ad_row '' '' '' '' "'   '");" chk_reservation_additional_discount_reason_not_blank
 ad_refusal "$(ad_row '' '' '' '' "''");" chk_reservation_additional_discount_reason_not_blank
