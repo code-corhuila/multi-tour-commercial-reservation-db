@@ -134,3 +134,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/009_migrate_discount_rule_codes_and_add_audit_columns.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-010
+      author: FernandaRobayo
+      labels: "HU-COM-004,outbox-widening,ddl,04_alter"
+      comment: "PROPOSED outbox_event: ONE widening for ReservationModified, CustomerRegistered and SensitiveDataAccessed (closing decisions 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 010_widen_outbox_event_for_reservation_and_customer_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/010_widen_outbox_event_for_reservation_and_customer_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
