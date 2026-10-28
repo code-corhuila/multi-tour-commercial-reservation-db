@@ -194,3 +194,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/013_create_discount_rule_service.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-014
+      author: FernandaRobayo
+      labels: "HU-COM-004,authorizable-reason,ddl,03_tables"
+      comment: "PROPOSED authorizable_reason: tenant reasons for an additional discount, ENABLED or DISABLED, unique by normalized text."
+      changes:
+        - sqlFile:
+            path: 014_create_authorizable_reason.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/014_create_authorizable_reason.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -74,3 +74,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/005_revoke_select_on_sensitive_tables.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-006
+      author: FernandaRobayo
+      labels: "HU-COM-004,additional-discount-immutable,dcl,grants"
+      comment: "The writer loses UPDATE on reservation_additional_discount: a stored additional discount is immutable (AC-D4.9)."
+      changes:
+        - sqlFile:
+            path: 006_revoke_update_on_reservation_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/006_revoke_update_on_reservation_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
