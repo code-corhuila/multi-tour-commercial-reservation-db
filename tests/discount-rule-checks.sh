@@ -145,7 +145,7 @@ liquibase update
 discount_outbox_checks
 
 echo 'T-07 STEP 7 - second update, protected rollback, exact revert and reapply'
-db_labels='HU-COM-003 and !discount-persistence'
+db_labels='HU-COM-003 and !discount-persistence and !discount-rule-codes'
 discount_second="$(liquibase update 2>&1)"; printf '%s\n' "$discount_second"
 check 'AC-D3.10 second full update applies zero changesets' "$(printf '%s\n' "$discount_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
 check 'HU-COM-003 adds exactly four changesets (23 -> 27)' "$([ "$(sql "select count(*) from $CONTROL")" = 27 ]; echo $?)"
@@ -167,7 +167,7 @@ check 'HU-COM-003 reapplies to the identical 27-changeset schema' "$([ "$(sql "s
 
 # Also build all 27 in master-changelog order, without staging labels, from empty.
 liquibase rollback-count 999
-db_labels='!HU-COM-004 and !HU-COM-005 and !discount-persistence' # HU-COM-005 has its own staged checks in customer-checks.sh
+db_labels='!HU-COM-004 and !HU-COM-005 and !discount-persistence and !discount-rule-codes' # HU-COM-005 has its own staged checks in customer-checks.sh
 liquibase update
 liquibase validate
 check 'full update from empty applies exactly 27 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 27 ]; echo $?)"
