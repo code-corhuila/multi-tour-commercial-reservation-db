@@ -59,3 +59,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/004_grant_delete_on_technical_tables.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-005
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,dcl,grants"
+      comment: "Reader loses SELECT on the two sensitive tables, after they exist (DP-D5-7, AC-D5.7)."
+      changes:
+        - sqlFile:
+            path: 005_revoke_select_on_sensitive_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/005_revoke_select_on_sensitive_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
