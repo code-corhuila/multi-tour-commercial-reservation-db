@@ -150,5 +150,17 @@ entry='04_alter/009_migrate_discount_rule_codes_and_add_audit_columns'
 [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-003 codes migration 01_ddl/$entry.sql is missing"
 [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-003 codes rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 01_ddl/04_alter/changelog.yaml || bad "HU-COM-003 codes ${entry##*/} is not included"
+# HU-COM-004 outbox widening, authorizable reasons and immutable additional discount: written before the migrations.
+for entry in '04_alter/010_widen_outbox_event_for_reservation_and_customer_events' '03_tables/014_create_authorizable_reason' \
+  '10_indexes/011_create_authorizable_reason_enabled_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-004 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-004 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-004 $stem is not included"
+done
+entry='01_grants/006_revoke_update_on_reservation_additional_discount'
+[ -f "03_dcl/$entry.sql" ] || bad "HU-COM-004 grant 03_dcl/$entry.sql is missing"
+[ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-004 grant rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-004 ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
