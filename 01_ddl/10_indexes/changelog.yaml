@@ -351,3 +351,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/023_create_payment_deadline_indexes.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-024
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-010,payment-review,ddl,10_indexes"
+      comment: "Partial index of the proofs under validation of a tenant, built concurrently (HU-COM-010 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 024_create_payment_attempt_under_validation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/024_create_payment_attempt_under_validation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

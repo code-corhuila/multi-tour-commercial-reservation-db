@@ -29,3 +29,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/001_create_trg_reservation_birth.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-002
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,09_triggers"
+      comment: "PROPOSED trg_payment_attempt_guard: BEFORE UPDATE on payment_attempt only (HU-COM-010 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 002_create_trg_payment_attempt_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/002_create_trg_payment_attempt_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
