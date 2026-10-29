@@ -1,0 +1,12 @@
+ALTER TABLE commercial_reservation.payment_attempt
+    DROP CONSTRAINT chk_payment_attempt_difference_has_reason,
+    DROP CONSTRAINT chk_payment_attempt_undecided_empty,
+    DROP CONSTRAINT chk_payment_attempt_rejected_complete,
+    DROP CONSTRAINT chk_payment_attempt_approved_complete,
+    DROP COLUMN treatment_amount_cents,
+    DROP COLUMN excess_amount_cents,
+    DROP COLUMN applied_amount_cents,
+    DROP COLUMN verified_amount_cents,
+    DROP COLUMN decision_reason,
+    DROP COLUMN decided_at,
+    DROP COLUMN decided_by;

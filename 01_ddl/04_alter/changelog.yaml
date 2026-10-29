@@ -244,3 +244,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/015_add_outbox_event_payment_payload_key_lists.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-016
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "PROPOSED review columns of payment_attempt and the constraints of a complete decision: approval, rejection, undecided and differing amount (HU-COM-010 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 016_add_payment_attempt_review_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/016_add_payment_attempt_review_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-017
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "Closed key lists of the payloads of PaymentValidated, PaymentRejected, ReservationConfirmed and CapacityReleased (HU-COM-010 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 017_add_outbox_event_payment_review_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/017_add_outbox_event_payment_review_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
