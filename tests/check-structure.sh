@@ -241,5 +241,13 @@ for entry in '04_alter/014_add_salida_capacity_held_within_effective_check' '03_
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-009 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-009 $stem is not included"
 done
+# HU-COM-009 payment parameters, payment deadline, their indexes and the key lists of the payment payloads: written before the migrations.
+for entry in '03_tables/022_create_payment_condition' '03_tables/023_create_payment_deadline' '10_indexes/022_create_payment_condition_indexes' \
+  '10_indexes/023_create_payment_deadline_indexes' '04_alter/015_add_outbox_event_payment_payload_key_lists'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-009 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-009 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-009 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
