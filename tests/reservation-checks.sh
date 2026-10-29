@@ -112,19 +112,141 @@ echo 'no DELETE for the application (AC-D7.14)'
 check 'neither the writer nor the application user holds DELETE on reservation, the reader does not either' "$([ "$(sql "select has_table_privilege('$app','$rs_t','DELETE') or has_table_privilege('$writer','$rs_t','DELETE') or has_table_privilege('$reader','$rs_t','DELETE')")" = f ] && [ "$(sql "select has_table_privilege('$reader','$rs_t','SELECT')")" = t ]; echo $?)"
 rs_refusal "delete from $rs_t;" 'permission denied for table reservation' 'DELETE as the application user on reservation'
 
-echo 'Idempotence, exact revert and reapply of the table, the function and the trigger (AC-D7.16, AC-D7.17)'
+
+# ---- (b) reserved_service (03_tables/017, label reserved-service), reservation_fixed_discount (03_tables/018) and its UPDATE revoke
+# (03_dcl/01_grants/008), both with label fixed-discount, and the keys of the companion and the additional discount
+# (04_alter/013, label reservation-keys). Every changeset also carries HU-COM-007.
+rs_rs="$SCHEMA.reserved_service"; rs_fd="$SCHEMA.reservation_fixed_discount"
+rs_svc2="$(aid 2204)"; rs_rule1="$(aid 2205)"; rs_rule2="$(aid 2206)"
+rs_service_row() { # column/value pairs (SQL literals) that replace the defaults of a valid reserved service of the kept reservation
+  local -A v=([reserved_service_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [reservation_id]="'$rs_keep'" [service_id]="'$rs_svc'"
+    [party_size]=2 [scheduled_date]="current_date + 30" [base_rate_cents]=150000 [transport_rate_cents]=20000)
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $rs_rs (reserved_service_id, tenant_id, reservation_id, service_id, party_size, scheduled_date, base_rate_cents, transport_rate_cents) values (${v[reserved_service_id]}, ${v[tenant_id]}, ${v[reservation_id]}, ${v[service_id]}, ${v[party_size]}, ${v[scheduled_date]}, ${v[base_rate_cents]}, ${v[transport_rate_cents]})"
+}
+rs_line_row() { # column/value pairs (SQL literals) that replace the defaults of a valid fixed discount line of the kept reservation
+  local -A v=([reservation_fixed_discount_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [reservation_id]="'$rs_keep'" [line_order]=1
+    [discount_rule_id]="'$rs_rule1'" [rule_name]="'Season offer'" [discount_type]="'PERCENTAGE'" [discount_percentage_bp]=1000
+    [discount_amount_cents]=NULL [calculation_base]="'ORIGINAL_VALUE'" [base_cents]=300000 [amount_cents]=30000 [subtotal_cents]=270000 [cap_cents]=NULL)
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $rs_fd (reservation_fixed_discount_id, tenant_id, reservation_id, line_order, discount_rule_id, rule_name, discount_type, discount_percentage_bp, discount_amount_cents, calculation_base, base_cents, amount_cents, subtotal_cents, cap_cents) values (${v[reservation_fixed_discount_id]}, ${v[tenant_id]}, ${v[reservation_id]}, ${v[line_order]}, ${v[discount_rule_id]}, ${v[rule_name]}, ${v[discount_type]}, ${v[discount_percentage_bp]}, ${v[discount_amount_cents]}, ${v[calculation_base]}, ${v[base_cents]}, ${v[amount_cents]}, ${v[subtotal_cents]}, ${v[cap_cents]})"
+}
+
+echo 'HU-COM-007 reservation (b) - probes written first: red before the changesets, green after'
+sql "insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$rs_svc2', '$tenant', 'TOUR', 'Reservation probe tour 2', 'ACTIVE', 150000, 90000, 12, false, false, now(), now());
+     insert into $SCHEMA.discount_rule (discount_rule_id, tenant_id, name, starts_on, ends_on, priority, calculation_base, discount_type, discount_percentage_bp, discount_amount_cents, status, covers_all_services, created_at, updated_at) values ('$rs_rule1', '$tenant', 'Season offer', current_date, current_date + 90, 1, 'ORIGINAL_VALUE', 'PERCENTAGE', 1000, NULL, 'ACTIVE', true, now(), now()), ('$rs_rule2', '$tenant', 'Fixed offer', current_date, current_date + 90, 2, 'PREVIOUS_SUBTOTAL', 'FIXED_AMOUNT', NULL, 5000, 'ACTIVE', true, now(), now())" >/dev/null 2>&1 || true
+db_labels='reserved-service'
+liquibase update >/dev/null
+check 'reserved_service brings the control table to 57 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 57 ]; echo $?)"
+
+echo 'oneReservedServicePerTourInAReservation (AC-D7.6)'
+check 'AC-D7.6 reserved_service holds exactly the eight columns of the plan, the date and the transport fare optional' "$([ "$(cols_of reserved_service)" = 'reserved_service_id uuid NO,tenant_id uuid NO,reservation_id uuid NO,service_id uuid NO,party_size integer NO,scheduled_date date YES,base_rate_cents bigint NO,transport_rate_cents bigint YES' ]; echo $?)"
+check 'AC-D7.1 nothing new appears in public, and no column has a DEFAULT' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ] && [ "$(rs_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='reserved_service' and column_default is not null")" = 0 ]; echo $?)"
+for rs_pair in tenant_id:tenant reservation_id:reservation service_id:service party_size:party_size base_rate_cents:base_rate; do
+  rs_col="${rs_pair%%:*}"; rs_name="chk_reserved_service_${rs_pair##*:}_required"
+  rs_refusal "$(rs_service_row "$rs_col" NULL);" "ERROR:  23502.*column \"$rs_col\"" "a reserved service without $rs_col"
+  check "AC-D7.6 $rs_name exists in the catalog as a NOT NULL constraint" "$([ "$(rs_sql "select count(*) from pg_constraint where conrelid='$rs_rs'::regclass and contype='n' and conname='$rs_name'")" = 1 ]; echo $?)"
+done
+rs_accepted "$(rs_service_row scheduled_date NULL transport_rate_cents NULL)" 'a reserved service with no date and no transport fare'
+engine "$(rs_service_row);" >/dev/null || true
+check 'a first reserved service of the kept reservation is stored' "$([ "$(rs_sql "select count(*) from $rs_rs where reservation_id='$rs_keep'")" = 1 ]; echo $?)"
+rs_refusal "$(rs_service_row);" uq_reserved_service_reservation_service 'a second row for the same tour in the same reservation'
+rs_accepted "$(rs_service_row service_id "'$rs_svc2'")" 'a row for another tour (the key stops the same tour twice only)'
+rs_refusal "$(rs_service_row reservation_id "'$(aid 2299)'");" fk_reserved_service_reservation 'a service of a reservation that does not exist'
+rs_refusal "$(rs_service_row service_id "'$(aid 2299)'");" fk_reserved_service_service 'a service that does not exist'
+rs_refusal "$(rs_service_row party_size 0);" chk_reserved_service_party_size 'zero people'
+rs_refusal "$(rs_service_row base_rate_cents -1);" chk_reserved_service_base_rate 'a negative base rate'
+rs_refusal "$(rs_service_row transport_rate_cents -1);" chk_reserved_service_transport_rate 'a negative transport fare'
+check 'neither the writer nor the application user holds DELETE on reserved_service' "$([ "$(sql "select has_table_privilege('$app','$rs_rs','DELETE') or has_table_privilege('$writer','$rs_rs','DELETE')")" = f ]; echo $?)"
+rs_refusal "delete from $rs_rs;" 'permission denied for table reserved_service' 'DELETE as the application user on reserved_service'
+
+echo 'salidaCapacityIsNotAlteredAndKeepsTheColumnsOf006 (AC-D7.13)'
+check 'AC-D7.13 salida_capacity keeps the eight columns HU-COM-006 left it, with hora_inicio and status required' "$([ "$(cols_of salida_capacity)" = 'salida_capacity_id uuid NO,tenant_id uuid NO,salida_id uuid NO,effective_capacity integer NO,held_seats integer NO,service_id uuid NO,hora_inicio timestamp with time zone NO,status text NO' ]; echo $?)"
+check 'AC-D7.13 its constraints are those of 006, and no table of this story points at it' "$([ "$(rs_sql "select string_agg(conname, ',' order by conname) from pg_constraint where conrelid='$SCHEMA.salida_capacity'::regclass and contype in ('p','u','c','f')")" = 'chk_salida_capacity_held_seats,chk_salida_capacity_status,fk_salida_capacity_service,pk_salida_capacity,uq_salida_capacity_tenant_id_salida_id' ] && [ "$(rs_sql "select count(*) from pg_constraint where contype='f' and confrelid='$SCHEMA.salida_capacity'::regclass")" = 0 ]; echo $?)"
+
+db_labels='fixed-discount'
+liquibase update >/dev/null
+check 'the fixed discount lines and the UPDATE revoke bring the control table to 59 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 59 ]; echo $?)"
+
+echo 'fixedContextLinesAreUniquePerOrderAndNeverNegative (AC-D7.7)'
+rs_fd_cols='reservation_fixed_discount_id uuid NO,tenant_id uuid NO,reservation_id uuid NO,line_order integer NO,discount_rule_id uuid NO,rule_name text NO,discount_type text NO,discount_percentage_bp integer YES,discount_amount_cents bigint YES,calculation_base text NO,base_cents bigint NO,amount_cents bigint NO,subtotal_cents bigint NO,cap_cents bigint YES'
+check 'AC-D7.7 the line holds the order, the rule, its copied name, type and value, the base kind, base, amount, subtotal and cap' "$([ "$(cols_of reservation_fixed_discount)" = "$rs_fd_cols" ]; echo $?)"
+check 'AC-D7.7 no column has a DEFAULT, and the accumulation policy has no column (ND-06 open)' "$([ "$(rs_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='reservation_fixed_discount' and (column_default is not null or column_name ilike '%accumulat%')")" = 0 ]; echo $?)"
+for rs_pair in tenant_id:tenant reservation_id:reservation line_order:order discount_rule_id:rule rule_name:name discount_type:type calculation_base:base_kind base_cents:base amount_cents:amount subtotal_cents:subtotal; do
+  rs_col="${rs_pair%%:*}"; rs_name="chk_reservation_fixed_discount_${rs_pair##*:}_required"
+  rs_refusal "$(rs_line_row "$rs_col" NULL);" "ERROR:  23502.*column \"$rs_col\"" "a line without $rs_col"
+  check "AC-D7.7 $rs_name exists in the catalog as a NOT NULL constraint" "$([ "$(rs_sql "select count(*) from pg_constraint where conrelid='$rs_fd'::regclass and contype='n' and conname='$rs_name'")" = 1 ]; echo $?)"
+done
+engine "$(rs_line_row);" >/dev/null || true
+engine "$(rs_line_row line_order 2 discount_rule_id "'$rs_rule2'" rule_name "'Fixed offer'" discount_type "'FIXED_AMOUNT'" discount_percentage_bp NULL discount_amount_cents 5000 calculation_base "'PREVIOUS_SUBTOTAL'" base_cents 270000 amount_cents 5000 subtotal_cents 265000 cap_cents 8000);" >/dev/null || true
+engine "$(rs_line_row line_order 3 amount_cents 0 subtotal_cents 265000 base_cents 265000);" >/dev/null || true
+check 'a percentage line, a fixed amount line and a line whose amount is zero are stored: every rule in force is a line' "$([ "$(rs_sql "select count(*) from $rs_fd where reservation_id='$rs_keep'")" = 3 ] && [ "$(rs_sql "select count(*) from $rs_fd where reservation_id='$rs_keep' and amount_cents = 0")" = 1 ]; echo $?)"
+rs_refusal "$(rs_line_row line_order 1);" uq_reservation_fixed_discount_reservation_order 'a second line with the same order in a reservation'
+rs_accepted "$(rs_line_row reservation_id "'$(aid 2210)'" line_order 9)" 'another order of the same reservation'
+rs_refusal "$(rs_line_row line_order 0);" chk_reservation_fixed_discount_order 'an order of zero'
+rs_refusal "$(rs_line_row line_order 4 amount_cents -1);" chk_reservation_fixed_discount_amount 'a negative amount'
+rs_refusal "$(rs_line_row line_order 4 base_cents -1);" chk_reservation_fixed_discount_base 'a negative base'
+rs_refusal "$(rs_line_row line_order 4 subtotal_cents -1);" chk_reservation_fixed_discount_subtotal 'a negative subtotal'
+rs_refusal "$(rs_line_row line_order 4 cap_cents 0);" chk_reservation_fixed_discount_cap 'a cap of zero'
+rs_refusal "$(rs_line_row line_order 4 discount_type "'Porcentual'");" chk_reservation_fixed_discount_type 'a Spanish discount type'
+rs_refusal "$(rs_line_row line_order 4 calculation_base "'Valor original'");" chk_reservation_fixed_discount_base_kind 'a Spanish calculation base'
+rs_refusal "$(rs_line_row line_order 4 discount_amount_cents 100);" chk_reservation_fixed_discount_value 'a percentage line that also carries an amount'
+rs_refusal "$(rs_line_row line_order 4 discount_type "'FIXED_AMOUNT'");" chk_reservation_fixed_discount_value 'a fixed amount line that carries a percentage and no amount'
+rs_refusal "$(rs_line_row line_order 4 discount_percentage_bp 10001);" chk_reservation_fixed_discount_percentage 'a percentage above 10000 basis points'
+rs_refusal "$(rs_line_row line_order 4 rule_name "'  '");" chk_reservation_fixed_discount_name 'a blank rule name'
+rs_refusal "$(rs_line_row line_order 4 discount_rule_id "'$(aid 2299)'");" fk_reservation_fixed_discount_rule 'a line of a rule that does not exist'
+rs_refusal "$(rs_line_row line_order 4 reservation_id "'$(aid 2299)'");" fk_reservation_fixed_discount_reservation 'a line of a reservation that does not exist'
+rs_refusal "delete from $rs_fd;" 'permission denied for table reservation_fixed_discount' 'DELETE as the application user on the lines'
+
+echo 'fixedDiscountLinesSurviveTheRuleAndCannotBeUpdated (AC-D7.8)'
+rs_before="$(rs_sql "select md5(string_agg(t::text, '|' order by line_order)) from $rs_fd t where reservation_id='$rs_keep'")"
+sql "update $SCHEMA.discount_rule set name = 'Renamed offer', status = 'INACTIVE', discount_percentage_bp = 2500, updated_at = now() where discount_rule_id = '$rs_rule1'" >/dev/null 2>&1 || true
+check 'AC-D7.8 after the rule is renamed, edited and inactivated the lines are byte for byte as they were stored' "$([ -n "$rs_before" ] && [ "$(rs_sql "select md5(string_agg(t::text, '|' order by line_order)) from $rs_fd t where reservation_id='$rs_keep'")" = "$rs_before" ] && [ "$(rs_sql "select rule_name from $rs_fd where reservation_id='$rs_keep' and line_order=1")" = 'Season offer' ]; echo $?)"
+rs_refusal "update $rs_fd set amount_cents = 1 where reservation_id='$rs_keep';" 'permission denied for table reservation_fixed_discount' 'an UPDATE of a line as the application user'
+rs_refusal "update $rs_fd set rule_name = 'x';" 'permission denied for table reservation_fixed_discount' 'an UPDATE of every line as the application user'
+check 'AC-D7.8 the writer and the application user hold SELECT and INSERT on the lines, not UPDATE or DELETE; the reader reads' "$([ "$(sql "select has_table_privilege('$writer','$rs_fd','SELECT') and has_table_privilege('$writer','$rs_fd','INSERT') and has_table_privilege('$app','$rs_fd','INSERT') and has_table_privilege('$reader','$rs_fd','SELECT')")" = t ] && [ "$(sql "select has_table_privilege('$writer','$rs_fd','UPDATE') or has_table_privilege('$app','$rs_fd','UPDATE') or has_table_privilege('$writer','$rs_fd','DELETE') or has_table_privilege('$app','$rs_fd','DELETE')")" = f ]; echo $?)"
+check 'HU-COM-007 reservation: deleting a rule that a line copied from is refused by fk_reservation_fixed_discount_rule' "$(refused "delete from $SCHEMA.discount_rule where discount_rule_id = '$rs_rule1'" 'fk_reservation_fixed_discount_rule')"
+
+db_labels='reservation-keys'
+liquibase update >/dev/null
+check 'the two keys bring the control table to 60 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 60 ]; echo $?)"
+
+echo 'companionAndAdditionalDiscountRequireAnExistingReservation (AC-D7.10)'
+rs_comp() { # reservation, document
+  echo "insert into $SCHEMA.reservation_companion (reservation_companion_id, tenant_id, reservation_id, full_name, document_number, birth_date_or_age) values (gen_random_uuid(), '$tenant', '$1', 'Luis Gomez', '$2', 'v1:birth')"
+}
+rs_addl() { # reservation
+  echo "insert into $SCHEMA.reservation_additional_discount (additional_discount_id, tenant_id, reservation_id, discount_percentage_bp, reason, applied_by, applied_at, previous_value_cents, amount_cents) values (gen_random_uuid(), '$tenant', '$1', 1000, 'Fidelizacion', '$actor', now(), 100000, 10000)"
+}
+check 'AC-D7.10 both keys exist, simple, ON DELETE RESTRICT' "$([ "$(rs_sql "select string_agg(conname || ':' || pg_get_constraintdef(oid), '|' order by conname) from pg_constraint where conname in ('fk_reservation_companion_reservation','fk_reservation_additional_discount_reservation')")" = "fk_reservation_additional_discount_reservation:FOREIGN KEY (reservation_id) REFERENCES $SCHEMA.reservation(reservation_id) ON DELETE RESTRICT|fk_reservation_companion_reservation:FOREIGN KEY (reservation_id) REFERENCES $SCHEMA.reservation(reservation_id) ON DELETE RESTRICT" ]; echo $?)"
+rs_refusal "$(rs_comp "$(aid 2299)" CC900);" fk_reservation_companion_reservation 'a companion of a reservation that does not exist'
+rs_refusal "$(rs_addl "$(aid 2299)");" fk_reservation_additional_discount_reservation 'an additional discount of a reservation that does not exist'
+engine "$(rs_comp "$rs_keep" CC900);" >/dev/null || true
+engine "$(rs_addl "$rs_keep");" >/dev/null || true
+check 'a companion and an additional discount of a stored reservation are accepted' "$([ "$(rs_sql "select count(*) from $SCHEMA.reservation_companion where reservation_id='$rs_keep'")" = 1 ] && [ "$(rs_sql "select count(*) from $SCHEMA.reservation_additional_discount where reservation_id='$rs_keep'")" = 1 ]; echo $?)"
+rs_refusal "$(rs_comp "$rs_keep" CC900);" uq_reservation_companion_reservation_document 'theDocumentUniquePerReservationStillHolds: the same document twice in one reservation'
+rs_accepted "$(rs_comp "$(aid 2210)" CC901)" 'another document in the same reservation'
+rs_refusal "$(rs_addl "$rs_keep");" uq_reservation_additional_discount_reservation 'a second additional discount in one reservation'
+rs_refusal "delete from $rs_t where reservation_id = '$rs_keep';" 'permission denied for table reservation' 'deleting a referenced reservation as the application user'
+check 'a reservation referenced by a companion cannot be deleted even by its owner: the key restricts' "$(refused "delete from $rs_t where reservation_id = '$rs_keep'" 'foreign key constraint')"
+
+rs_ob="$SCHEMA.outbox_event"
+echo 'Idempotence, exact revert and reapply of the whole story (AC-D7.16, AC-D7.17)'
 rs_second="$(liquibase update 2>&1)"; printf '%s\n' "$rs_second"
 check 'a second update applies zero changesets' "$(printf '%s\n' "$rs_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
-sql "delete from $rs_t" >/dev/null 2>&1 || true
-liquibase rollback-count 3
+sql "delete from $rs_ob where reservation_id is not null; delete from $SCHEMA.reservation_companion where reservation_id in (select reservation_id from $rs_t); delete from $SCHEMA.reservation_additional_discount where reservation_id in (select reservation_id from $rs_t); delete from $rs_fd; delete from $rs_rs; delete from $rs_t" >/dev/null 2>&1 || true
+check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (select count(*) from $rs_t) + (select count(*) from $rs_rs) + (select count(*) from $rs_fd)")" = 0 ]; echo $?)"
+liquibase rollback-count 7
 rs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rs_base" "$rs_reverted"
-check 'the three-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
-check 'the table, the function and the trigger are gone after the revert' "$([ "$(sql "select to_regclass('$rs_t') is null")" = t ] && [ "$(sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='trg_reservation_birth'")" = 0 ]; echo $?)"
+check 'the seven-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
+check 'the three tables, the function, the trigger, the keys and the widening are gone after the revert' "$([ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation','reserved_service','reservation_fixed_discount')")" = 0 ] && [ "$(sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='trg_reservation_birth'")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname in ('fk_outbox_event_reservation','fk_reservation_companion_reservation','fk_reservation_additional_discount_reservation','chk_outbox_event_payload_keys_reservation_created')")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
-check 'the three changesets reapply to 56 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 56 ]; echo $?)"
+check 'the seven changesets reapply to 60 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 60 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 56 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 56 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 60 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 60 ]; echo $?)"
+check 'AC-D7.8 after the whole runner the writer and the application user still hold no UPDATE on the fixed discount lines' "$([ "$(sql "select has_table_privilege('$writer','$rs_fd','UPDATE') or has_table_privilege('$app','$rs_fd','UPDATE')")" = f ]; echo $?)"
+check 'AC-D7.1 the whole story leaves nothing in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
