@@ -122,3 +122,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/008_create_outbox_event_discount_rule_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-009
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-columns,ddl,10_indexes"
+      comment: "Partial index on customer (tenant_id, account_id) where account_id is not null (DP-D5-4 default)."
+      changes:
+        - sqlFile:
+            path: 009_create_customer_account_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/009_create_customer_account_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

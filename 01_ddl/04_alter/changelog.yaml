@@ -74,3 +74,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/005_generalize_outbox_event_discount_rules.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-006
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-columns,ddl,04_alter"
+      comment: "customer: document, birth date or age, contact, status and account_id (DP-D5-1, 4, 5, 6 defaults); open columns stay absent."
+      changes:
+        - sqlFile:
+            path: 006_add_customer_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/006_add_customer_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-007
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-columns,ddl,04_alter"
+      comment: "reservation_companion: normalized plain document unique per reservation, birth date or age (DP-D5-1, 2, 5 defaults)."
+      changes:
+        - sqlFile:
+            path: 007_add_reservation_companion_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/007_add_reservation_companion_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

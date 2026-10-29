@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.customer_sensitive_data;
