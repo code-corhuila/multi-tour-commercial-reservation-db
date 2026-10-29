@@ -254,3 +254,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/016_create_reservation.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-017
+      author: FernandaRobayo
+      labels: "HU-COM-007,reserved-service,ddl,03_tables"
+      comment: "PROPOSED reserved_service: one row per reserved service with the base rate and the transport fare used, one row per tour in a reservation (HU-COM-007 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 017_create_reserved_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/017_create_reserved_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-018
+      author: FernandaRobayo
+      labels: "HU-COM-007,fixed-discount,ddl,03_tables"
+      comment: "PROPOSED reservation_fixed_discount: one immutable line per general rule in force at creation, zero amounts included (HU-COM-007 plan D-06, debt DD-3)."
+      changes:
+        - sqlFile:
+            path: 018_create_reservation_fixed_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/018_create_reservation_fixed_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
