@@ -207,5 +207,14 @@ entry='01_grants/008_revoke_update_on_reservation_fixed_discount'
 [ -f "03_dcl/$entry.sql" ] || bad "HU-COM-007 grant 03_dcl/$entry.sql is missing"
 [ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-007 grant rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-007 ${entry##*/} is not included"
+# HU-COM-007 second widening of the outbox and the reservation indexes: written before the migrations.
+for entry in '04_alter/012_widen_outbox_event_for_reservation_payment_and_capacity_events' \
+  '10_indexes/014_create_reservation_tenant_status_index' '10_indexes/015_create_reservation_tenant_salida_index' \
+  '10_indexes/016_create_reservation_tenant_customer_index' '10_indexes/017_create_outbox_event_reservation_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-007 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-007 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-007 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
