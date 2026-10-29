@@ -24,13 +24,13 @@ dp_accepted() { # SQL, description
 
 echo 'HU-COM-003 persistence - base: the 36 changesets of HU-COM-001..005 without the persistence slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!discount-persistence and !discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008'
+db_labels='!discount-persistence and !discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009'
 liquibase update >/dev/null
 dp_base="$(snapshot)"
 check 'base holds exactly 36 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 36 ]; echo $?)"
 
 echo 'HU-COM-003 persistence - probes written first: red before the changesets, green after'
-db_labels='!discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008'
+db_labels='!discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009'
 liquibase update >/dev/null
 check 'the slice brings the control table to 39 changesets (tables 013, alter 008, indexes 010)' "$([ "$(sql "select count(*) from $CONTROL")" = 39 ]; echo $?)"
 
