@@ -195,5 +195,17 @@ for entry in '03_tables/016_create_reservation' '07_functions/001_create_trg_res
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-007 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-007 $stem is not included"
 done
+# HU-COM-007 reserved service, fixed discount lines and the keys that waited for the reservation: written before the migrations.
+for entry in '03_tables/017_create_reserved_service' '03_tables/018_create_reservation_fixed_discount' \
+  '04_alter/013_add_reservation_foreign_keys_to_companion_and_additional_discount'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-007 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-007 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-007 $stem is not included"
+done
+entry='01_grants/008_revoke_update_on_reservation_fixed_discount'
+[ -f "03_dcl/$entry.sql" ] || bad "HU-COM-007 grant 03_dcl/$entry.sql is missing"
+[ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-007 grant rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-007 ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
