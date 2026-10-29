@@ -259,3 +259,35 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/017_create_outbox_event_reservation_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-018
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-008,customer-account-unique,ddl,10_indexes"
+      comment: "PROPOSED partial unique index on customer (tenant_id, account_id) where account_id is not null: one account is one customer per tenant (DP-D8-1 default, HU-COM-008 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 018_create_customer_account_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/018_create_customer_account_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-019
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-008,customer-account-unique,ddl,10_indexes"
+      comment: "Drop of idx_customer_tenant_account_id (HU-COM-005), made redundant by the unique index; the rollback recreates it."
+      changes:
+        - sqlFile:
+            path: 019_drop_customer_account_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/019_drop_customer_account_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

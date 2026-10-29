@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_customer_tenant_id_account_id;
