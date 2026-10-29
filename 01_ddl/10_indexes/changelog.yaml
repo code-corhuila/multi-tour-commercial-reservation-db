@@ -199,3 +199,63 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/013_create_processed_event_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-014
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-indexes,ddl,10_indexes"
+      comment: "Active reservations of a tenant, newest first (AC-D7.15)."
+      changes:
+        - sqlFile:
+            path: 014_create_reservation_tenant_status_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/014_create_reservation_tenant_status_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-015
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-indexes,ddl,10_indexes"
+      comment: "Reservations of a departure of a tenant (AC-D7.15)."
+      changes:
+        - sqlFile:
+            path: 015_create_reservation_tenant_salida_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/015_create_reservation_tenant_salida_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-016
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-indexes,ddl,10_indexes"
+      comment: "Reservations of a customer of a tenant, newest first (AC-D7.15)."
+      changes:
+        - sqlFile:
+            path: 016_create_reservation_tenant_customer_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/016_create_reservation_tenant_customer_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-017
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-indexes,ddl,10_indexes"
+      comment: "Index of fk_outbox_event_reservation (AC-D7.15)."
+      changes:
+        - sqlFile:
+            path: 017_create_outbox_event_reservation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/017_create_outbox_event_reservation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
