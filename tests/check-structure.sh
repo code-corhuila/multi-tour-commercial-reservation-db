@@ -162,5 +162,17 @@ entry='01_grants/006_revoke_update_on_reservation_additional_discount'
 [ -f "03_dcl/$entry.sql" ] || bad "HU-COM-004 grant 03_dcl/$entry.sql is missing"
 [ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-004 grant rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-004 ${entry##*/} is not included"
+# HU-COM-006 departure columns, processed events and their indexes and grant: written before the migrations.
+for entry in '04_alter/011_add_salida_capacity_departure_columns' '10_indexes/012_create_salida_capacity_start_index' \
+  '03_tables/015_create_processed_event' '10_indexes/013_create_processed_event_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-006 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-006 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-006 $stem is not included"
+done
+entry='01_grants/007_grant_delete_on_processed_event'
+[ -f "03_dcl/$entry.sql" ] || bad "HU-COM-006 grant 03_dcl/$entry.sql is missing"
+[ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-006 grant rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-006 ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
