@@ -321,3 +321,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/021_create_capacity_allocation_indexes.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-022
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,10_indexes"
+      comment: "Two partial uniques per tenant, service and type, the tenant index and the service key index of payment_condition (HU-COM-009 plan D-11, DP-D9-6)."
+      changes:
+        - sqlFile:
+            path: 022_create_payment_condition_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/022_create_payment_condition_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-023
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,10_indexes"
+      comment: "One initial deadline per reservation, deadlines by tenant and due instant and the reservation key index (HU-COM-009 plan D-13)."
+      changes:
+        - sqlFile:
+            path: 023_create_payment_deadline_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/023_create_payment_deadline_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

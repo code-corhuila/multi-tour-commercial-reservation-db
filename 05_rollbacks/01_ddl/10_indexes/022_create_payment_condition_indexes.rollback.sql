@@ -1,0 +1,4 @@
+DROP INDEX commercial_reservation.idx_payment_condition_service_id;
+DROP INDEX commercial_reservation.idx_payment_condition_tenant;
+DROP INDEX commercial_reservation.uq_payment_condition_tenant_service_payment_type;
+DROP INDEX commercial_reservation.uq_payment_condition_tenant_payment_type;
