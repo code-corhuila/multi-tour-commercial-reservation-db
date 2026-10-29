@@ -21,7 +21,7 @@ ct_accepted() { # SQL, description
 
 echo 'HU-COM-005 terms - base: the 49 changesets without the terms columns, with a customer that already exists'
 liquibase rollback-count 999 >/dev/null
-db_labels='!customer-terms and !HU-WRK-007 and !HU-COM-007'
+db_labels='!customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008'
 liquibase update >/dev/null
 check 'base holds exactly 49 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 49 ]; echo $?)"
 sql "insert into $ct_table (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status) values ('$(aid 1901)', '$tenant', 'Existing customer', now(), 'enc:v1:e', 'enc:v1:f', '{}'::jsonb, 'ACTIVE')" >/dev/null 2>&1 || true
@@ -58,7 +58,7 @@ liquibase rollback-count 1
 ct_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$ct_base" "$ct_reverted"
 check 'the revert restores columns, constraints, indexes and privileges exactly, and keeps the customer' "$([ -n "$ct_base" ] && [ "$ct_reverted" = "$ct_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 49 ] && [ "$(sql "select count(*) from $ct_table where customer_id='$(aid 1901)'")" = 1 ]; echo $?)"
-db_labels='!HU-WRK-007 and !HU-COM-007'
+db_labels='!HU-WRK-007 and !HU-COM-007 and !HU-COM-008'
 liquibase update >/dev/null
 check 'the changeset reapplies to 50 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 50 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
