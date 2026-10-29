@@ -1,2 +1,16 @@
-# Empty on purpose: every folder carries its changelog from day one, so the execution order is fixed.
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-functions-003
+      author: FernandaRobayo
+      labels: "HU-WRK-007,tenant-status,ddl,07_functions"
+      comment: "PROPOSED guard function: the identifier of a tenant cannot change (spec 021 D-03)."
+      changes:
+        - sqlFile:
+            path: 003_create_fn_tenant_status_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/003_create_fn_tenant_status_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
