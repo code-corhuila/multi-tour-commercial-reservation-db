@@ -23,14 +23,14 @@ cd_accepted() { # SQL, description
 
 echo 'HU-COM-003 codes - base: the 39 changesets before ddl-alter-009, holding two rows in the old words'
 liquibase rollback-count 999 >/dev/null
-db_labels='!discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009'
+db_labels='!discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010'
 liquibase update >/dev/null
 cd_base="$(snapshot)"
 check 'base holds exactly 39 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 39 ]; echo $?)"
 sql "insert into $cd_table (discount_rule_id, tenant_id, name, starts_on, ends_on, priority, calculation_base, discount_type, discount_percentage_bp, discount_amount_cents, status, covers_all_services) values ('$(aid 1501)', '$tenant', 'old words', '2026-01-01', '2026-12-31', 1, 'Subtotal posterior al descuento anterior', 'Porcentual', 500, NULL, 'ACTIVE', true), ('$(aid 1502)', '$tenant', 'old words fixed', '2026-01-01', '2026-12-31', 2, 'Valor original', 'Valor fijo', NULL, 90000, 'ACTIVE', true)" >/dev/null 2>&1 || true
 
 echo 'HU-COM-003 codes - probes written first: red before the changeset, green after'
-db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009'
+db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010'
 liquibase update >/dev/null
 check 'ddl-alter-009 brings the control table to 40 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 40 ]; echo $?)"
 check 'rows stored in the old words are migrated to the codes (PREVIOUS_SUBTOTAL/PERCENTAGE and ORIGINAL_VALUE/FIXED_AMOUNT)' "$([ "$(sql "select string_agg(calculation_base || '/' || discount_type, ',' order by priority) from $cd_table where discount_rule_id in ('$(aid 1501)','$(aid 1502)')")" = 'PREVIOUS_SUBTOTAL/PERCENTAGE,ORIGINAL_VALUE/FIXED_AMOUNT' ]; echo $?)"
@@ -70,7 +70,7 @@ check 'the revert gives the stored rows back their old words' "$([ "$(sql "selec
 liquibase update >/dev/null
 check 'the changeset reapplies to 40 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 40 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
-db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009'
+db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010'
 liquibase update >/dev/null
 liquibase validate >/dev/null
 check 'a full build from empty without any label filter applies exactly 40 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 40 ]; echo $?)"
