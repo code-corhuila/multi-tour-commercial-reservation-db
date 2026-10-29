@@ -169,3 +169,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/011_create_authorizable_reason_enabled_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-012
+      author: FernandaRobayo
+      labels: "HU-COM-006,salida-state,ddl,10_indexes"
+      comment: "Open departures of a tour of a tenant ordered by start time (AC-D6.4)."
+      changes:
+        - sqlFile:
+            path: 012_create_salida_capacity_start_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/012_create_salida_capacity_start_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-013
+      author: FernandaRobayo
+      labels: "HU-COM-006,processed-event,ddl,10_indexes"
+      comment: "Purge of processed events older than 30 days."
+      changes:
+        - sqlFile:
+            path: 013_create_processed_event_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/013_create_processed_event_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

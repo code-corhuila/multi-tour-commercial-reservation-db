@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS commercial_reservation.idx_salida_capacity_tenant_service_start;
