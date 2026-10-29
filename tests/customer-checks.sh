@@ -90,7 +90,7 @@ sens_cust="$SCHEMA.customer_sensitive_data"; sens_comp="$SCHEMA.reservation_comp
 comp_reservation="00000000-0000-0000-0000-0000000000c1"; comp_reservation_2="00000000-0000-0000-0000-0000000000c2"
 cust_total_b=35 # the 29 of stage A plus six: two tables, two column alters, one index, one revoke
 echo 'HU-COM-005 stage B - probes of the default decisions, seen red before the changesets, green after'
-db_labels='HU-COM-005'
+db_labels='HU-COM-005 and !customer-terms'
 liquibase update
 check "HU-COM-005 stage B brought the control table to $cust_total_b changesets" "$([ "$(sql "select count(*) from $CONTROL")" = "$cust_total_b" ]; echo $?)"
 

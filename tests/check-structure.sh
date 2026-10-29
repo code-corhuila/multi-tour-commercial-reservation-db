@@ -174,5 +174,10 @@ entry='01_grants/007_grant_delete_on_processed_event'
 [ -f "03_dcl/$entry.sql" ] || bad "HU-COM-006 grant 03_dcl/$entry.sql is missing"
 [ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-006 grant rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-006 ${entry##*/} is not included"
+# HU-COM-005 terms acceptance on customer (ddl-alter-019): written before the migration it requires.
+entry='04_alter/019_add_customer_terms_acceptance'
+[ -f "01_ddl/$entry.sql" ] || bad "HU-COM-005 terms migration 01_ddl/$entry.sql is missing"
+[ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-005 terms rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 01_ddl/04_alter/changelog.yaml || bad "HU-COM-005 terms ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"

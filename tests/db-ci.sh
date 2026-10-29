@@ -580,4 +580,5 @@ source tests/discount-rule-codes-checks.sh
 source tests/outbox-widening-checks.sh
 source tests/authorizable-reason-checks.sh
 source tests/offer-checks.sh
+source tests/customer-terms-checks.sh
 exit "$fail"

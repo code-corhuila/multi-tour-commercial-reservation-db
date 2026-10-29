@@ -22,7 +22,7 @@ ar_accepted() { # SQL, description
 
 echo 'HU-COM-004 reasons - base: the 41 changesets (40 and the outbox widening), without the reason table, its index and the revoke'
 liquibase rollback-count 999 >/dev/null
-db_labels='!authorizable-reason and !additional-discount-immutable and !HU-COM-006'
+db_labels='!authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms'
 liquibase update >/dev/null
 ar_base="$(snapshot)"
 check 'base holds exactly 41 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 41 ]; echo $?)"
@@ -94,7 +94,7 @@ ar_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$ar_base" "$ar_reverted"
 check 'the three-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$ar_base" ] && [ "$ar_reverted" = "$ar_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 41 ]; echo $?)"
 check 'the reason table is gone and the UPDATE privilege is back after the revert' "$([ "$(sql "select to_regclass('$ar_table') is null")" = t ] && [ "$(sql "select has_table_privilege('$app','$ar_ad_table','UPDATE')")" = t ]; echo $?)"
-db_labels='!HU-COM-006'
+db_labels='!HU-COM-006 and !customer-terms'
 liquibase update >/dev/null
 check 'the three changesets reapply to 44 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 44 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
