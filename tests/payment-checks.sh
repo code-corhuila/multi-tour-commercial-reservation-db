@@ -29,7 +29,7 @@ pa_role_refusal() { # SQL, role, text of the engine answer, description
 
 echo 'HU-COM-009 payment - base: the 67 changesets of HU-COM-001 to HU-COM-008'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-009'
+db_labels='!HU-COM-009 and !HU-COM-010'
 liquibase update >/dev/null
 pa_base="$(snapshot)"
 check 'base holds exactly 67 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
@@ -293,7 +293,7 @@ pa_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$pa_base" "$pa_reverted"
 check 'AC-D9.18 the twelve-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pa_base" ] && [ "$pa_reverted" = "$pa_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
 check 'the five tables, the upper check and the two key lists are gone after the revert' "$([ "$(sql "select to_regclass('$pa_att') is null and to_regclass('$pa_proof') is null and to_regclass('$pa_alloc') is null and to_regclass('$pa_pc') is null and to_regclass('$pa_dl') is null")" = t ] && [ "$(sql "select count(*) from pg_constraint where conname in ('chk_salida_capacity_held_within_effective','chk_outbox_event_payload_keys_payment_evidence_registered','chk_outbox_event_payload_keys_capacity_allocated')")" = 0 ]; echo $?)"
-db_labels=''
+db_labels='!HU-COM-010'
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null

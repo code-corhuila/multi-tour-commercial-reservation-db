@@ -249,5 +249,14 @@ for entry in '03_tables/022_create_payment_condition' '03_tables/023_create_paym
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-009 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-009 $stem is not included"
 done
+# HU-COM-010 review columns, guard function and trigger, the pending-list index and the key lists of four payloads: written before the migrations.
+for entry in '04_alter/016_add_payment_attempt_review_columns' '07_functions/002_create_fn_payment_attempt_guard' \
+  '09_triggers/002_create_trg_payment_attempt_guard' '10_indexes/024_create_payment_attempt_under_validation_index' \
+  '04_alter/017_add_outbox_event_payment_review_payload_key_lists'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-010 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-010 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-010 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
