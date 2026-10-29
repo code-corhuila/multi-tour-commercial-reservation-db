@@ -149,3 +149,23 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/010_widen_outbox_event_for_reservation_and_customer_events.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-011
+      author: FernandaRobayo
+      labels: "HU-COM-006,salida-state,ddl,04_alter"
+      comment: "PROPOSED salida_capacity: hora_inicio timestamptz and status with English codes SCHEDULED, IN_EXECUTION, FINALIZED, CANCELLED (HU-COM-006 plan D-03, debt DD-1)."
+      preConditions:
+        - onFail: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT count(*) FROM commercial_reservation.salida_capacity
+      changes:
+        - sqlFile:
+            path: 011_add_salida_capacity_departure_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/011_add_salida_capacity_departure_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
