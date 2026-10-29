@@ -169,3 +169,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/011_add_salida_capacity_departure_columns.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-019
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-terms,ddl,04_alter"
+      comment: "PROPOSED customer: terms_accepted (true) and terms_accepted_at, stored on customer and not in customer_sensitive_data (decision 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 019_add_customer_terms_acceptance.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/019_add_customer_terms_acceptance.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
