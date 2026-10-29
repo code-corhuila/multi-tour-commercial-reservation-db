@@ -114,19 +114,93 @@ pa_plan="$(pa_explain "select payment_attempt_id from $pa_att where tenant_id='$
 check 'AC-D9.16 idx_payment_attempt_tenant_reservation_registered_at exists on (tenant_id, reservation_id, registered_at DESC)' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_payment_attempt_tenant_reservation_registered_at' and indexdef like '%(tenant_id, reservation_id, registered_at DESC)%'")" = 1 ]; echo $?)"
 check 'AC-D9.16 the attempts of a reservation, newest first, use that index' "$(printf '%s\n' "$pa_plan" | grep -q 'idx_payment_attempt_tenant_reservation_registered_at'; echo $?)"
 
-echo 'Idempotence, exact revert and reapply of stage (a) (AC-D9.17, AC-D9.18)'
+
+# ---- (b) the upper CHECK of salida_capacity (04_alter/014), capacity_allocation (03_tables/021) and its indexes (10_indexes/021),
+# all with label payment-capacity. Every changeset also carries HU-COM-009. The start and status of the departure are the columns of HU-COM-006.
+pa_cap="$SCHEMA.salida_capacity"; pa_alloc="$SCHEMA.capacity_allocation"
+pa_sal="$(aid 2530)"; pa_sal_last="$(aid 2531)"; pa_sal_b="$(aid 2532)"
+pa_allocation() { # allocation id, reservation id, then column/value pairs (SQL literals) that replace the defaults of a valid allocation
+  local id="$1" res="$2"; shift 2
+  local -A v=([tenant_id]="'$tenant'" [salida_id]="'$pa_sal'" [party_size]=2 [allocation_kind]="'RESERVATION'" [allocated_at]="now()" [released_at]=NULL)
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_alloc (capacity_allocation_id, tenant_id, salida_id, reservation_id, party_size, allocation_kind, allocated_at, released_at) values ('$id', ${v[tenant_id]}, ${v[salida_id]}, '$res', ${v[party_size]}, ${v[allocation_kind]}, ${v[allocated_at]}, ${v[released_at]})"
+}
+pa_cap_row() { # salida id, tenant, effective capacity, held seats
+  echo "insert into $pa_cap (salida_capacity_id, tenant_id, salida_id, service_id, effective_capacity, held_seats, hora_inicio, status) values (gen_random_uuid(), '$2', '$1', '$pa_svc', $3, $4, now() + interval '30 days', 'SCHEDULED')"
+}
+echo 'HU-COM-009 payment (b) - probes written first: red before the changesets, green after'
+sql "$(pa_cap_row "$pa_sal" "$tenant" 10 9); $(pa_cap_row "$pa_sal_last" "$tenant" 10 9); $(pa_cap_row "$pa_sal_b" "$pa_tenant_b" 4 0)" >/dev/null 2>&1 || true
+check 'the probe departures exist before stage (b)' "$([ "$(pa_sql "select count(*) from $pa_cap where salida_id in ('$pa_sal','$pa_sal_last','$pa_sal_b')")" = 3 ]; echo $?)"
+db_labels='payment-capacity'
+liquibase update >/dev/null
+check 'the upper check, the allocation table and its indexes bring the control table to 74 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 74 ]; echo $?)"
+
+echo 'heldSeatsNeverPassTheCapacityAndTwoHoldsOfTheLastSeatLeaveOneWinner (AC-D9.8)'
+check 'AC-D9.8 chk_salida_capacity_held_within_effective exists and is validated' "$([ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_cap'::regclass and conname='chk_salida_capacity_held_within_effective' and convalidated and pg_get_constraintdef(oid) like '%held_seats <= effective_capacity%'")" = 1 ]; echo $?)"
+rs_refusal "update $pa_cap set held_seats = 11 where salida_id = '$pa_sal';" chk_salida_capacity_held_within_effective 'an update that leaves the held seats above the capacity'
+rs_refusal "update $pa_cap set effective_capacity = 8 where salida_id = '$pa_sal';" chk_salida_capacity_held_within_effective 'a capacity below the held seats'
+rs_refusal "$(pa_cap_row "$(aid 2533)" "$tenant" 3 4);" chk_salida_capacity_held_within_effective 'a new row with more held seats than capacity'
+rs_refusal "update $pa_cap set held_seats = -1 where salida_id = '$pa_sal';" chk_salida_capacity_held_seats 'a negative held count (the earlier check stays)'
+rs_accepted "update $pa_cap set held_seats = 10 where salida_id = '$pa_sal'" 'a hold that reaches the capacity exactly'
+pa_hold="update $pa_cap set held_seats = held_seats + 1 where salida_id = '$pa_sal_last' and held_seats + 1 <= effective_capacity;"
+pa_out1="$(mktemp)"; pa_out2="$(mktemp)"
+printf '%s\n' "set role $app;" 'begin;' "$pa_hold" 'select pg_sleep(3);' 'commit;' | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres > "$pa_out1" 2>&1 &
+sleep 1
+printf '%s\n' "set role $app;" 'begin;' "$pa_hold" 'commit;' | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres > "$pa_out2" 2>&1 &
+wait
+cat "$pa_out1" "$pa_out2"
+check 'AC-D9.8 two sessions holding the last seat at once: exactly one UPDATE 1 and one UPDATE 0' "$([ "$(cat "$pa_out1" "$pa_out2" | grep -c '^UPDATE 1$')" = 1 ] && [ "$(cat "$pa_out1" "$pa_out2" | grep -c '^UPDATE 0$')" = 1 ]; echo $?)"
+check 'AC-D9.8 the departure ends with its capacity held, not above it' "$([ "$(pa_sql "select held_seats from $pa_cap where salida_id='$pa_sal_last'")" = 10 ]; echo $?)"
+rm -f "$pa_out1" "$pa_out2"
+
+echo 'capacityAllocationHoldsTheColumnsOfTheDictionary (AC-D9.9)'
+pa_cols_c='capacity_allocation_id uuid NO,tenant_id uuid NO,salida_id uuid NO,reservation_id uuid NO,party_size integer NO,allocation_kind text NO,allocated_at timestamp with time zone NO,released_at timestamp with time zone YES'
+check 'AC-D9.9 capacity_allocation holds exactly the eight columns of the plan, the release time empty while held' "$([ "$(cols_of capacity_allocation)" = "$pa_cols_c" ]; echo $?)"
+check 'AC-D9.9 salida_id has no foreign key (cross-domain, Annex J.3.4) and the key to the reservation restricts' "$([ "$(pa_sql "select count(*) from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=any(c.conkey) where c.conrelid='$pa_alloc'::regclass and c.contype='f' and a.attname='salida_id'")" = 0 ] && [ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_alloc'::regclass and conname='fk_capacity_allocation_reservation' and pg_get_constraintdef(oid) like '%ON DELETE RESTRICT'")" = 1 ]; echo $?)"
+pa_al_1="$(aid 2540)"; pa_al_2="$(aid 2541)"; pa_al_3="$(aid 2542)"; pa_al_4="$(aid 2543)"
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" party_size 0);" chk_capacity_allocation_party_size 'an allocation of zero people'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" party_size -2);" chk_capacity_allocation_party_size 'an allocation of negative people'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" allocation_kind "'TEMPORARY'");" chk_capacity_allocation_kind 'a kind other than RESERVATION'
+rs_refusal "$(pa_allocation "$pa_al_1" "$(aid 2599)");" fk_capacity_allocation_reservation 'an allocation for a reservation that does not exist'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" tenant_id NULL);" 'ERROR:  23502.*column "tenant_id"' 'an allocation without tenant'
+
+echo 'aReservationHasOneActiveAllocationAtATime (AC-D9.10)'
+engine "$(pa_allocation "$pa_al_1" "$pa_res");" >/dev/null || true
+check 'AC-D9.10 the first allocation of the reservation is stored with its default kind and no release time' "$([ "$(pa_sql "select allocation_kind || '/' || (released_at is null) from $pa_alloc where capacity_allocation_id='$pa_al_1'")" = 'RESERVATION/true' ]; echo $?)"
+rs_refusal "$(pa_allocation "$pa_al_2" "$pa_res");" uq_capacity_allocation_active_reservation 'a second active allocation of the same reservation'
+rs_accepted "update $pa_alloc set party_size = 3 where capacity_allocation_id = '$pa_al_1'" 'an increase of travellers on the active row'
+engine "update $pa_alloc set released_at = now() where capacity_allocation_id = '$pa_al_1';" >/dev/null || true
+rs_accepted "$(pa_allocation "$pa_al_2" "$pa_res")" 'another allocation after the first was released'
+rs_accepted "$(pa_allocation "$pa_al_3" "$pa_res_b" tenant_id "'$pa_tenant_b'" salida_id "'$pa_sal_b'")" 'an allocation of the other tenant with its own reservation'
+check 'AC-D9.10 the unique is partial: only active allocations of the reservation kind, per tenant and reservation' "$([ "$(pa_sql "select indexdef from pg_indexes where schemaname='$SCHEMA' and indexname='uq_capacity_allocation_active_reservation'")" = "CREATE UNIQUE INDEX uq_capacity_allocation_active_reservation ON $SCHEMA.capacity_allocation USING btree (tenant_id, reservation_id) WHERE ((released_at IS NULL) AND (allocation_kind = 'RESERVATION'::text))" ]; echo $?)"
+
+echo 'theCapacityRowCarriesTheStartAndStatusOfTheDeparture (AC-D9.11)'
+check 'AC-D9.11 hora_inicio and status exist and are required on salida_capacity (columns of HU-COM-006, not created here)' "$([ "$(pa_sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by column_name) from information_schema.columns where table_schema='$SCHEMA' and table_name='salida_capacity' and column_name in ('hora_inicio','status')")" = 'hora_inicio timestamp with time zone NO,status text NO' ]; echo $?)"
+check 'AC-D9.11 no changeset of this story adds a column to salida_capacity' "$([ "$(grep -il 'add column' 01_ddl/04_alter/014_*.sql 01_ddl/03_tables/021_*.sql | wc -l)" = 0 ]; echo $?)"
+
+echo 'isolationNoDeleteAndThePlanOfTheActiveAllocations (AC-D9.7, AC-D9.14, AC-D9.16)'
+check 'AC-D9.7 a query scoped to tenant A never returns an allocation of tenant B' "$([ "$(pa_sql "select count(*) from $pa_alloc where tenant_id='$tenant' and reservation_id='$pa_res_b'")" = 0 ]; echo $?)"
+rs_refusal "delete from $pa_alloc;" 'permission denied for table capacity_allocation' 'DELETE of an allocation by the application user'
+check 'AC-D9.14 no DELETE on capacity_allocation for the writer, the application user or the reader' "$([ "$(sql "select has_table_privilege('$writer','$pa_alloc','DELETE') or has_table_privilege('$app','$pa_alloc','DELETE') or has_table_privilege('$reader','$pa_alloc','DELETE')")" = f ]; echo $?)"
+sql "insert into $pa_alloc (capacity_allocation_id, tenant_id, salida_id, reservation_id, party_size, allocation_kind, allocated_at, released_at)
+     select gen_random_uuid(), '$tenant', case when n % 50 = 0 then '$pa_sal'::uuid else gen_random_uuid() end, '$pa_res', 1, 'RESERVATION', now(), now() from generate_series(1, 300) n; analyze $pa_alloc" >/dev/null 2>&1 || true
+pa_plan="$(pa_explain "select party_size from $pa_alloc where tenant_id='$tenant' and salida_id='$pa_sal' and released_at is null")"; printf '%s\n' "$pa_plan"
+check 'AC-D9.16 the active allocations of a departure use idx_capacity_allocation_tenant_salida_active' "$(printf '%s\n' "$pa_plan" | grep -q 'idx_capacity_allocation_tenant_salida_active'; echo $?)"
+check 'AC-D9.16 the foreign key to the reservation has its own index' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_capacity_allocation_reservation_id' and indexdef like '%(reservation_id)'")" = 1 ]; echo $?)"
+
+echo 'Idempotence, exact revert and reapply of stages (a) and (b) (AC-D9.17, AC-D9.18)'
 pa_second="$(liquibase update 2>&1)"; printf '%s\n' "$pa_second"
 check 'AC-D9.17 a second update applies zero changesets' "$(printf '%s\n' "$pa_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
-sql "delete from $SCHEMA.outbox_event where reservation_id in ('$pa_res','$pa_res_b'); delete from $pa_proof; delete from $pa_att; delete from $SCHEMA.reservation where reservation_id in ('$pa_res','$pa_res_b')" >/dev/null 2>&1 || true
+sql "delete from $SCHEMA.outbox_event where reservation_id in ('$pa_res','$pa_res_b'); delete from $pa_alloc; delete from $pa_proof; delete from $pa_att; delete from $SCHEMA.reservation where reservation_id in ('$pa_res','$pa_res_b')" >/dev/null 2>&1 || true
 check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (select count(*) from $pa_att) + (select count(*) from $pa_proof)")" = 0 ]; echo $?)"
-liquibase rollback-count 4
+liquibase rollback-count 7
 pa_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$pa_base" "$pa_reverted"
-check 'AC-D9.18 the four-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pa_base" ] && [ "$pa_reverted" = "$pa_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
-check 'the two tables are gone after the revert' "$([ "$(sql "select to_regclass('$pa_att') is null and to_regclass('$pa_proof') is null")" = t ]; echo $?)"
+check 'AC-D9.18 the seven-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pa_base" ] && [ "$pa_reverted" = "$pa_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
+check 'the three tables are gone and the upper check is gone after the revert' "$([ "$(sql "select to_regclass('$pa_att') is null and to_regclass('$pa_proof') is null and to_regclass('$pa_alloc') is null")" = t ] && [ "$(sql "select count(*) from pg_constraint where conname='chk_salida_capacity_held_within_effective'")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 71 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 71 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 74 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 74 ]; echo $?)"
