@@ -329,3 +329,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/021_create_capacity_allocation.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-022
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,03_tables"
+      comment: "PROPOSED payment_condition: the payment parameters of a tenant or service, bounded, with the last change author, reason and time (HU-COM-009 plan D-11)."
+      changes:
+        - sqlFile:
+            path: 022_create_payment_condition.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/022_create_payment_condition.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-023
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,03_tables"
+      comment: "PROPOSED payment_deadline: the due instants of a reservation, with the initial deadline (HU-COM-009 plan D-13, DP-D9-4)."
+      changes:
+        - sqlFile:
+            path: 023_create_payment_deadline.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/023_create_payment_deadline.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

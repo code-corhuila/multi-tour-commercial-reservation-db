@@ -229,3 +229,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/014_add_salida_capacity_held_within_effective_check.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-015
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,04_alter"
+      comment: "Closed key lists of the payloads of PaymentEvidenceRegistered and CapacityAllocated: no file, name, bank datum or account (HU-COM-009 plan D-09)."
+      changes:
+        - sqlFile:
+            path: 015_add_outbox_event_payment_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/015_add_outbox_event_payment_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
