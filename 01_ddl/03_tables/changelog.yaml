@@ -179,3 +179,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/012_create_reservation_companion_sensitive_data.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-013
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-persistence,ddl,03_tables"
+      comment: "PROPOSED discount_rule_service: services covered by a rule, unique (rule, service); default DP-01 of 2026-10-28."
+      changes:
+        - sqlFile:
+            path: 013_create_discount_rule_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/013_create_discount_rule_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

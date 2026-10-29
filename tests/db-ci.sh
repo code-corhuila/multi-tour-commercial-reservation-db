@@ -575,4 +575,6 @@ liquibase update
 source tests/discount-rule-checks.sh
 source tests/customer-checks.sh
 source tests/additional-discount-checks.sh
+source tests/discount-rule-persistence-checks.sh
+source tests/discount-rule-codes-checks.sh
 exit "$fail"
