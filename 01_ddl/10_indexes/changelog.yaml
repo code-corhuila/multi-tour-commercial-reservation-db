@@ -306,3 +306,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/020_create_payment_attempt_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-021
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-capacity,ddl,10_indexes"
+      comment: "One active allocation per reservation, active allocations of a departure and the reservation key index (HU-COM-009 plan D-05, D-12)."
+      changes:
+        - sqlFile:
+            path: 021_create_capacity_allocation_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/021_create_capacity_allocation_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
