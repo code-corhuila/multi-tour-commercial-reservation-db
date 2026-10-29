@@ -223,5 +223,16 @@ for entry in '10_indexes/018_create_customer_account_unique_index' '10_indexes/0
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-008 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-008 $stem is not included"
 done
+# HU-COM-009 payment attempt, proof, the revokes on the proof and the attempt index: written before the migrations.
+for entry in '03_tables/019_create_payment_attempt' '03_tables/020_create_payment_proof_file' '10_indexes/020_create_payment_attempt_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-009 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-009 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-009 $stem is not included"
+done
+entry='01_grants/009_revoke_on_payment_proof_file'
+[ -f "03_dcl/$entry.sql" ] || bad "HU-COM-009 grant 03_dcl/$entry.sql is missing"
+[ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-009 grant rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-009 ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
