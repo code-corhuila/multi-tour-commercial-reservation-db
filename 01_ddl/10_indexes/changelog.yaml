@@ -153,3 +153,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/010_create_discount_rule_service_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-011
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-004,authorizable-reason,ddl,10_indexes"
+      comment: "Partial index of the enabled reasons of a tenant, built concurrently."
+      changes:
+        - sqlFile:
+            path: 011_create_authorizable_reason_enabled_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/011_create_authorizable_reason_enabled_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
