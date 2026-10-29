@@ -90,7 +90,7 @@ sens_cust="$SCHEMA.customer_sensitive_data"; sens_comp="$SCHEMA.reservation_comp
 comp_reservation="00000000-0000-0000-0000-0000000000c1"; comp_reservation_2="00000000-0000-0000-0000-0000000000c2"
 cust_total_b=35 # the 29 of stage A plus six: two tables, two column alters, one index, one revoke
 echo 'HU-COM-005 stage B - probes of the default decisions, seen red before the changesets, green after'
-db_labels='HU-COM-005 and !customer-terms'
+db_labels='HU-COM-005 and !customer-terms and !HU-WRK-007'
 liquibase update
 check "HU-COM-005 stage B brought the control table to $cust_total_b changesets" "$([ "$(sql "select count(*) from $CONTROL")" = "$cust_total_b" ]; echo $?)"
 
@@ -168,4 +168,4 @@ if [ "$(sql "select count(*) from $CONTROL")" = "$cust_total_b" ]; then
 else
   check 'AC-D5.13 the revert of stage B cannot be judged: stage B is not applied (no rollback is run)' 1
 fi
-db_labels='!HU-COM-006'
+db_labels='!HU-COM-006 and !HU-WRK-007'
