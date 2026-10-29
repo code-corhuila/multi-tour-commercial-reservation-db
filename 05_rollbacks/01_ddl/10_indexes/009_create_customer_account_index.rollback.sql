@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_customer_tenant_account_id;
