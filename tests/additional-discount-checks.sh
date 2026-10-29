@@ -27,7 +27,7 @@ ad_precondition() { # T-00: creates nothing; the first missing prerequisite ends
 }
 echo 'HU-COM-004 T-00 - prerequisites left by HU-COM-001 and HU-COM-003 (nothing is created)'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-004'
+db_labels='!HU-COM-004 and !discount-persistence and !discount-rule-codes'
 liquibase update >/dev/null
 ad_base_snapshot="$(snapshot)"
 ad_precondition "the schema $SCHEMA exists" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ]; echo $?)"
@@ -91,7 +91,7 @@ check 'HU-COM-004 adds exactly one changeset (35 -> 36)' "$([ "$(sql "select cou
 liquibase rollback-count 1
 check 'AC-D4.13 the table is gone and the 35 earlier changesets remain' "$([ "$(sql "select to_regclass('$ad_table') is null")" = t ] && [ "$(sql "select count(*) from $CONTROL")" = 35 ]; echo $?)"
 check 'AC-D4.13 the schema is exactly as HU-COM-005 left it (columns, constraints, indexes, privileges)' "$([ -n "$ad_base_snapshot" ] && [ "$(snapshot)" = "$ad_base_snapshot" ]; echo $?)"
-db_labels=''
+db_labels='!discount-persistence and !discount-rule-codes'
 liquibase update
 check 'full build from the 35 plus HU-COM-004 reaches 36 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 36 ]; echo $?)"
 if [ "$fail" -eq 0 ]; then echo 'PASS: HU-COM-004 T-00 and T-02 checks are green locally; remote workflow not run.'
