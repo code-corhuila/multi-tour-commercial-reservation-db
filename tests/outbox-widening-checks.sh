@@ -27,7 +27,7 @@ ow_catalog() { # actor literal, payload column and value (optional): a catalog e
 
 echo 'HU-COM-004 outbox - base: the 40 changesets before the HU-COM-004 additions'
 liquibase rollback-count 999 >/dev/null
-db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006'
+db_labels='!outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006 and !customer-terms'
 liquibase update >/dev/null
 ow_base="$(snapshot)"
 check 'base holds exactly 40 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 40 ]; echo $?)"
