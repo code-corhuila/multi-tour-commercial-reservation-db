@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.reservation_additional_discount;
