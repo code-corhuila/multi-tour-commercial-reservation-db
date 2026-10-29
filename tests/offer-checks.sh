@@ -49,7 +49,7 @@ of_seed_departures() { # 2000 departures per tenant on its own tour (enough for 
 
 echo 'HU-COM-006 offer - base: the 44 changesets before the departure columns, the processed-event table, their indexes and the grant'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-006 and !customer-terms and !HU-WRK-007'
+db_labels='!HU-COM-006 and !customer-terms and !HU-WRK-007 and !HU-COM-007'
 liquibase update >/dev/null
 of_base="$(snapshot)"
 of_base_indexes="$(of_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and tablename in ('catalog_service','associated_establishment')")"
@@ -138,7 +138,7 @@ of_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$of_base" "$of_reverted"
 check 'the five-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$of_base" ] && [ "$of_reverted" = "$of_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 44 ]; echo $?)"
 check 'the columns, the check, the index, the table and the grant are gone after the revert' "$([ "$(sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='salida_capacity' and column_name in ('hora_inicio','status')")" = 0 ] && [ "$(sql "select to_regclass('$of_pe') is null")" = t ] && [ "$(sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname in ('idx_salida_capacity_tenant_service_start','idx_processed_event_processed_at')")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname='chk_salida_capacity_status'")" = 0 ]; echo $?)"
-db_labels='!customer-terms and !HU-WRK-007'
+db_labels='!customer-terms and !HU-WRK-007 and !HU-COM-007'
 liquibase update >/dev/null
 check 'the five changesets reapply to 49 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 49 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
