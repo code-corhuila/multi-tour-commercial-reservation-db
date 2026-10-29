@@ -104,3 +104,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/007_grant_delete_on_processed_event.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-008
+      author: FernandaRobayo
+      labels: "HU-COM-007,fixed-discount,dcl,grants"
+      comment: "The writer may not UPDATE reservation_fixed_discount: what was fixed at creation stays fixed (AC-D7.8)."
+      changes:
+        - sqlFile:
+            path: 008_revoke_update_on_reservation_fixed_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/008_revoke_update_on_reservation_fixed_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
