@@ -214,3 +214,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/013_add_reservation_foreign_keys_to_companion_and_additional_discount.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-014
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-capacity,ddl,04_alter"
+      comment: "PROPOSED check held_seats <= effective_capacity on salida_capacity, added not valid and validated (HU-COM-009 plan D-05, DP-D9-3)."
+      changes:
+        - sqlFile:
+            path: 014_add_salida_capacity_held_within_effective_check.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/014_add_salida_capacity_held_within_effective_check.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

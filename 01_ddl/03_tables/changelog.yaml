@@ -314,3 +314,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/020_create_payment_proof_file.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-021
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-capacity,ddl,03_tables"
+      comment: "PROPOSED capacity_allocation: the seats a reservation holds on a departure, with a kind and a release time (HU-COM-009 plan D-05, DP-D9-11)."
+      changes:
+        - sqlFile:
+            path: 021_create_capacity_allocation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/021_create_capacity_allocation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

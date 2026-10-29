@@ -1,0 +1,3 @@
+DROP INDEX commercial_reservation.idx_capacity_allocation_reservation_id;
+DROP INDEX commercial_reservation.idx_capacity_allocation_tenant_salida_active;
+DROP INDEX commercial_reservation.uq_capacity_allocation_active_reservation;
