@@ -545,7 +545,7 @@ engine "delete from $ae_table;" || true
 echo "T-06 STEP 6 - association with image, without image, and explicit rollback"
 engine "begin; $(ae_row "'$(aid 301)'"); $(img_insert "$(aid 301)" image/png 1024); commit; select a.association_id, a.tenant_id, i.image_id from $ae_table a join $img_table i using (association_id) where a.association_id = '$(aid 301)';"
 engine "begin; $(ae_row "'$(aid 302)'"); commit; select association_id from $ae_table where association_id = '$(aid 302)';"
-echo "STEP 6 LIMITATION: the engine accepts no image. DP-03 is open in the supplied spec; no closed decision is asserted here."
+echo "STEP 6 LIMITATION: DP-03 closed by models.md; the engine accepts no image, the API refuses it."
 engine "begin; $(ae_row "'$(aid 303)'"); $(img_insert "$(aid 303)" image/png 1024); rollback; select (select count(*) from $ae_table where association_id = '$(aid 303)') as associations, (select count(*) from $img_table where association_id = '$(aid 303)') as images;"
 echo "T-06 STEP 7 - inspect image content, type, size, checksum and tenant"
 engine "select image_id, tenant_id, association_id, encode(content, 'hex') as content_hex, content_type, size_bytes, sha256 from $img_table;"

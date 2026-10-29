@@ -23,7 +23,7 @@ Also printed at the start: `liquibase validate` answered `No validation errors f
 
 ## What this run does NOT show
 
-- Printed by the script itself at `T-06 STEP 6`: `STEP 6 LIMITATION: the engine accepts no image. DP-03 is open in the supplied spec; no closed decision is asserted here.`
+- Printed by the script itself at `T-06 STEP 6`: `STEP 6 LIMITATION: DP-03 closed by models.md; the engine accepts no image, the API refuses it.`
 - Not verified: the remote GitHub workflow `db-ci.yml` (the script printed `remote GitHub workflow has not been run`); this record is a local run only.
 - Not verified: any integration with the real `-api` or `-portal`; the checks use `psql` and Liquibase only.
 - Not verified: T-01 as a separate query recorded in a pull request; the four `precondition:` lines above are the only evidence.
