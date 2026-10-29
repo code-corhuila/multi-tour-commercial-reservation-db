@@ -284,3 +284,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/018_create_reservation_fixed_discount.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-019
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,ddl,03_tables"
+      comment: "PROPOSED payment_attempt: the registration columns of a payment attempt, transfer with a validation status and cash with none (HU-COM-009 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 019_create_payment_attempt.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/019_create_payment_attempt.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-020
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,ddl,03_tables"
+      comment: "PROPOSED payment_proof_file: one proof file per attempt, the row coherent with its bytes (HU-COM-009 plan D-04, ADR-005 E6)."
+      changes:
+        - sqlFile:
+            path: 020_create_payment_proof_file.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/020_create_payment_proof_file.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
