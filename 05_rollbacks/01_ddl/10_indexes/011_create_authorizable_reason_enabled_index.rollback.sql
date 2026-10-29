@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS commercial_reservation.idx_authorizable_reason_tenant_enabled;
