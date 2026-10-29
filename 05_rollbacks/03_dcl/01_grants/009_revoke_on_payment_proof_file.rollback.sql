@@ -1,0 +1,2 @@
+GRANT SELECT ON commercial_reservation.payment_proof_file TO commercial_reservation_reader;
+GRANT UPDATE ON commercial_reservation.payment_proof_file TO commercial_reservation_writer;
