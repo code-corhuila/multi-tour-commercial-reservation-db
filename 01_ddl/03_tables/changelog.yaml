@@ -209,3 +209,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/014_create_authorizable_reason.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-015
+      author: FernandaRobayo
+      labels: "HU-COM-006,processed-event,ddl,03_tables"
+      comment: "PROPOSED processed_event: ids of the events already applied, for idempotent consumption (ADR-004 D4, HU-COM-006 plan D-05, debt DD-2)."
+      changes:
+        - sqlFile:
+            path: 015_create_processed_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/015_create_processed_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

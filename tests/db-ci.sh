@@ -17,7 +17,7 @@ POSTGRES_IMAGE="postgres:18"
 SCHEMA="commercial_reservation"
 CONTROL="databasechangelog_commercial_reservation"
 LOCK="databasechangeloglock_commercial_reservation"
-db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005' # Keep all 181 existing checks on their original 23-changeset schema.
+db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006' # Keep all 181 existing checks on their original 23-changeset schema.
 
 suffix="$$"
 runner_image="cr-db-runner:ci-$suffix"
@@ -463,7 +463,7 @@ snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
     union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
     union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
 liquibase rollback-count 999 >/dev/null
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005' >/dev/null
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006' >/dev/null
 check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
 check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
@@ -529,7 +529,7 @@ check "the runner sits on the external platform network" "$(echo "$composed" | g
 # disposable instance; never roll back a developer's infrastructure database.
 echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
 liquibase rollback-count 999
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005'
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006'
 record_base="$(snapshot)"
 echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
 liquibase update
@@ -579,4 +579,5 @@ source tests/discount-rule-persistence-checks.sh
 source tests/discount-rule-codes-checks.sh
 source tests/outbox-widening-checks.sh
 source tests/authorizable-reason-checks.sh
+source tests/offer-checks.sh
 exit "$fail"

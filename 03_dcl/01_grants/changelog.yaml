@@ -89,3 +89,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/006_revoke_update_on_reservation_additional_discount.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-007
+      author: FernandaRobayo
+      labels: "HU-COM-006,processed-event,dcl,grants"
+      comment: "The writer may DELETE from processed_event, the third technical purge table (AC-D6.9)."
+      changes:
+        - sqlFile:
+            path: 007_grant_delete_on_processed_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/007_grant_delete_on_processed_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -1,0 +1,1 @@
+REVOKE DELETE ON commercial_reservation.processed_event FROM commercial_reservation_writer;

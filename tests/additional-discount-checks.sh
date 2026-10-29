@@ -27,7 +27,7 @@ ad_precondition() { # T-00: creates nothing; the first missing prerequisite ends
 }
 echo 'HU-COM-004 T-00 - prerequisites left by HU-COM-001 and HU-COM-003 (nothing is created)'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-004 and !discount-persistence and !discount-rule-codes'
+db_labels='!HU-COM-004 and !HU-COM-006 and !discount-persistence and !discount-rule-codes'
 liquibase update >/dev/null
 ad_base_snapshot="$(snapshot)"
 ad_precondition "the schema $SCHEMA exists" "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ]; echo $?)"
@@ -40,7 +40,7 @@ check 'T-00 the prerequisites are exactly the 35 changesets of HU-COM-001..003 a
 check 'T-02 the additional-discount table does not exist before its changeset' "$([ "$(sql "select to_regclass('$ad_table') is null")" = t ]; echo $?)"
 
 echo 'HU-COM-004 T-02 - apply the additional-discount changeset'
-db_labels='HU-COM-004 and !outbox-widening and !authorizable-reason and !additional-discount-immutable'
+db_labels='HU-COM-004 and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006'
 liquibase update
 check 'AC-D4.1 the table exists in commercial_reservation and nothing new appears in public' "$([ "$(sql "select count(*) from pg_tables where tablename='reservation_additional_discount' and schemaname='$SCHEMA'")" = 1 ] && [ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
 engine "select column_name, data_type, is_nullable from information_schema.columns where table_schema='$SCHEMA' and table_name='reservation_additional_discount' order by ordinal_position;"
@@ -91,7 +91,7 @@ check 'HU-COM-004 adds exactly one changeset (35 -> 36)' "$([ "$(sql "select cou
 liquibase rollback-count 1
 check 'AC-D4.13 the table is gone and the 35 earlier changesets remain' "$([ "$(sql "select to_regclass('$ad_table') is null")" = t ] && [ "$(sql "select count(*) from $CONTROL")" = 35 ]; echo $?)"
 check 'AC-D4.13 the schema is exactly as HU-COM-005 left it (columns, constraints, indexes, privileges)' "$([ -n "$ad_base_snapshot" ] && [ "$(snapshot)" = "$ad_base_snapshot" ]; echo $?)"
-db_labels='!discount-persistence and !discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable'
+db_labels='!discount-persistence and !discount-rule-codes and !outbox-widening and !authorizable-reason and !additional-discount-immutable and !HU-COM-006'
 liquibase update
 check 'full build from the 35 plus HU-COM-004 reaches 36 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 36 ]; echo $?)"
 if [ "$fail" -eq 0 ]; then echo 'PASS: HU-COM-004 T-00 and T-02 checks are green locally; remote workflow not run.'
