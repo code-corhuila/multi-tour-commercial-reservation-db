@@ -367,3 +367,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/024_create_payment_attempt_under_validation_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-025
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-005,customer-name-search,ddl,10_indexes"
+      comment: "PROPOSED index of the search of customers by name inside a tenant on (tenant_id, lower(full_name) text_pattern_ops); document and e-mail searches wait for DP-D5-2 and DP-D5-3 (HU-COM-005 plan D-12)."
+      changes:
+        - sqlFile:
+            path: 025_create_customer_name_search_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/025_create_customer_name_search_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
