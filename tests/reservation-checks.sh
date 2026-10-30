@@ -231,22 +231,97 @@ rs_refusal "delete from $rs_t where reservation_id = '$rs_keep';" 'permission de
 check 'a reservation referenced by a companion cannot be deleted even by its owner: the key restricts' "$(refused "delete from $rs_t where reservation_id = '$rs_keep'" 'foreign key constraint')"
 
 rs_ob="$SCHEMA.outbox_event"
+
+# ---- (c) the second widening of outbox_event (04_alter/012, label reservation-outbox) and the four indexes (10_indexes/014 to 017,
+# label reservation-indexes). Every changeset also carries HU-COM-007.
+rs_ob="$SCHEMA.outbox_event"
+rs_ob_cols_before="$(cols_of outbox_event)"
+rs_event() { # event type, reservation id, payload (SQL literals; empty payload = NULL), actor (default the actor)
+  echo "insert into $rs_ob (tenant_id, event_type, reservation_id, actor_id, occurred_at, payload) values ('$tenant', $1, $2, ${4:-'$actor'}, now(), ${3:-NULL})"
+}
+rs_created_payload="'{\"customerId\":\"$rs_customer_a\",\"serviceId\":\"$rs_svc\",\"projectedValueCents\":300000,\"finalValueCents\":270000,\"reservationStatus\":\"PENDING_PAYMENT\",\"paymentStatus\":\"NO_PAYMENT\"}'::jsonb"
+
+echo 'HU-COM-007 reservation (c) - probes written first: red before the changesets, green after'
+db_labels='reservation-outbox'
+liquibase update >/dev/null
+check 'the second widening brings the control table to 61 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 61 ]; echo $?)"
+
+echo 'reservationCreatedFitsTheOutboxAndCarriesNoPersonalColumn (AC-D7.11)'
+check 'AC-D7.11 fk_outbox_event_reservation exists, simple, ON DELETE RESTRICT' "$([ "$(rs_sql "select pg_get_constraintdef(oid) from pg_constraint where conname='fk_outbox_event_reservation' and conrelid='$rs_ob'::regclass")" = "FOREIGN KEY (reservation_id) REFERENCES $SCHEMA.reservation(reservation_id) ON DELETE RESTRICT" ]; echo $?)"
+check 'AC-D7.11 the widening adds no column: the payload is the generic jsonb of piece 2, nothing personal' "$([ "$(cols_of outbox_event)" = "$rs_ob_cols_before" ] && [ "$(rs_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='outbox_event' and (column_name ~* '(document|email|phone|contact|medical|birth|full_name)')")" = 0 ]; echo $?)"
+rs_accepted "$(rs_event "'ReservationCreated'" "'$rs_keep'" "$rs_created_payload")" 'ReservationCreated with its six keys, its reservation and its actor'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" "'{\"customerId\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_reservation_created 'ReservationCreated with a missing key'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" "'{\"customerId\":\"x\",\"serviceId\":\"x\",\"projectedValueCents\":1,\"finalValueCents\":1,\"reservationStatus\":\"PENDING_PAYMENT\",\"paymentStatus\":\"NO_PAYMENT\",\"note\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_reservation_created 'ReservationCreated with a seventh key'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" "'{\"customerId\":\"x\",\"serviceId\":\"x\",\"projectedValueCents\":1,\"finalValueCents\":1,\"reservationStatus\":\"PENDING_PAYMENT\",\"paymentStatus\":\"NO_PAYMENT\",\"email\":\"x\"}'::jsonb");" 'chk_outbox_event_payload_\(keys_reservation_created\|no_sensitive_keys\)' 'ReservationCreated carrying an e-mail'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" NULL);" chk_outbox_event_payload 'ReservationCreated without payload'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" "'[1]'::jsonb");" chk_outbox_event_payload 'ReservationCreated with a payload that is not an object'
+rs_refusal "$(rs_event "'ReservationCreated'" NULL "$rs_created_payload");" chk_outbox_event_exactly_one_aggregate 'ReservationCreated without a reservation'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$(aid 2299)'" "$rs_created_payload");" fk_outbox_event_reservation 'ReservationCreated for a reservation that does not exist'
+rs_refusal "$(rs_event "'ReservationCreated'" "'$rs_keep'" "$rs_created_payload" NULL);" chk_outbox_event_actor_required 'ReservationCreated without an actor'
+for rs_type in PaymentEvidenceRegistered CapacityAllocated PaymentValidated PaymentRejected ReservationConfirmed CapacityReleased ReservationModified; do
+  rs_accepted "$(rs_event "'$rs_type'" "'$rs_keep'" "'{\"reason\":\"x\"}'::jsonb")" "$rs_type with its reservation and an object payload"
+  rs_refusal "$(rs_event "'$rs_type'" "'$rs_keep'" NULL);" chk_outbox_event_payload "$rs_type without payload"
+done
+rs_refusal "$(rs_event "'ReservationCancelled'" "'$rs_keep'" "'{}'::jsonb");" chk_outbox_event_event_type 'ReservationCancelled, which is HU-COM-011 and not widened here'
+rs_refusal "insert into $rs_ob (tenant_id, event_type, customer_id, actor_id, occurred_at, payload) values ('$tenant', 'PaymentValidated', '$rs_customer_a', '$actor', now(), '{}'::jsonb);" chk_outbox_event_exactly_one_aggregate 'PaymentValidated pointing at a customer'
+rs_refusal "insert into $rs_ob (tenant_id, event_type, reservation_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at, payload) values ('$tenant', 'CapacityAllocated', '$rs_keep', 'ACTIVE', 'INACTIVE', '$actor', now(), '{}'::jsonb);" chk_outbox_event_exactly_one_aggregate 'a catalog status on a reservation event'
+rs_accepted "insert into $rs_ob (tenant_id, event_type, service_id, previous_catalog_status, new_catalog_status, actor_id, occurred_at) values ('$tenant', 'CatalogServiceInactivated', '$rs_svc', 'ACTIVE', 'INACTIVE', '$actor', now())" 'a catalog event as before'
+
+echo 'aRetriedCreationLeavesOneKeyOneReservationOneEvent (AC-D7.12)'
+rs_tx() { # idempotency key, reservation id: key, reservation and event in one transaction
+  printf '%s\n' "set role $app;" "begin;" \
+    "insert into $SCHEMA.idempotency_key (key, tenant_id, resource_type, resource_id) values ('$1', '$tenant', 'reservation', '$2');" \
+    "$(rs_row reservation_id "'$2'");" \
+    "$(rs_event "'ReservationCreated'" "'$2'" "$rs_created_payload");" "commit;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 >/dev/null 2>&1
+}
+rs_retry_a="$(aid 2220)"; rs_retry_b="$(aid 2221)"
+rs_tx 'reservation-key-1' "$rs_retry_a" || true
+rs_tx 'reservation-key-1' "$rs_retry_b" || true
+check 'AC-D7.12 the same key twice leaves one key, one reservation and one ReservationCreated event; the retry rolled back whole' "$([ "$(rs_sql "select count(*) from $SCHEMA.idempotency_key where key='reservation-key-1'")" = 1 ] && [ "$(rs_sql "select count(*) from $rs_t where reservation_id in ('$rs_retry_a','$rs_retry_b')")" = 1 ] && [ "$(rs_sql "select count(*) from $rs_ob where event_type='ReservationCreated' and reservation_id in ('$rs_retry_a','$rs_retry_b')")" = 1 ]; echo $?)"
+
+db_labels='reservation-indexes'
+liquibase update >/dev/null
+check 'the four indexes bring the control table to 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
+
+echo 'theThreeListQueriesUseTheirIndex (AC-D7.15)'
+rs_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
+check 'AC-D7.15 the four indexes exist with the columns of the plan' "$([ "$(rs_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and ((indexname='idx_reservation_tenant_status_created' and indexdef like '%(tenant_id, reservation_status, created_at DESC)%') or (indexname='idx_reservation_tenant_salida' and indexdef like '%(tenant_id, salida_id)%') or (indexname='idx_reservation_tenant_customer_created' and indexdef like '%(tenant_id, customer_id, created_at DESC)%') or (indexname='idx_outbox_event_reservation' and indexdef like '%(reservation_id)%'))")" = 4 ]; echo $?)"
+sql "insert into $rs_t (reservation_id, tenant_id, customer_id, salida_id, service_id, party_size, projected_value_cents, final_value_cents, pending_balance_cents, credit_balance_cents, reservation_status, payment_status, payment_type, payment_method, created_by, created_at)
+     select gen_random_uuid(), t, case when t = '$tenant' then '$rs_customer_a'::uuid else '$rs_customer_b'::uuid end, (array['$(aid 2231)','$(aid 2232)','$(aid 2233)'])[1 + n % 3]::uuid, '$rs_svc', 2, 300000, 270000, 270000, 0, 'PENDING_PAYMENT', 'NO_PAYMENT', 'DEPOSIT', 'TRANSFER', '$actor', now() - n * interval '1 minute'
+     from unnest(array['$tenant', '$rs_tenant_b']::uuid[]) t, generate_series(1, 3000) n; analyze $rs_t" >/dev/null 2>&1 || true
+rs_plan="$(rs_explain "select reservation_id from $rs_t where tenant_id='$tenant' and reservation_status='PENDING_PAYMENT' order by created_at desc limit 20")"; printf '%s\n' "$rs_plan"
+check 'AC-D7.15 the active list of a tenant uses idx_reservation_tenant_status_created' "$(printf '%s\n' "$rs_plan" | grep -q 'idx_reservation_tenant_status_created'; echo $?)"
+rs_plan="$(rs_explain "select count(*) from $rs_t where tenant_id='$tenant' and salida_id='$(aid 2231)'")"; printf '%s\n' "$rs_plan"
+check 'AC-D7.15 the reservations of a departure use idx_reservation_tenant_salida' "$(printf '%s\n' "$rs_plan" | grep -q 'idx_reservation_tenant_salida'; echo $?)"
+rs_plan="$(rs_explain "select reservation_id from $rs_t where tenant_id='$tenant' and customer_id='$rs_customer_a' order by created_at desc limit 20")"; printf '%s\n' "$rs_plan"
+check 'AC-D7.15 the reservations of a customer use idx_reservation_tenant_customer_created' "$(printf '%s\n' "$rs_plan" | grep -q 'idx_reservation_tenant_customer_created'; echo $?)"
+rs_plan="$(rs_explain "select outbox_event_id from $rs_ob where reservation_id='$rs_keep'")"; printf '%s\n' "$rs_plan"
+check 'AC-D7.15 the events of a reservation use idx_outbox_event_reservation' "$(printf '%s\n' "$rs_plan" | grep -q 'idx_outbox_event_reservation'; echo $?)"
+sql "delete from $rs_t where reservation_id not in ('$rs_keep','$rs_retry_a') and created_by = '$actor' and salida_id in ('$(aid 2231)','$(aid 2232)','$(aid 2233)')" >/dev/null 2>&1 || true
+
+echo 'noDeleteGrantOnAnyTableOfTheSlice and heldSeatsIsNeverReadForUpdateOrWrittenByTheSlice (AC-D7.14, RNF-D7.4)'
+check 'AC-D7.14 no DELETE on reservation, reserved_service, reservation_fixed_discount for the writer, the application user or the reader' "$([ "$(sql "select count(*) from information_schema.tables t where t.table_schema='$SCHEMA' and t.table_name in ('reservation','reserved_service','reservation_fixed_discount') and (has_table_privilege('$writer', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$reader', format('%I.%I', t.table_schema, t.table_name), 'DELETE'))")" = 0 ]; echo $?)"
+check 'AC-D7.14 DELETE is held only on the two technical tables and processed_event, as before this story' "$([ "$(sql "select string_agg(t.table_name, ',' order by t.table_name) from information_schema.tables t where t.table_schema='$SCHEMA' and has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE')")" = 'idempotency_key,outbox_event,processed_event' ]; echo $?)"
+rs_scan_files="$(ls 01_ddl/*/*reservation*.sql 01_ddl/03_tables/017_*.sql 01_ddl/04_alter/012_*.sql 01_ddl/04_alter/013_*.sql 01_ddl/07_functions/*.sql 01_ddl/09_triggers/*.sql 03_dcl/01_grants/008_*.sql 2>/dev/null | sort -u)"
+check 'RNF-D7.4 no changeset of this story mentions held_seats: the capacity row is neither read FOR UPDATE nor written' "$([ -n "$rs_scan_files" ] && ! grep -qi 'held_seats\|salida_capacity' $rs_scan_files; echo $?)"
+
+rs_ob="$SCHEMA.outbox_event"
 echo 'Idempotence, exact revert and reapply of the whole story (AC-D7.16, AC-D7.17)'
 rs_second="$(liquibase update 2>&1)"; printf '%s\n' "$rs_second"
 check 'a second update applies zero changesets' "$(printf '%s\n' "$rs_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
 sql "delete from $rs_ob where reservation_id is not null; delete from $SCHEMA.reservation_companion where reservation_id in (select reservation_id from $rs_t); delete from $SCHEMA.reservation_additional_discount where reservation_id in (select reservation_id from $rs_t); delete from $rs_fd; delete from $rs_rs; delete from $rs_t" >/dev/null 2>&1 || true
 check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (select count(*) from $rs_t) + (select count(*) from $rs_rs) + (select count(*) from $rs_fd)")" = 0 ]; echo $?)"
-liquibase rollback-count 7
+liquibase rollback-count 12
 rs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rs_base" "$rs_reverted"
-check 'the seven-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
+check 'the twelve-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
 check 'the three tables, the function, the trigger, the keys and the widening are gone after the revert' "$([ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation','reserved_service','reservation_fixed_discount')")" = 0 ] && [ "$(sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='trg_reservation_birth'")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname in ('fk_outbox_event_reservation','fk_reservation_companion_reservation','fk_reservation_additional_discount_reservation','chk_outbox_event_payload_keys_reservation_created')")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
-check 'the seven changesets reapply to 60 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 60 ]; echo $?)"
+check 'the twelve changesets reapply to 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 60 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 60 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
 check 'AC-D7.8 after the whole runner the writer and the application user still hold no UPDATE on the fixed discount lines' "$([ "$(sql "select has_table_privilege('$writer','$rs_fd','UPDATE') or has_table_privilege('$app','$rs_fd','UPDATE')")" = f ]; echo $?)"
 check 'AC-D7.1 the whole story leaves nothing in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
