@@ -258,5 +258,10 @@ for entry in '04_alter/016_add_payment_attempt_review_columns' '07_functions/002
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-010 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-010 $stem is not included"
 done
+# HU-COM-001 collaborator-editing flag (RF-004, T-05): the settings table, written before the migration.
+entry='03_tables/025_create_tenant_catalog_settings'
+[ -f "01_ddl/$entry.sql" ] || bad "HU-COM-001 migration 01_ddl/$entry.sql is missing"
+[ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-001 rollback $entry is missing"
+grep -q "path: ${entry##*/}.sql" 01_ddl/03_tables/changelog.yaml || bad "HU-COM-001 ${entry##*/} is not included"
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"

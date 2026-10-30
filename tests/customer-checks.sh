@@ -168,4 +168,4 @@ if [ "$(sql "select count(*) from $CONTROL")" = "$cust_total_b" ]; then
 else
   check 'AC-D5.13 the revert of stage B cannot be judged: stage B is not applied (no rollback is run)' 1
 fi
-db_labels='!HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010'
+db_labels='!HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag'
