@@ -239,3 +239,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/024_create_tenant_status.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-016
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-table,ddl,03_tables"
+      comment: "PROPOSED reservation: identity, tenant, customer, departure, tour, people, values, closed status lists and the creator (HU-COM-007 plan D-02 and D-04, debt DD-3)."
+      changes:
+        - sqlFile:
+            path: 016_create_reservation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/016_create_reservation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

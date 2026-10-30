@@ -187,5 +187,13 @@ for entry in '03_tables/024_create_tenant_status' '07_functions/003_create_fn_te
   [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-WRK-007 rollback $entry is missing"
   grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-WRK-007 $stem is not included"
 done
+# HU-COM-007 reservation table, birth function and trigger: written before the migrations.
+for entry in '03_tables/016_create_reservation' '07_functions/001_create_trg_reservation_birth_function' \
+  '09_triggers/001_create_trg_reservation_birth'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-007 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-007 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-007 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"

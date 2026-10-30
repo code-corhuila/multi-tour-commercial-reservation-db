@@ -24,7 +24,7 @@ ts_repeat() { # character, count
 }
 
 echo 'HU-WRK-007 tenant status - base: the 50 changesets before the table, the function and the trigger'
-db_labels='!HU-WRK-007'
+db_labels='!HU-WRK-007 and !HU-COM-007'
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 ts_base="$(snapshot)"
@@ -96,10 +96,10 @@ ts_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$ts_base" "$ts_reverted"
 check 'AC-D21.8 the three-change revert restores the schema exactly and leaves 50 changesets' "$([ -n "$ts_base" ] && [ "$ts_reverted" = "$ts_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 50 ]; echo $?)"
 check 'AC-D21.8 the table, the function and the trigger are gone and processed_event stays' "$([ "$(sql "select to_regclass('$ts_t') is null")" = t ] && [ "$(ts_sql "select count(*) from pg_proc where proname='fn_tenant_status_guard'")" = 0 ] && [ "$(sql "select to_regclass('$ts_pe') is not null")" = t ]; echo $?)"
-db_labels=''
+db_labels='!HU-COM-007'
 liquibase update >/dev/null
 check 'AC-D21.8 the three changesets reapply to 53 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 53 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
+check 'a full build from empty without the labels of the later HU-COM-007 applies exactly 53 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"

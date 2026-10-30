@@ -1,0 +1,1 @@
+DROP TRIGGER trg_reservation_birth ON commercial_reservation.reservation;
