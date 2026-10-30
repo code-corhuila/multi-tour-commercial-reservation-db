@@ -234,5 +234,12 @@ entry='01_grants/009_revoke_on_payment_proof_file'
 [ -f "03_dcl/$entry.sql" ] || bad "HU-COM-009 grant 03_dcl/$entry.sql is missing"
 [ -f "05_rollbacks/03_dcl/$entry.rollback.sql" ] || bad "HU-COM-009 grant rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 03_dcl/01_grants/changelog.yaml || bad "HU-COM-009 ${entry##*/} is not included"
+# HU-COM-009 upper check of the capacity row, capacity allocation and its indexes: written before the migrations.
+for entry in '04_alter/014_add_salida_capacity_held_within_effective_check' '03_tables/021_create_capacity_allocation' '10_indexes/021_create_capacity_allocation_indexes'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-009 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-009 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-009 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
