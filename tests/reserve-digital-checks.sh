@@ -18,7 +18,7 @@ rd_reservation() { # reservation id, customer id, salida id (default rd_sal), te
 
 echo 'HU-COM-008 reserve digital - base: the 65 changesets of HU-COM-001 to HU-COM-007'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-008 and !HU-COM-009 and !HU-COM-010'
+db_labels='!HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag'
 liquibase update >/dev/null
 rd_base="$(snapshot)"
 check 'base holds exactly 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
@@ -101,7 +101,7 @@ rd_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rd_base" "$rd_reverted"
 check 'AC-D8.12 the two-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rd_base" ] && [ "$rd_reverted" = "$rd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
 check 'AC-D8.12 after the revert the old index is back and the unique one is gone' "$([ "$(rd_sql "select indexdef from pg_indexes where schemaname='$SCHEMA' and indexname='idx_customer_tenant_account_id'")" = "CREATE INDEX idx_customer_tenant_account_id ON $SCHEMA.customer USING btree (tenant_id, account_id) WHERE (account_id IS NOT NULL)" ] && [ "$(rd_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='uq_customer_tenant_id_account_id'")" = 0 ]; echo $?)"
-db_labels='!HU-COM-009 and !HU-COM-010'
+db_labels='!HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag'
 liquibase update >/dev/null
 check 'the two changesets reapply to 67 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
