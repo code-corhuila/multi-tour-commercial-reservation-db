@@ -587,5 +587,6 @@ source tests/reserve-digital-checks.sh
 source tests/payment-checks.sh
 source tests/payment-review-checks.sh
 source tests/collaborator-flag-checks.sh
+source tests/discount-traceability-checks.sh
 source tests/customer-search-checks.sh
 exit "$fail"
