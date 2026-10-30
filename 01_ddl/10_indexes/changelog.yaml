@@ -291,3 +291,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/019_drop_customer_account_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-020
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,ddl,10_indexes"
+      comment: "Attempts of a reservation by tenant and time (HU-COM-009 plan D-12)."
+      changes:
+        - sqlFile:
+            path: 020_create_payment_attempt_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/020_create_payment_attempt_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
