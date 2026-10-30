@@ -33,7 +33,7 @@ rs_seed() { # one customer per tenant (the same document in both) and one tour o
 
 echo 'HU-COM-007 reservation - base: the 53 changesets before the reservation table, its function and its trigger'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010'
+db_labels='!HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag'
 liquibase update >/dev/null
 rs_base="$(snapshot)"
 check 'base holds exactly 53 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
@@ -316,7 +316,7 @@ rs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rs_base" "$rs_reverted"
 check 'the twelve-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
 check 'the three tables, the function, the trigger, the keys and the widening are gone after the revert' "$([ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation','reserved_service','reservation_fixed_discount')")" = 0 ] && [ "$(sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='trg_reservation_birth'")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname in ('fk_outbox_event_reservation','fk_reservation_companion_reservation','fk_reservation_additional_discount_reservation','chk_outbox_event_payload_keys_reservation_created')")" = 0 ]; echo $?)"
-db_labels='!HU-COM-008 and !HU-COM-009 and !HU-COM-010'
+db_labels='!HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag'
 liquibase update >/dev/null
 check 'the twelve changesets reapply to 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
