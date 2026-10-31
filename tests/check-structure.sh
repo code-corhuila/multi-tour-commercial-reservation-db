@@ -263,5 +263,12 @@ entry='03_tables/025_create_tenant_catalog_settings'
 [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-001 migration 01_ddl/$entry.sql is missing"
 [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-001 rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 01_ddl/03_tables/changelog.yaml || bad "HU-COM-001 ${entry##*/} is not included"
+# HU-COM-005 name search index (T-10): written before the migration. The label customer-name-search keeps it out of the older bases.
+for entry in '10_indexes/025_create_customer_name_search_index'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-005 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-005 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-COM-005 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"
