@@ -1,0 +1,38 @@
+# HU-COM-004 T-08 execution record
+
+Date: 2026-11-02 (run started 19:19 UTC, last Liquibase call 19:41 UTC)  
+Branch: `test/hu-com-004-dev-db-record-t08`, from `origin/develop` at `e4c3a0c522ccea8438060396429a805a1e34f6ce`  
+Command: `bash tests/db-ci.sh` from the repository root (PostgreSQL 18 in Docker, Liquibase 5.0.4, Java 21.0.11). Exit status: 0. `bash tests/check-structure.sh` printed `OK: structure check passed`.
+
+## Result of the whole run
+
+The script printed 1152 lines `ok` and no line `FAIL`, ended with exit status 0 and the line `PASS: database CI entrypoint is green locally; remote GitHub workflow has not been run.` The last check printed `the changeset reapplies to 85 changesets`. The count covers every slice the script runs on this commit, not only HU-COM-004. Line numbers are lines of the run output of 2026-11-02; that output is not versioned, so the check names are the durable evidence. The probes of this story are in `tests/additional-discount-checks.sh`, `tests/authorizable-reason-checks.sh` and `tests/outbox-widening-checks.sh`.
+
+## The ten steps of the done criterion (`spec.md` section 8, `tasks.md` T-08)
+
+| # | Step | Verdict | Proof in the log |
+|---|---|---|---|
+| 1 | The migrations of `001` and `003` (and the reservation table of `HU-COM-007`) are applied first | passed | lines 2931 to 2935: five `HU-COM-004 T-00 precondition:` lines (schema, control table, writer without DELETE outside the two technical tables, `idempotency_key` and `outbox_event`, `discount_rule`); line 2937 `T-00 the prerequisites are exactly the 35 changesets of HU-COM-001..003 and HU-COM-005`; line 8667 shows that the reservation table of HU-COM-007 exists when its foreign key to the discount is probed |
+| 2 | This slice's migrations are applied; nothing new in `public` | passed | line 2973 `AC-D4.1 the table exists in commercial_reservation and nothing new appears in public`; line 5125 `authorizable_reason exists only in the domain schema` |
+| 3 | Columns, types and nullability listed from `information_schema` | passed | line 2992 `AC-D4.2 exact columns: identity, tenant, reservation and the six port fields; no cap column (DP-04-1)`; line 5126 `it holds id, tenant, reason, status and the two moments, with their types`; line 5128 `no DEFAULT anywhere` |
+| 4 | Invalid inserts through `psql` are refused, each by its named constraint | passed | lines 3017 to 3167: `chk_reservation_additional_discount_percentage` (twice, 0 and 10001), `chk_reservation_additional_discount_amount` (twice), `..._amount_within_previous` (twice), `chk_reservation_additional_discount_previous_value` (line 3066), `..._reason_not_blank` (twice), and NOT NULL refusals (SQLSTATE 23502) for reason, `applied_by`, `applied_at`, `tenant_id` and `reservation_id` |
+| 5a | A second discount on one reservation is refused | passed | lines 3187 and 3199: refused by `uq_reservation_additional_discount_reservation`; line 3206 another reservation still accepts its own; line 8701 the same once the reservation table exists; line 8667 a discount of a reservation that does not exist is refused by `fk_reservation_additional_discount_reservation` |
+| 5b | A discount with another tenant's reservation is refused | not verified | the foreign key is simple by default (DP-D7-4, line 8046: the engine does not compare tenants); no probe inserts an additional discount of tenant A on a reservation of tenant B, so the log does not prove a refusal. The only cross-tenant probe in the log is for the customer key (lines 8055 and 8056) |
+| 6a | The same reason twice for one tenant, then for two | passed | lines 5241 and 5253 (same text, and same text in capitals with spaces, refused by `uq_authorizable_reason_tenant_text`); line 5262 the same text for another tenant is accepted; line 5271 a different text is accepted |
+| 6b | Removal of a tenant's last reason is refused | not executable in the engine, by decision | line 5274 `no trigger on authorizable_reason: the last enabled reason is protected by the service`; the engine refuses nothing here, so the refusal of the last reason is a service rule (`spec.md` AC-D4.8 is corrected) |
+| 7 | `DELETE` on both tables and `UPDATE` on the discount, as `commercial_reservation_app`, are refused for lack of privilege | passed | line 3225 (DELETE on the discount); lines 5288 (DELETE on `authorizable_reason`), 5305 (UPDATE on the discount) and 5313 (DELETE on the discount), each answered `permission denied for table ...`; lines 5278, 5280, 5292 and 5295 show that `INSERT`, `SELECT` and the status `UPDATE` on the reason are still granted; line 5079 shows that the UPDATE existed before the revoke changeset |
+| 8 | `EXPLAIN` of the two real queries uses each index | not verified | no check in the log runs `EXPLAIN` on `uq_reservation_additional_discount_reservation` or on `idx_authorizable_reason_tenant_enabled`. Line 5273 only proves that the partial index exists (`idx_authorizable_reason_tenant_enabled is a partial index on tenant_id where status is ENABLED`). The plan names an index `idx_authorizable_reason_tenant_status`; the engine has the enabled one |
+| 9 | The runner again, revert the slice, apply it again | passed | additional discount (`03_tables/010`): line 3259 `AC-D4.12 a second update applies zero changesets`; line 3260 `adds exactly one changeset (35 -> 36)`; lines 3280 and 3281 `AC-D4.13 the table is gone and the 35 earlier changesets remain`, schema exactly as before; line 3314 `full build from the 35 plus HU-COM-004 reaches 36 changesets`. Outbox widening (`04_alter/010`): line 4843 zero changesets the second time; lines 4913 and 4914 the rollback is refused while events of the new types remain (literal answer at line 4864: `Cannot revert outbox widening while ReservationModified, CustomerRegistered or SensitiveDataAccessed events remain`); lines 4934 to 4936 MD5 `fe6a90479644f5457ec5d6f9a1500a19` before and after; line 4957 `the widening reapplies to 41 changesets`. Reasons and revoke (three changesets): line 5349 zero the second time; lines 5371 to 5374 MD5 `5830fa006ae295b01bfed5e0801064ad` before and after, the reason table is gone and the UPDATE privilege is back; line 5397 `the three changesets reapply to 44 changesets` |
+| 10 | `db-ci.yml` is green | not executable | the remote workflow was not run because GitHub Actions is blocked by billing; the script printed `remote GitHub workflow has not been run` (line 2246) and `HU-COM-004 T-00 and T-02 checks are green locally; remote workflow not run.` (line 3315) |
+
+## Related checks of the outbox widening used by the story
+
+Lines 4576 to 4808: `outbox_event` gains `reservation_id`, `customer_id` and `payload`; `ReservationModified`, `CustomerRegistered` and `SensitiveDataAccessed` are accepted with their one aggregate; an event with no aggregate, with two, or with the wrong one is refused by `chk_outbox_event_exactly_one_aggregate`; a missing actor is refused by `chk_outbox_event_actor_required`; a payload with a medical or document key is refused by `chk_outbox_event_payload_no_sensitive_keys`; `fk_outbox_event_customer` refuses an unknown customer.
+
+## What this run does NOT show
+
+- Not verified: step 5b (another tenant's reservation), as explained in the table.
+- Not verified: step 8 (`EXPLAIN` of the two queries). T-04 of `tasks.md` stays partly done.
+- Not verified: T-07, the join of the additional line with the fixed discount lines of the reservation; no check in the log reads both.
+- Not executable: step 6b in the engine (it is a service rule) and step 10 (remote workflow, blocked by billing).
+- Not verified: any integration with the real `-api` or `-portal`; the checks use `psql` and Liquibase only.
