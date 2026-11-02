@@ -41,7 +41,7 @@ check 'the rows of the probes are gone before the revert' "$([ "$(sql "select co
 liquibase rollback-count 1
 cs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cs_base" "$cs_reverted"
-check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
+check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 check 'the changeset reapplies to 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
