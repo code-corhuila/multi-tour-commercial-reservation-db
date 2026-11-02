@@ -25,7 +25,7 @@ This record replaces the one of 2026-10-28 (274 lines ok). That one said `T-06 n
 
 ## T-05 (outbox for discount rules)
 
-Lines 1561 to about 1660: for `DiscountRuleChanged` create, update and inactivate, the ROLLBACK leaves neither the rule change nor the event, and the COMMIT leaves exactly one correct event with full snapshots, all as `commercial_reservation_app`. All `ok`.
+Lines 1561 to 1649: for `DiscountRuleChanged` create, update and inactivate, the ROLLBACK leaves neither the rule change nor the event, and the COMMIT leaves exactly one correct event with full snapshots, all as `commercial_reservation_app`. All `ok`; lines 1756 and 1772 add `fk_outbox_event_discount_rule` and `D-10 no trigger writes rule events`.
 
 ## T-06 (the columns that waited for `G-A`, now merged)
 
@@ -40,4 +40,4 @@ Lines 1561 to about 1660: for `DiscountRuleChanged` create, update and inactivat
 - Not verified: the integration test of the `-api` with the outbox of discount rules. The `-api` has no discount code on the commit read; only the engine side was run, as the application role through `psql`.
 - Not verified: the remote GitHub workflow `db-ci.yml` (step 8). GitHub Actions is blocked by billing.
 - Not verified: the match of the columns with the portal fields (note of 2026-10-26 in `spec.md`); the run checks the columns of `spec.md` section 3 only.
-- Not verified: the decisions of T-06 that still have no changeset, if any are open in `spec.md`; this run proves only the coverage, cap, dates, status, priority and codes listed above.
+- Not verified: that T-06 is complete in the sense of `tasks.md`; this run proves only the coverage, cap, dates, status, priority and codes listed above, and no check judges a decision that has no changeset.
