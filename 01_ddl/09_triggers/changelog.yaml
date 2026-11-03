@@ -1,2 +1,16 @@
-# Empty on purpose: every folder carries its changelog from day one, so the execution order is fixed.
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-triggers-003
+      author: FernandaRobayo
+      labels: "HU-WRK-007,tenant-status,ddl,09_triggers"
+      comment: "PROPOSED trigger that attaches the identifier guard (spec 021 D-03)."
+      changes:
+        - sqlFile:
+            path: 003_create_trg_tenant_status_identifier_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/003_create_trg_tenant_status_identifier_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
