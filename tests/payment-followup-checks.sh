@@ -54,11 +54,11 @@ liquibase update >/dev/null
 check 'the eleven changesets of the story bring the control table to 98' "$([ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
 
 echo 'followupRequiresReservationAuthorTimeAndNote (AC-D11.2)'
-fu_refusal "$(fu_followup reservation_id NULL);" chk_payment_followup_reservation_required 'a follow-up without reservation'
-fu_refusal "$(fu_followup tenant_id NULL);" chk_payment_followup_tenant_required 'a follow-up without tenant'
-fu_refusal "$(fu_followup contacted_by NULL);" chk_payment_followup_contacted_by_required 'a follow-up without author'
-fu_refusal "$(fu_followup contacted_at NULL);" chk_payment_followup_contacted_at_required 'a follow-up without time'
-fu_refusal "$(fu_followup note NULL);" chk_payment_followup_note_required 'a follow-up without note'
+fu_refusal "$(fu_followup reservation_id NULL);" 'null value in column "reservation_id".*not-null constraint' 'a follow-up without reservation'
+fu_refusal "$(fu_followup tenant_id NULL);" 'null value in column "tenant_id".*not-null constraint' 'a follow-up without tenant'
+fu_refusal "$(fu_followup contacted_by NULL);" 'null value in column "contacted_by".*not-null constraint' 'a follow-up without author'
+fu_refusal "$(fu_followup contacted_at NULL);" 'null value in column "contacted_at".*not-null constraint' 'a follow-up without time'
+fu_refusal "$(fu_followup note NULL);" 'null value in column "note".*not-null constraint' 'a follow-up without note'
 fu_refusal "$(fu_followup note "'   '");" chk_payment_followup_note 'a follow-up with a blank note'
 fu_refusal "$(fu_followup reservation_id "'$(aid 3199)'");" fk_payment_followup_reservation 'a follow-up of a reservation that does not exist'
 fu_f1="$(aid 3130)"
