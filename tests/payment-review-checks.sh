@@ -34,7 +34,7 @@ pr_event() { # event type, payload (SQL literal)
 
 echo 'HU-COM-010 payment review - base: the 79 changesets of HU-COM-001 to HU-COM-009'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-010 and !collaborator-editing-flag and !customer-name-search'
+db_labels='!HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate'
 liquibase update >/dev/null
 pr_base="$(snapshot)"
 check 'base holds exactly 79 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"
@@ -180,4 +180,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
