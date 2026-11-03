@@ -179,5 +179,13 @@ entry='04_alter/019_add_customer_terms_acceptance'
 [ -f "01_ddl/$entry.sql" ] || bad "HU-COM-005 terms migration 01_ddl/$entry.sql is missing"
 [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-COM-005 terms rollback $entry is missing"
 grep -q "path: ${entry##*/}.sql" 01_ddl/04_alter/changelog.yaml || bad "HU-COM-005 terms ${entry##*/} is not included"
+# HU-WRK-007 tenant status table, its identifier guard function and trigger: written before the migrations.
+for entry in '03_tables/024_create_tenant_status' '07_functions/003_create_fn_tenant_status_guard' \
+  '09_triggers/003_create_trg_tenant_status_identifier_guard'; do
+  folder="${entry%/*}"; stem="${entry##*/}"
+  [ -f "01_ddl/$entry.sql" ] || bad "HU-WRK-007 migration 01_ddl/$entry.sql is missing"
+  [ -f "05_rollbacks/01_ddl/$entry.rollback.sql" ] || bad "HU-WRK-007 rollback $entry is missing"
+  grep -q "path: $stem.sql" "01_ddl/$folder/changelog.yaml" || bad "HU-WRK-007 $stem is not included"
+done
 if [ "$fail" -eq 0 ]; then echo "OK: structure check passed"; fi
 exit "$fail"

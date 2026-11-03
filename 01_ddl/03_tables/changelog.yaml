@@ -224,3 +224,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/015_create_processed_event.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-024
+      author: FernandaRobayo
+      labels: "HU-WRK-007,tenant-status,ddl,03_tables"
+      comment: "PROPOSED tenant_status: the local copy of the tenants (spec 021, ADR-004 D4, D5)."
+      changes:
+        - sqlFile:
+            path: 024_create_tenant_status.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/024_create_tenant_status.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
