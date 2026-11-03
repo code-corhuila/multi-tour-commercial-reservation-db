@@ -167,7 +167,7 @@ check 'HU-COM-003 reapplies to the identical 27-changeset schema' "$([ "$(sql "s
 
 # Also build all 27 in master-changelog order, without staging labels, from empty.
 liquibase rollback-count 999
-db_labels='!HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !discount-persistence and !discount-rule-codes' # HU-COM-005 has its own staged checks in customer-checks.sh
+db_labels='!HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !transport-rate and !discount-persistence and !discount-rule-codes' # HU-COM-005 has its own staged checks in customer-checks.sh
 liquibase update
 liquibase validate
 check 'full update from empty applies exactly 27 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 27 ]; echo $?)"
