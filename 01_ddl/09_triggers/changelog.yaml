@@ -44,3 +44,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/002_create_trg_payment_attempt_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-004
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,09_triggers"
+      comment: "PROPOSED trg_reservation_cancelled_guard: BEFORE UPDATE on reservation only (HU-COM-011 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 004_create_trg_reservation_cancelled_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/004_create_trg_reservation_cancelled_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-005
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,09_triggers"
+      comment: "PROPOSED trg_payment_deadline_extension_guard: BEFORE UPDATE on payment_deadline only (HU-COM-011 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 005_create_trg_payment_deadline_extension_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/005_create_trg_payment_deadline_extension_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -289,3 +289,48 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/020_add_catalog_service_transport_rate_per_person.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-021
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED extension (hours, instant, grantor) and freeze (instant, remaining minutes) columns of payment_deadline with their checks (HU-COM-011 plan D-03, DP-D11-3)."
+      changes:
+        - sqlFile:
+            path: 021_add_payment_deadline_extension_and_freeze_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/021_add_payment_deadline_extension_and_freeze_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-022
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED cancellation cause, instant and canceller of reservation, coherent with the CANCELLED status (HU-COM-011 plan D-04, DP-D11-2)."
+      changes:
+        - sqlFile:
+            path: 022_add_reservation_cancellation_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/022_add_reservation_cancellation_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-023
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED third widening of outbox_event: ReservationCancelled with the closed key list reservationId, cause, releasedSeats (HU-COM-011 plan D-05, DP-D11-4)."
+      changes:
+        - sqlFile:
+            path: 023_widen_outbox_event_for_reservation_cancelled.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/023_widen_outbox_event_for_reservation_cancelled.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

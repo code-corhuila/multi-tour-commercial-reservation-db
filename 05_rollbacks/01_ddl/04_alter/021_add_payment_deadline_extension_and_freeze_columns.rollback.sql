@@ -1,0 +1,11 @@
+ALTER TABLE commercial_reservation.payment_deadline
+    DROP CONSTRAINT chk_payment_deadline_remaining,
+    DROP CONSTRAINT chk_payment_deadline_freeze_complete,
+    DROP CONSTRAINT chk_payment_deadline_extension_kind,
+    DROP CONSTRAINT chk_payment_deadline_extension_hours,
+    DROP CONSTRAINT chk_payment_deadline_extension_complete,
+    DROP COLUMN remaining_at_freeze_minutes,
+    DROP COLUMN frozen_at,
+    DROP COLUMN extension_granted_by,
+    DROP COLUMN extension_granted_at,
+    DROP COLUMN extension_hours;
