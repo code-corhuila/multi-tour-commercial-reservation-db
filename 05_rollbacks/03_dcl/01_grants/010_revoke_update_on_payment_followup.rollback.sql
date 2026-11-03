@@ -1,0 +1,1 @@
+GRANT UPDATE ON commercial_reservation.payment_followup TO commercial_reservation_writer;

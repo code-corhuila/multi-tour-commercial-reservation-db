@@ -374,3 +374,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/025_create_tenant_catalog_settings.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-026
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,03_tables"
+      comment: "PROPOSED payment_followup: the append-only contacts a collaborator makes with the customer of a reservation pending payment, with a required note (HU-COM-011 plan D-02, DP-D11-1)."
+      changes:
+        - sqlFile:
+            path: 026_create_payment_followup.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/026_create_payment_followup.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
