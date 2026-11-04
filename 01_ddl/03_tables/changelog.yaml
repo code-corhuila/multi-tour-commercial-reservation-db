@@ -389,20 +389,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/026_create_payment_followup.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
-
   - changeSet:
       id: ddl-tables-027
       author: FernandaRobayo
-      labels: "HU-COM-012,reservation-modification,ddl,03_tables"
-      comment: "PROPOSED reservation_modification: the append-only history of the changes of a reservation, with before and after values (HU-COM-012 plan D-02, DP-D12-2)."
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,03_tables"
+      comment: "PROPOSED reservation_cancellation: the append-only settlement of a cancellation requested by the customer (HU-COM-013 plan D-02, DP-D13-1, DP-D13-2)."
       changes:
         - sqlFile:
-            path: 027_create_reservation_modification.sql
+            path: 027_create_reservation_cancellation.sql
             relativeToChangelogFile: true
             splitStatements: false
       rollback:
         - sqlFile:
-            path: ../../05_rollbacks/01_ddl/03_tables/027_create_reservation_modification.rollback.sql
+            path: ../../05_rollbacks/01_ddl/03_tables/027_create_reservation_cancellation.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
 
@@ -410,14 +409,30 @@ databaseChangeLog:
       id: ddl-tables-028
       author: FernandaRobayo
       labels: "HU-COM-012,reservation-modification,ddl,03_tables"
-      comment: "PROPOSED service_change_policy: the terms per tenant, tour and change type, with no list of change types (HU-COM-012 plan D-03, DP-D12-1)."
+      comment: "PROPOSED reservation_modification: the append-only history of the changes of a reservation, with before and after values (HU-COM-012 plan D-02, DP-D12-2)."
       changes:
         - sqlFile:
-            path: 028_create_service_change_policy.sql
+            path: 028_create_reservation_modification.sql
             relativeToChangelogFile: true
             splitStatements: false
       rollback:
         - sqlFile:
-            path: ../../05_rollbacks/01_ddl/03_tables/028_create_service_change_policy.rollback.sql
+            path: ../../05_rollbacks/01_ddl/03_tables/028_create_reservation_modification.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-tables-029
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,03_tables"
+      comment: "PROPOSED service_change_policy: the terms per tenant, tour and change type, with no list of change types (HU-COM-012 plan D-03, DP-D12-1)."
+      changes:
+        - sqlFile:
+            path: 029_create_service_change_policy.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/029_create_service_change_policy.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false

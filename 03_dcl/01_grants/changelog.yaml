@@ -149,19 +149,34 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/010_revoke_update_on_payment_followup.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
-
   - changeSet:
       id: dcl-grants-011
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,dcl,grants"
+      comment: "The writer may not update a settlement: it is appended and never edited (AC-D13.5, HU-COM-013 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 011_revoke_update_on_reservation_cancellation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/011_revoke_update_on_reservation_cancellation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-012
       author: FernandaRobayo
       labels: "HU-COM-012,reservation-modification,dcl,grants"
       comment: "The writer may not update a history row: it is appended and never edited (AC-D12.5, HU-COM-012 plan D-06)."
       changes:
         - sqlFile:
-            path: 011_revoke_update_on_reservation_modification.sql
+            path: 012_revoke_update_on_reservation_modification.sql
             relativeToChangelogFile: true
             splitStatements: false
       rollback:
         - sqlFile:
-            path: ../../05_rollbacks/03_dcl/01_grants/011_revoke_update_on_reservation_modification.rollback.sql
+            path: ../../05_rollbacks/03_dcl/01_grants/012_revoke_update_on_reservation_modification.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
