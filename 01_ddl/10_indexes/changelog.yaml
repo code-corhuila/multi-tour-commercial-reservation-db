@@ -428,3 +428,51 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/028_create_reservation_cancellation_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-029
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED partial unique index: one pending-difference deadline per reservation (HU-COM-012 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 029_create_payment_deadline_pending_difference_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/029_create_payment_deadline_pending_difference_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-030
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED history index on (tenant_id, reservation_id, registered_at DESC) (HU-COM-012 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 030_create_reservation_modification_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/030_create_reservation_modification_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-031
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED index of the tour foreign key of the terms, led by the tenant (HU-COM-012 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 031_create_service_change_policy_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/031_create_service_change_policy_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
