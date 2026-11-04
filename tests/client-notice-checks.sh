@@ -18,7 +18,7 @@ nc_accepted() { # SQL, description
   check "HU-COM-015 db: $2 is accepted" "$status"
 }
 nc_payload() { # notification type, triggering event type, triggering event id, extra JSON members (optional, with a leading comma)
-  echo "'{\"customerId\":\"$nc_cust\",\"notificationType\":\"$1\",\"triggeringEventType\":\"$2\",\"triggeringEventId\":\"$3\"$4}'::jsonb"
+  echo "'{\"customerId\":\"$nc_cust\",\"notificationType\":\"$1\",\"triggeringEventType\":\"$2\",\"triggeringEventId\":\"$3\"${4:-}}'::jsonb"
 }
 nc_event() { # payload (SQL literal), then column/value pairs that replace the defaults
   local payload="$1"; shift
@@ -59,13 +59,13 @@ nc_accepted "$(nc_event "$(nc_payload RESERVATION_CONFIRMED ReservationConfirmed
 echo 'aNoticeWithAMissingExtraOrSensitiveKeyIsRefused (AC-D15.3)'
 nc_k='chk_outbox_event_payload_keys_client_notified'
 nc_refusal "$(nc_event "'{\"notificationType\":\"PROOF_APPROVED\",\"triggeringEventType\":\"PaymentValidated\",\"triggeringEventId\":\"$(aid 4301)\"}'::jsonb");" "$nc_k" 'a notice without customerId'
-nc_refusal "$(nc_event "'{\"customerId\":\"$nc_cust\",\"triggeringEventType\":\"PaymentValidated\",\"triggeringEventId\":\"$(aid 4302)\"}'::jsonb");" "$nc_k" 'a notice without notificationType'
-nc_refusal "$(nc_event "'{\"customerId\":\"$nc_cust\",\"notificationType\":\"PROOF_APPROVED\",\"triggeringEventId\":\"$(aid 4303)\"}'::jsonb");" "$nc_k" 'a notice without triggeringEventType'
+nc_refusal "$(nc_event "'{\"customerId\":\"$nc_cust\",\"triggeringEventType\":\"PaymentValidated\",\"triggeringEventId\":\"$(aid 4302)\"}'::jsonb");" "$nc_k|chk_outbox_event_client_notified_codes" 'a notice without notificationType'
+nc_refusal "$(nc_event "'{\"customerId\":\"$nc_cust\",\"notificationType\":\"PROOF_APPROVED\",\"triggeringEventId\":\"$(aid 4303)\"}'::jsonb");" "$nc_k|chk_outbox_event_client_notified_codes" 'a notice without triggeringEventType'
 nc_refusal "$(nc_event "'{\"customerId\":\"$nc_cust\",\"notificationType\":\"PROOF_APPROVED\",\"triggeringEventType\":\"PaymentValidated\"}'::jsonb");" "$nc_k" 'a notice without triggeringEventId'
 nc_refusal "$(nc_event "$(nc_payload PROOF_APPROVED PaymentValidated "$(aid 4304)" ',"amountCents":1000')");" "$nc_k" 'a notice with an extra key'
 nc_refusal "$(nc_event "$(nc_payload PROOF_APPROVED PaymentValidated "$(aid 4305)" ',"email":"ana@example.com"')");" "$nc_k|chk_outbox_event_payload_no_sensitive_keys" 'a notice carrying an e-mail address'
 nc_refusal "$(nc_event "$(nc_payload PROOF_APPROVED PaymentValidated "$(aid 4306)" ',"fullName":"Ana Perez"')");" "$nc_k|chk_outbox_event_payload_no_sensitive_keys" 'a notice carrying a name'
-nc_refusal "$(nc_event NULL);" chk_outbox_event_payload 'a notice without payload'
+nc_refusal "$(nc_event NULL);" 'chk_outbox_event_payload|chk_outbox_event_client_notified_codes' 'a notice without payload'
 nc_refusal "$(nc_event "$(nc_payload PROOF_APPROVED PaymentValidated "$(aid 4307)")" reservation_id NULL);" chk_outbox_event_exactly_one_aggregate 'a notice without a reservation'
 nc_refusal "$(nc_event "$(nc_payload PROOF_APPROVED PaymentValidated "$(aid 4308)")" customer_id "'$nc_cust'");" chk_outbox_event_exactly_one_aggregate 'a notice that names the reservation and the customer as aggregates'
 
