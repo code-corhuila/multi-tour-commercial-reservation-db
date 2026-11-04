@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Sourced by db-ci.sh after the discount-rule stackable checks, on the same disposable PostgreSQL instance.
 # HU-COM-015 -db (issue multi-tour-docs#181), plan D-02 and D-03, slice (a): the ClientNotified notice as one more type of the outbox with a closed
-# payload and no personal datum, and one notice per triggering event and tenant. Two changesets, both labelled HU-COM-015 (ddl-alter-025 and
-# ddl-indexes-028). Probes are written first: red before the changesets, green after (Annex J.1).
+# payload and no personal datum, and one notice per triggering event and tenant. Two changesets, both labelled HU-COM-015 (ddl-alter-027 and
+# ddl-indexes-032). Probes are written first: red before the changesets, green after (Annex J.1).
 nc_ob="$SCHEMA.outbox_event"; nc_tenant_b="00000000-0000-0000-0000-000000000002"
 nc_cust="$(aid 4101)"; nc_cust_b="$(aid 4102)"; nc_svc="$(aid 4103)"
 nc_res1="$(aid 4110)"; nc_res_b="$(aid 4112)"
@@ -28,13 +28,13 @@ nc_event() { # payload (SQL literal), then column/value pairs that replace the d
 }
 nc_objects() { sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true; }
 
-echo 'HU-COM-015 db - base: the 99 changesets that exist before the story'
+echo 'HU-COM-015 db - base: the 110 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
 db_labels='!HU-COM-015'
 liquibase update >/dev/null
 nc_base="$(snapshot)"
 nc_base_objects="$(nc_objects)"
-check 'base holds exactly 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'base holds exactly 110 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$nc_cust', '$tenant', 'Notice probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$nc_cust_b', '$nc_tenant_b', 'Notice probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$nc_svc', '$tenant', 'TOUR', 'Notice probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$nc_res1'" customer_id "'$nc_cust'" service_id "'$nc_svc'"); $(rs_row reservation_id "'$nc_res_b'" tenant_id "'$nc_tenant_b'" customer_id "'$nc_cust_b'" service_id "'$nc_svc'");" >/dev/null || true
@@ -43,7 +43,7 @@ check 'the probe reservations exist on the base' "$([ "$(nc_sql "select count(*)
 echo 'HU-COM-015 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-015'
 liquibase update >/dev/null
-check 'the two changesets of slice (a) bring the control table to 101' "$([ "$(sql "select count(*) from $CONTROL")" = 101 ]; echo $?)"
+check 'the two changesets of slice (a) bring the control table to 112' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
 
 echo 'slice015AddsOnlyTheExpectedObjectsAndNothingInPublic (AC-D15.1)'
 check 'AC-D15.1 the slice adds no table, function or trigger to the base' "$([ "$(nc_objects)" = "$nc_base_objects" ]; echo $?)"
@@ -95,7 +95,7 @@ check 'the notices of the probes are gone before the revert' "$([ "$(sql "select
 liquibase rollback-count 2
 nc_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$nc_base" "$nc_reverted"
-check 'AC-D15.13 the two-change revert restores columns, constraints, indexes and privileges exactly and leaves 99 changesets' "$([ -n "$nc_base" ] && [ "$nc_reverted" = "$nc_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'AC-D15.13 the two-change revert restores columns, constraints, indexes and privileges exactly and leaves 110 changesets' "$([ -n "$nc_base" ] && [ "$nc_reverted" = "$nc_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
 db_labels='HU-COM-015'
 liquibase update >/dev/null
-check 'AC-D15.13 the changesets reapply to 101 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 101 ]; echo $?)"
+check 'AC-D15.13 the changesets reapply to 112 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
