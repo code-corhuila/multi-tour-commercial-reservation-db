@@ -11,14 +11,14 @@ liquibase rollback-count 999 >/dev/null
 db_labels='!discount-rule-stackable'
 liquibase update >/dev/null
 st_base="$(snapshot)"
-check 'base holds exactly 98 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
+check 'base holds exactly 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
 check 'on that base discount_rule has no stackable column' "$([ "$(st_col 'count(*)')" = 0 ]; echo $?)"
 engine "$(cd_rule "'$(aid 1601)'")" >/dev/null || true
 
 echo 'HU-COM-003 stackable - probes written first: red before the changeset, green after'
 db_labels='discount-rule-stackable'
 liquibase update >/dev/null
-check 'the column brings the control table to 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'the column brings the control table to 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 
 echo 'the column (DP-04)'
 check 'stackable is boolean NOT NULL with DEFAULT true' "$([ "$(st_col "data_type || ' ' || is_nullable || ' ' || column_default")" = 'boolean NO true' ]; echo $?)"
@@ -39,8 +39,8 @@ check 'a second update applies zero changesets' "$(printf '%s\n' "$st_second" | 
 liquibase rollback-count 1
 st_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$st_base" "$st_reverted"
-check 'the one-change revert restores the schema exactly and leaves 98 changesets' "$([ -n "$st_base" ] && [ "$st_reverted" = "$st_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
+check 'the one-change revert restores the schema exactly and leaves 87 changesets' "$([ -n "$st_base" ] && [ "$st_reverted" = "$st_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
 db_labels='discount-rule-stackable'
 liquibase update >/dev/null
-check 'the changeset reapplies to 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'the changeset reapplies to 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 sql "delete from $st_t where discount_rule_id in ('$(aid 1601)','$(aid 1602)')" >/dev/null 2>&1 || true

@@ -44,8 +44,8 @@ printf 'Base MD5: %s\nReverted MD5: %s\n' "$cs_base" "$cs_reverted"
 check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
-check 'the changeset reapplies to 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'the changeset reapplies to 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
