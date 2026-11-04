@@ -413,3 +413,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/027_create_payment_deadline_due_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-028
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-015,client-notice,ddl,10_indexes"
+      comment: "PROPOSED unique index: one ClientNotified notice per tenant and triggering event id, built concurrently (HU-COM-015 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 028_create_outbox_event_client_notified_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/028_create_outbox_event_client_notified_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
