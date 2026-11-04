@@ -37,7 +37,7 @@ Lines 1561 to 1649: for `DiscountRuleChanged` create, update and inactivate, the
 
 ## What this run does NOT show
 
-- Not verified: the integration test of the `-api` with the outbox of discount rules. The `-api` has no discount code on the commit read; only the engine side was run, as the application role through `psql`.
+- Not verified: the integration test of the `-api` with the outbox of discount rules. The `-api` has since added the JDBC persistence of the discount rules and their outbox (`JdbcDiscountRules`), but this run did not use it; only the engine side was run, as the application role through `psql`.
 - Not verified: the remote GitHub workflow `db-ci.yml` (step 8). GitHub Actions is blocked by billing.
 - Not verified: the match of the columns with the portal fields (note of 2026-10-26 in `spec.md`); the run checks the columns of `spec.md` section 3 only.
 - Not verified: that T-06 is complete in the sense of `tasks.md`; this run proves only the coverage, cap, dates, status, priority and codes listed above, and no check judges a decision that has no changeset.
