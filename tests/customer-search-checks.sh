@@ -12,7 +12,7 @@ cs_explain_plain() { printf '%s\n' "explain $1;" | docker exec -i -e PGPASSWORD 
 
 echo 'HU-COM-005 customer name search - base: the 85 changesets before the index'
 liquibase rollback-count 999 >/dev/null
-db_labels='!customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable'
+db_labels='!customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013'
 liquibase update >/dev/null
 cs_base="$(snapshot)"
 check 'base holds exactly 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
@@ -44,8 +44,8 @@ printf 'Base MD5: %s\nReverted MD5: %s\n' "$cs_base" "$cs_reverted"
 check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
-check 'the changeset reapplies to 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'the changeset reapplies to 103 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 103 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 103 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 103 ]; echo $?)"
