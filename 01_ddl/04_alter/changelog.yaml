@@ -381,3 +381,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/026_add_outbox_event_reservation_modified_change_key_list.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-027
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice,ddl,04_alter"
+      comment: "PROPOSED fourth widening of outbox_event: ClientNotified with the closed key list customerId, notificationType, triggeringEventType, triggeringEventId and the eight notice codes; the actor is optional (HU-COM-015 plan D-02, DP-D15-1, DP-D15-2)."
+      changes:
+        - sqlFile:
+            path: 027_widen_outbox_event_for_client_notified.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/027_widen_outbox_event_for_client_notified.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
