@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.service_change_policy;
