@@ -1,0 +1,1 @@
+GRANT UPDATE ON commercial_reservation.reservation_modification TO commercial_reservation_writer;
