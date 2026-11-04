@@ -389,3 +389,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/026_create_payment_followup.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-027
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,03_tables"
+      comment: "PROPOSED reservation_cancellation: the append-only settlement of a cancellation requested by the customer (HU-COM-013 plan D-02, DP-D13-1, DP-D13-2)."
+      changes:
+        - sqlFile:
+            path: 027_create_reservation_cancellation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/027_create_reservation_cancellation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
