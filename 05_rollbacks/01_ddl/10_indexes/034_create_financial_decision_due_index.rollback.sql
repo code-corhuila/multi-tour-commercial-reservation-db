@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_financial_decision_tenant_due;
