@@ -82,8 +82,8 @@ ra_n="$(sql "select count(*) from $CONTROL where labels ilike '%HU-COM-016%'" 2>
 liquibase rollback-count "$ra_n"
 ra_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$fd_base" "$ra_reverted"
-check 'AC-D16.16 the revert of the whole slice restores columns, constraints, indexes and privileges exactly and leaves 112 changesets' "$([ -n "$fd_base" ] && [ "$ra_reverted" = "$fd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
+check 'AC-D16.16 the revert of the whole slice restores columns, constraints, indexes and privileges exactly and leaves 114 changesets' "$([ -n "$fd_base" ] && [ "$ra_reverted" = "$fd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
 check 'the two tables are gone after the revert' "$([ "$(ra_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('financial_decision','refund_authorization')")" = 0 ]; echo $?)"
 db_labels='HU-COM-016'
 liquibase update >/dev/null
-check 'the changesets of the story reapply to 123' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
+check 'the changesets of the story reapply to 125' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"

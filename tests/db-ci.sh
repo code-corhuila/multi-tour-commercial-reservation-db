@@ -595,6 +595,7 @@ source tests/reservation-cancellation-checks.sh
 source tests/discount-rule-stackable-checks.sh
 source tests/reservation-cancellation-settlement-checks.sh
 source tests/reservation-modification-checks.sh
+source tests/reservation-modification-grants-checks.sh
 source tests/customer-consultation-checks.sh
 source tests/client-notice-checks.sh
 source tests/financial-decision-checks.sh
