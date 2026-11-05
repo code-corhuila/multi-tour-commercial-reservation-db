@@ -23,6 +23,7 @@ rg_accepted() { # SQL, description
 }
 rg_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 rg_event() { # payload (SQL literal), then column/value pairs that replace the defaults
+  local payload="$1"; shift
   local -A v=([reservation_id]="'$rg_res3'" [event_type]="'RefundAuthorized'" [actor_id]="'$actor'")
   while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
   echo "insert into $rg_ob (tenant_id, event_type, reservation_id, actor_id, occurred_at, payload) values ('$tenant', ${v[event_type]}, ${v[reservation_id]}, ${v[actor_id]}, now(), $payload)"
@@ -81,8 +82,8 @@ rg_refusal "delete from $rg_t_fd where financial_decision_id = '$rg_d1';" 'permi
 rg_refusal "delete from $rg_t_ra where refund_authorization_id = '$rg_r1';" 'permission denied for table refund_authorization' 'the delete of a refund by the application user'
 rg_refusal "delete from $SCHEMA.reservation where reservation_id = '$rg_res1';" 'permission denied for table reservation' 'the delete of a reservation by the application user'
 rg_fk="$(engine "delete from $SCHEMA.reservation where reservation_id = '$rg_res1';" postgres 2>&1 || true)"; printf '%s\n' "$rg_fk"
-check 'HU-COM-016 db: the owner cannot delete a reservation that has a decision or a refund (a RESTRICT key)' "$(printf '%s\n' "$rg_fk" | grep -q 'violates foreign key constraint'; echo $?)"
-check 'neither the decision nor the refund tables grant DELETE to the writer or the application user' "$([ "$(rg_sql "select count(*) from information_schema.role_table_grants where table_schema='$SCHEMA' and table_name in ('financial_decision','refund_authorization') and privilege_type = 'DELETE'")" = 0 ]; echo $?)"
+check 'HU-COM-016 db: the owner cannot delete a reservation that has a decision or a refund (a RESTRICT key)' "$(printf '%s\n' "$rg_fk" | grep -q 'foreign key constraint "fk_'; echo $?)"
+check 'neither the decision nor the refund tables grant DELETE to the writer or the application user' "$([ "$(rg_sql "select count(*) from information_schema.role_table_grants where table_schema='$SCHEMA' and table_name in ('financial_decision','refund_authorization') and privilege_type = 'DELETE' and grantee in ('commercial_reservation_writer','commercial_reservation_app','commercial_reservation_reader')")" = 0 ]; echo $?)"
 
 echo 'decisionsAndRefundsNeverCrossTenants, theReadsUseTheirIndexes, theSameKeyTwiceIsRefusedPerTenant (AC-D16.13, AC-D16.14)'
 check 'a read scoped to the first tenant returns no decision or refund of the second' "$([ "$(rg_sql "select count(*) from $rg_t_fd where tenant_id = '$tenant' and financial_decision_id = '$rg_d_b'")" = 0 ] && [ "$(rg_sql "select count(*) from $rg_t_ra where tenant_id = '$tenant' and refund_authorization_id = '$rg_r_b'")" = 0 ] && [ "$(rg_sql "select count(*) from $rg_t_ra where tenant_id = '$rg_tenant_b'")" -ge 1 ]; echo $?)"
@@ -90,7 +91,7 @@ rg_p1="$(rg_explain "select 1 from $rg_t_fd where tenant_id = '$tenant' and outc
 check 'the due decisions use idx_financial_decision_tenant_due' "$(printf '%s\n' "$rg_p1" | grep -q 'idx_financial_decision_tenant_due'; echo $?)"
 rg_p2="$(rg_explain "select 1 from $rg_t_ra where tenant_id = '$tenant' and reservation_id = '$rg_res1'")"; printf '%s\n' "$rg_p2"
 check 'the refunds of one reservation use idx_refund_authorization_tenant_reservation' "$(printf '%s\n' "$rg_p2" | grep -q 'idx_refund_authorization_tenant_reservation'; echo $?)"
-rg_p3="$(rg_explain "select 1 from $rg_t_ra where tenant_id = '$tenant' and execution_state <> 'EXECUTED' and overdue_marked_at is null and execution_due_at < now()")"; printf '%s\n' "$rg_p3"
+rg_p3="$(rg_explain "select 1 from $rg_t_ra where tenant_id = '$tenant' and execution_state <> 'EXECUTED' and overdue_marked_at is null and execution_due_at < now() order by execution_due_at limit 20")"; printf '%s\n' "$rg_p3"
 check 'the open refunds use idx_refund_authorization_tenant_due' "$(printf '%s\n' "$rg_p3" | grep -q 'idx_refund_authorization_tenant_due'; echo $?)"
 rg_key="insert into $SCHEMA.idempotency_key (key, tenant_id, resource_type, resource_id) values ('refund-authorization-key-1', '$tenant', 'refund_authorization', '$rg_r1')"
 rg_accepted "$rg_key" 'the first registration of an authorization key'
