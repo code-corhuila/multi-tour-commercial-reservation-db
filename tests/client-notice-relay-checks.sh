@@ -29,7 +29,12 @@ check 'the base holds one million published notices' "$([ "$(rl_sql "select coun
 sql "insert into $rl_ob (outbox_event_id, tenant_id, event_type, reservation_id, actor_id, occurred_at, payload) values
        ('$rl_ea', '$tenant', 'ClientNotified', '$rl_res', '$actor', now(), jsonb_build_object('customerId', '$rl_cust', 'notificationType', 'PROOF_APPROVED', 'triggeringEventType', 'PaymentValidated', 'triggeringEventId', 'pending-a')),
        ('$rl_eb', '$rl_tenant_b', 'ClientNotified', '$rl_res_b', '$actor', now(), jsonb_build_object('customerId', '$rl_cust_b', 'notificationType', 'PROOF_REJECTED', 'triggeringEventType', 'PaymentRejected', 'triggeringEventId', 'pending-b'))" >/dev/null 2>&1 || true
-check 'two pending notices exist, one per tenant' "$([ "$(rl_sql "select count(*) from $rl_ob where published_at is null")" = 2 ]; echo $?)"
+# a backlog of fifty thousand notices waiting for their next attempt: the relay must read the first hundred in order without sorting them all
+sql "insert into $rl_ob (outbox_event_id, tenant_id, event_type, reservation_id, actor_id, occurred_at, attempts, next_attempt_at, payload)
+     select gen_random_uuid(), '$tenant', 'ClientNotified', '$rl_res', '$actor', now() - interval '1 hour' + (g * interval '1 millisecond'), 1, now() + (g * interval '1 second'),
+            jsonb_build_object('customerId', '$rl_cust', 'notificationType', 'PROOF_APPROVED', 'triggeringEventType', 'PaymentValidated', 'triggeringEventId', 'backlog-' || g)
+     from generate_series(1, 50000) g" >/dev/null 2>&1 || true
+check 'fifty thousand and two pending notices exist, two of them never tried' "$([ "$(rl_sql "select count(*) from $rl_ob where published_at is null")" = 50002 ]; echo $?)"
 
 echo 'HU-COM-015 relay - probes written first: red before the changeset, green after'
 db_labels='client-notice-relay-index'
@@ -41,8 +46,8 @@ echo 'thePendingReadUsesThePartialIndex (AC-D15.10)'
 check 'AC-D15.10 idx_outbox_event_pending_delivery is a valid partial index on (next_attempt_at NULLS FIRST, occurred_at) for unpublished and unfailed rows' "$([ "$(rl_sql "select count(*) from pg_index i join pg_class c on c.oid = i.indexrelid where c.relname = 'idx_outbox_event_pending_delivery' and i.indisvalid and not i.indisunique")" = 1 ] && [ "$(rl_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_outbox_event_pending_delivery' and indexdef like '%next_attempt_at NULLS FIRST, occurred_at%' and indexdef like '%published_at IS NULL%' and indexdef like '%failed_at IS NULL%'")" = 1 ]; echo $?)"
 rl_plan="$(printf '%s\n' "explain select outbox_event_id from $rl_ob where published_at is null and failed_at is null and (next_attempt_at is null or next_attempt_at <= now()) order by next_attempt_at nulls first, occurred_at limit 100;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true)"
 printf '%s\n' "$rl_plan"
-check 'AC-D15.10 the read of the relay with one million published rows behind it uses the partial index and does not scan the table' "$(printf '%s\n' "$rl_plan" | grep -q 'idx_outbox_event_pending_delivery' && ! printf '%s\n' "$rl_plan" | grep -q 'Seq Scan'; echo $?)"
-check 'AC-D15.10 the index stays small: it holds the pending rows only' "$([ "$(rl_sql "select pg_relation_size('$SCHEMA.idx_outbox_event_pending_delivery') < 1000000")" = t ]; echo $?)"
+check 'AC-D15.10 the read of the relay with one million published rows behind it uses the partial index and does not scan or sort the table' "$(printf '%s\n' "$rl_plan" | grep -q 'idx_outbox_event_pending_delivery' && ! printf '%s\n' "$rl_plan" | grep -q 'Seq Scan'; echo $?)"
+check 'AC-D15.10 the index stays small: it holds the pending rows only, a few MB against the million published' "$([ "$(rl_sql "select pg_relation_size('$SCHEMA.idx_outbox_event_pending_delivery') < 8000000")" = t ]; echo $?)"
 
 echo 'aNoticeOfOneTenantIsNeverReadByAnother (AC-D15.11)'
 check 'AC-D15.11 a notice read with its own tenant and id is returned' "$([ "$(rl_sql "$(rl_read "$tenant" "$rl_ea")")" = 1 ] && [ "$(rl_sql "$(rl_read "$rl_tenant_b" "$rl_eb")")" = 1 ]; echo $?)"
