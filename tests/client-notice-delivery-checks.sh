@@ -2,7 +2,7 @@
 # Sourced by db-ci.sh after client-notice-checks.sh, on the same disposable PostgreSQL instance.
 # HU-COM-015 -db (issue multi-tour-docs#181), plan D-04, slice (b): the delivery data of an outbox event (attempts, last error, next attempt, failed mark,
 # correlation id), its impossible combinations, and the guard that lets delivery change only those columns and never delete a pending or failed event.
-# Three changesets labelled HU-COM-015 and client-notice-delivery: ddl-alter-028, ddl-functions-006 and ddl-triggers-006. Probes are written first: red
+# Three changesets labelled HU-COM-015 and client-notice-delivery: ddl-alter-029, ddl-functions-008 and ddl-triggers-008. Probes are written first: red
 # before the changesets, green after (Annex J.1).
 nd_ob="$SCHEMA.outbox_event"; nd_res="$(aid 4310)"; nd_cust="$(aid 4301)"; nd_svc="$(aid 4303)"
 nd_sql() { sql "$1" 2>/dev/null || true; }
