@@ -43,7 +43,7 @@ check 'the probe reservations exist on the base' "$([ "$(nc_sql "select count(*)
 echo 'HU-COM-015 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-015 and !client-notice-delivery'
 liquibase update >/dev/null
-check 'the two changesets of slice (a) bring the control table to 114' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
+check 'the two changesets of slice (a) bring the control table to 114' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
 
 echo 'slice015AddsOnlyTheExpectedObjectsAndNothingInPublic (AC-D15.1)'
 check 'AC-D15.1 the slice adds no table, function or trigger to the base' "$([ "$(nc_objects)" = "$nc_base_objects" ]; echo $?)"
@@ -98,4 +98,4 @@ printf 'Base MD5: %s\nReverted MD5: %s\n' "$nc_base" "$nc_reverted"
 check 'AC-D15.13 the two-change revert restores columns, constraints, indexes and privileges exactly and leaves 110 changesets' "$([ -n "$nc_base" ] && [ "$nc_reverted" = "$nc_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
 db_labels='HU-COM-015 and !client-notice-delivery'
 liquibase update >/dev/null
-check 'AC-D15.13 the changesets reapply to 114 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
+check 'AC-D15.13 the changesets reapply to 114 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
