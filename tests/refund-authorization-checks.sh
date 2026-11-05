@@ -70,9 +70,9 @@ check 'the application user holds no DELETE on the refund table' "$([ "$(ra_sql 
 echo 'onlyThePlannedObjectsAreAddedAndRevertLeavesNoTrace (AC-D16.1, AC-D16.16)'
 ra_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
 IFS='|' read -r ra_bt ra_bf ra_bg <<< "$fd_base_objects"
-ra_expected="$((ra_bt + 2))|$ra_bf|$ra_bg"
+ra_expected="$((ra_bt + 2))|$((ra_bf + 2))|$((ra_bg + 2))"
 printf 'Base objects (tables|functions|triggers): %s\nExpected: %s\nFound:    %s\n' "$fd_base_objects" "$ra_expected" "$ra_objects"
-check 'AC-D16.1 exactly the two planned tables were added to the base' "$([ -n "$fd_base_objects" ] && [ "$ra_objects" = "$ra_expected" ] && [ "$(ra_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('financial_decision','refund_authorization')")" = 2 ]; echo $?)"
+check 'AC-D16.1 exactly the two planned tables, the two guards and their two triggers were added to the base' "$([ -n "$fd_base_objects" ] && [ "$ra_objects" = "$ra_expected" ] && [ "$(ra_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('financial_decision','refund_authorization')")" = 2 ]; echo $?)"
 check 'AC-D16.1 nothing new appears in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
 ra_second="$(liquibase update 2>&1)"; printf '%s\n' "$ra_second"
 check 'AC-D16.16 a second update applies zero changesets' "$(printf '%s\n' "$ra_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
@@ -86,4 +86,4 @@ check 'AC-D16.16 the revert of the whole slice restores columns, constraints, in
 check 'the two tables are gone after the revert' "$([ "$(ra_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('financial_decision','refund_authorization')")" = 0 ]; echo $?)"
 db_labels='HU-COM-016'
 liquibase update >/dev/null
-check 'the changesets of the story reapply to 114' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
+check 'the changesets of the story reapply to 123' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
