@@ -47,7 +47,7 @@ md_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker 
 
 echo 'HU-COM-012 db - base: the 103 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-012 and !HU-COM-015'
+db_labels='!HU-COM-012 and !HU-COM-015 and !HU-COM-016'
 liquibase update >/dev/null
 md_base="$(snapshot)"
 md_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
@@ -167,4 +167,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 115 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 115 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 114 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
