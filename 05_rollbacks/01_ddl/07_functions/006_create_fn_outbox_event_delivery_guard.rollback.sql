@@ -1,0 +1,1 @@
+DROP FUNCTION commercial_reservation.fn_outbox_event_delivery_guard();
