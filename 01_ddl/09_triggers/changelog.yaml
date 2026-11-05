@@ -74,3 +74,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/005_create_trg_payment_deadline_extension_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-006
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice-delivery,ddl,09_triggers"
+      comment: "PROPOSED trg_outbox_event_delivery_guard: BEFORE UPDATE OR DELETE on outbox_event (HU-COM-015 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 006_create_trg_outbox_event_delivery_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/006_create_trg_outbox_event_delivery_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
