@@ -67,7 +67,7 @@ engine "$(nd_notice "$nd_e3")" >/dev/null || true
 nd_refusal "$(nd_upd "$nd_e3" "payload = '{\"customerId\":\"x\",\"notificationType\":\"PROOF_REJECTED\",\"triggeringEventType\":\"PaymentRejected\",\"triggeringEventId\":\"$nd_e3\"}'::jsonb");" trg_outbox_event_delivery_guard 'an update of the payload'
 nd_refusal "$(nd_upd "$nd_e3" "event_type = 'ReservationConfirmed'");" 'trg_outbox_event_delivery_guard|chk_outbox_event' 'an update of the event type'
 nd_refusal "$(nd_upd "$nd_e3" "reservation_id = NULL");" 'trg_outbox_event_delivery_guard|chk_outbox_event' 'an update of the reference'
-nd_refusal "$(nd_upd "$nd_e3" "tenant_id = '$(aid 1)'");" trg_outbox_event_delivery_guard 'an update of the tenant'
+nd_refusal "$(nd_upd "$nd_e3" "tenant_id = '00000000-0000-0000-0000-000000000002'");" trg_outbox_event_delivery_guard 'an update of the tenant'
 nd_refusal "$(nd_upd "$nd_e3" "occurred_at = now() + interval '1 day'");" trg_outbox_event_delivery_guard 'an update of the occurrence time'
 nd_accepted "$(nd_upd "$nd_e3" "attempts = 2, last_error = 'The mail provider answered 503', next_attempt_at = now() + interval '10 seconds'")" 'an update of the attempt columns'
 nd_accepted "$(nd_upd "$nd_e3" "published_at = now(), next_attempt_at = NULL")" 'marking the event published'
