@@ -3,7 +3,7 @@
 # HU-COM-016 -db (issue multi-tour-docs#182), plan D-03: the refund_authorization table, one row per authorized refund, with the execution state
 # and its columns (DP-D16-1), and the structure and the revert of the slice. Probes are written first: red before the changesets, green after (Annex J.1).
 ra_t="$SCHEMA.refund_authorization"
-ra_id_ok="$(aid 3440)"; ra_id_auto="$(aid 3441)"; ra_id_exec="$(aid 3442)"; ra_id_done="$(aid 3443)"
+ra_id_ok="$(aid 5440)"; ra_id_auto="$(aid 5441)"; ra_id_exec="$(aid 5442)"; ra_id_done="$(aid 5443)"
 ra_sql() { sql "$1" 2>/dev/null || true; }
 ra_refusal() { # SQL, text of the engine answer, description
   local answer
@@ -43,8 +43,8 @@ ra_refusal "$(ra_row potential_refund_value_cents 0 authorized_amount_cents 0);"
 ra_refusal "$(ra_row execution_due_at "now() - interval '1 day'");" chk_refund_authorization_due 'a due instant before the authorization'
 ra_refusal "$(ra_row refund_origin "'OTHER'" financial_decision_id NULL);" chk_refund_authorization_origin 'an origin outside the six codes'
 ra_refusal "$(ra_row authorization_mode "'ROBOT'" authorized_by NULL);" chk_refund_authorization_mode 'a mode outside the two codes'
-ra_refusal "$(ra_row reservation_id "'$(aid 3499)'");" fk_refund_authorization_reservation 'a refund for a reservation that does not exist'
-ra_refusal "$(ra_row financial_decision_id "'$(aid 3498)'");" fk_refund_authorization_decision 'a refund for a decision that does not exist'
+ra_refusal "$(ra_row reservation_id "'$(aid 5499)'");" fk_refund_authorization_reservation 'a refund for a reservation that does not exist'
+ra_refusal "$(ra_row financial_decision_id "'$(aid 5498)'");" fk_refund_authorization_decision 'a refund for a decision that does not exist'
 
 echo 'theDecisionReferenceAndTheAuthorFollowTheOriginAndTheMode (AC-D16.9)'
 ra_refusal "$(ra_row financial_decision_id NULL);" chk_refund_authorization_decision_reference 'a decision origin with no decision'
@@ -59,11 +59,11 @@ ra_refusal "$(ra_row execution_state "'PAID'");" chk_refund_authorization_execut
 ra_refusal "$(ra_row execution_state "'EXECUTING'" executing_at "now()" executed_by "'$actor'" outflow_method "'WIRE'");" chk_refund_authorization_method 'a method outside the two codes'
 ra_refusal "$(ra_row executing_at "now()");" chk_refund_authorization_execution_state 'an authorized refund that carries an execution column'
 ra_refusal "$(ra_row execution_state "'EXECUTING'" executing_at "now()" executed_by "'$actor'");" chk_refund_authorization_execution_state 'an executing refund without the method'
-ra_refusal "$(ra_row execution_state "'EXECUTING'" executing_at "now()" executed_by "'$actor'" outflow_method "'CASH'" cash_movement_id "'$(aid 3450)'");" chk_refund_authorization_execution_state 'an executing refund that already carries a movement'
+ra_refusal "$(ra_row execution_state "'EXECUTING'" executing_at "now()" executed_by "'$actor'" outflow_method "'CASH'" cash_movement_id "'$(aid 5450)'");" chk_refund_authorization_execution_state 'an executing refund that already carries a movement'
 ra_refusal "$(ra_row execution_state "'EXECUTED'" executing_at "now()" executed_by "'$actor'" outflow_method "'TRANSFER'" executed_at "now()");" chk_refund_authorization_execution_state 'an executed refund without the cash movement'
-ra_refusal "$(ra_row execution_state "'EXECUTED'" executing_at "now()" executed_by "'$actor'" outflow_method "'TRANSFER'" cash_movement_id "'$(aid 3450)'");" chk_refund_authorization_execution_state 'an executed refund without the executed instant'
+ra_refusal "$(ra_row execution_state "'EXECUTED'" executing_at "now()" executed_by "'$actor'" outflow_method "'TRANSFER'" cash_movement_id "'$(aid 5450)'");" chk_refund_authorization_execution_state 'an executed refund without the executed instant'
 ra_accepted "$(ra_row refund_authorization_id "'$ra_id_exec'" reservation_id "'$fd_res3'" execution_state "'EXECUTING'" executing_at "now()" executed_by "'$actor'" outflow_method "'CASH'")" 'an executing refund with its start, person and method'
-ra_accepted "$(ra_row refund_authorization_id "'$ra_id_done'" reservation_id "'$fd_res4'" execution_state "'EXECUTED'" executing_at "now()" executed_by "'$actor'" outflow_method "'TRANSFER'" executed_at "now()" cash_movement_id "'$(aid 3450)'")" 'an executed refund with its cash movement'
+ra_accepted "$(ra_row refund_authorization_id "'$ra_id_done'" reservation_id "'$fd_res4'" execution_state "'EXECUTED'" executing_at "now()" executed_by "'$actor'" outflow_method "'TRANSFER'" executed_at "now()" cash_movement_id "'$(aid 5450)'")" 'an executed refund with its cash movement'
 check 'cash_movement_id has no foreign key (Annex J.3.4) and no column of the refund table has a DEFAULT' "$([ "$(ra_sql "select count(*) from pg_constraint where conrelid='$ra_t'::regclass and contype='f'")" = 2 ] && [ "$(ra_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='refund_authorization' and column_default is not null")" = 0 ]; echo $?)"
 check 'the application user holds no DELETE on the refund table' "$([ "$(ra_sql "select has_table_privilege('commercial_reservation_app', '$ra_t', 'DELETE')")" = f ]; echo $?)"
 
@@ -82,8 +82,8 @@ ra_n="$(sql "select count(*) from $CONTROL where labels ilike '%HU-COM-016%'" 2>
 liquibase rollback-count "$ra_n"
 ra_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$fd_base" "$ra_reverted"
-check 'AC-D16.16 the revert of the whole slice restores columns, constraints, indexes and privileges exactly and leaves 99 changesets' "$([ -n "$fd_base" ] && [ "$ra_reverted" = "$fd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'AC-D16.16 the revert of the whole slice restores columns, constraints, indexes and privileges exactly and leaves 112 changesets' "$([ -n "$fd_base" ] && [ "$ra_reverted" = "$fd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
 check 'the two tables are gone after the revert' "$([ "$(ra_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('financial_decision','refund_authorization')")" = 0 ]; echo $?)"
 db_labels='HU-COM-016'
 liquibase update >/dev/null
-check 'the changesets of the story reapply to 101' "$([ "$(sql "select count(*) from $CONTROL")" = 101 ]; echo $?)"
+check 'the changesets of the story reapply to 114' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"

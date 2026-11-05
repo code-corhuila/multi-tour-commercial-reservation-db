@@ -13,7 +13,7 @@ tr_refusal() { # SQL, text of the engine answer, description
 
 echo 'HU-COM-001 transport rate - base: the changesets that exist before the column'
 liquibase rollback-count 999 >/dev/null
-db_labels='!transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-016'
+db_labels='!transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016'
 liquibase update >/dev/null
 tr_base="$(snapshot)"
 check 'base holds exactly 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"

@@ -350,3 +350,49 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/024_add_discount_rule_stackable.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-025
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,04_alter"
+      comment: "PROPOSED unique key (tenant, reservation, cause) on reservation and the composite foreign key of the settlement (HU-COM-013 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 025_add_reservation_cancellation_cause_unique.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/025_add_reservation_cancellation_cause_unique.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-alter-026
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,04_alter"
+      comment: "PROPOSED closed key list of the modification shape of ReservationModified, additive (HU-COM-012 plan D-05, DP-D12-3)."
+      changes:
+        - sqlFile:
+            path: 026_add_outbox_event_reservation_modified_change_key_list.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/026_add_outbox_event_reservation_modified_change_key_list.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-027
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice,ddl,04_alter"
+      comment: "PROPOSED fourth widening of outbox_event: ClientNotified with the closed key list customerId, notificationType, triggeringEventType, triggeringEventId and the eight notice codes; the actor is optional (HU-COM-015 plan D-02, DP-D15-1, DP-D15-2)."
+      changes:
+        - sqlFile:
+            path: 027_widen_outbox_event_for_client_notified.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/027_widen_outbox_event_for_client_notified.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

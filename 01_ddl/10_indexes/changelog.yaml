@@ -413,3 +413,82 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/027_create_payment_deadline_due_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-028
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,10_indexes"
+      comment: "PROPOSED index of the settlement read on (tenant_id, reservation_id) (HU-COM-013 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 028_create_reservation_cancellation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/028_create_reservation_cancellation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-029
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED partial unique index: one pending-difference deadline per reservation (HU-COM-012 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 029_create_payment_deadline_pending_difference_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/029_create_payment_deadline_pending_difference_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-030
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED history index on (tenant_id, reservation_id, registered_at DESC) (HU-COM-012 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 030_create_reservation_modification_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/030_create_reservation_modification_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-indexes-031
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,10_indexes"
+      comment: "PROPOSED index of the tour foreign key of the terms, led by the tenant (HU-COM-012 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 031_create_service_change_policy_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/031_create_service_change_policy_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-032
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-015,client-notice,ddl,10_indexes"
+      comment: "PROPOSED unique index: one ClientNotified notice per tenant and triggering event id, built concurrently (HU-COM-015 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 032_create_outbox_event_client_notified_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/032_create_outbox_event_client_notified_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
