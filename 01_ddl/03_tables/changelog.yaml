@@ -436,3 +436,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/029_create_service_change_policy.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-030
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,03_tables"
+      comment: "PROPOSED financial_decision: one row per 24-running-hour decision with its kind, outcome, author and freeze pair (HU-COM-016 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 030_create_financial_decision.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/030_create_financial_decision.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-031
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,03_tables"
+      comment: "PROPOSED refund_authorization: one row per authorized refund with its execution state and cash movement reference (HU-COM-016 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 031_create_refund_authorization.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/031_create_refund_authorization.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
