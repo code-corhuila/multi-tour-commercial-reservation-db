@@ -58,7 +58,7 @@ engine "$(rs_row reservation_id "'$md_res1'" customer_id "'$md_cust'" service_id
 check 'the probe reservations exist on the base' "$([ "$(md_sql "select count(*) from $SCHEMA.reservation where reservation_id in ('$md_res1','$md_res2','$md_res_b')")" = 3 ]; echo $?)"
 
 echo 'HU-COM-012 db - probes written first: red before the changesets, green after'
-db_labels='HU-COM-012'
+db_labels='HU-COM-012 and !reservation-modification-grants'
 liquibase update >/dev/null
 check 'the seven changesets of the story bring the control table to 110' "$([ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
 
@@ -167,4 +167,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 123 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 125 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
