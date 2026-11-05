@@ -74,3 +74,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/005_create_trg_payment_deadline_extension_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-006
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,09_triggers"
+      comment: "PROPOSED trg_financial_decision_guard BEFORE UPDATE (HU-COM-016 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 006_create_trg_financial_decision_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/006_create_trg_financial_decision_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-007
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,09_triggers"
+      comment: "PROPOSED trg_refund_authorization_guard BEFORE UPDATE (HU-COM-016 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 007_create_trg_refund_authorization_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/007_create_trg_refund_authorization_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
