@@ -599,4 +599,5 @@ source tests/customer-consultation-checks.sh
 source tests/client-notice-checks.sh
 source tests/financial-decision-checks.sh
 source tests/refund-authorization-checks.sh
+source tests/refund-guards-checks.sh
 exit "$fail"
