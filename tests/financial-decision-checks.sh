@@ -31,7 +31,7 @@ db_labels='!HU-COM-016'
 liquibase update >/dev/null
 fd_base="$(snapshot)"
 fd_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
-check 'base holds exactly 114 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
+check 'base holds exactly 114 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$fd_cust', '$tenant', 'Refund probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$fd_svc', '$tenant', 'TOUR', 'Refund probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(for r in "$fd_res1" "$fd_res2" "$fd_res3" "$fd_res4" "$fd_res5"; do rs_row reservation_id "'$r'" customer_id "'$fd_cust'" service_id "'$fd_svc'"; echo ';'; done)" >/dev/null || true
@@ -40,7 +40,7 @@ check 'the probe reservations exist on the base' "$([ "$(fd_sql "select count(*)
 echo 'HU-COM-016 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-016'
 liquibase update >/dev/null
-check 'the changesets of the story bring the control table to 125' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
+check 'the changesets of the story bring the control table to 125' "$([ "$(sql "select count(*) from $CONTROL")" = 125 ]; echo $?)"
 
 echo 'aDecisionRequiresEveryFieldAClosedKindAndPositiveAmounts (AC-D16.2)'
 fd_accepted "$(fd_row financial_decision_id "'$fd_id_cc'")" 'a whole customer-cancellation decision with its penalty'
