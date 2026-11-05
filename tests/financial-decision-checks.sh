@@ -26,8 +26,8 @@ fd_row() { # column/value pairs (SQL literals) that replace the defaults of a va
   echo "insert into $fd_t (financial_decision_id, tenant_id, reservation_id, credit_balance_id, decision_kind, base_amount_cents, penalty_amount_cents, recognized_at, frozen_at, remaining_at_freeze_minutes, outcome, decided_by_system, decided_by, decided_at, rejection_justification) values (${v[financial_decision_id]}, ${v[tenant_id]}, ${v[reservation_id]}, ${v[credit_balance_id]}, ${v[decision_kind]}, ${v[base_amount_cents]}, ${v[penalty_amount_cents]}, ${v[recognized_at]}, ${v[frozen_at]}, ${v[remaining_at_freeze_minutes]}, ${v[outcome]}, ${v[decided_by_system]}, ${v[decided_by]}, ${v[decided_at]}, ${v[rejection_justification]})"
 }
 
-echo 'HU-COM-016 db - base: the 114 changesets that exist before the story, with the probe reservations'
-db_labels='!HU-COM-016'
+echo 'HU-COM-016 db - base: the 112 changesets that exist before the story, with the probe reservations'
+db_labels='!HU-COM-016 and !client-notice-delivery'
 liquibase update >/dev/null
 fd_base="$(snapshot)"
 fd_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
