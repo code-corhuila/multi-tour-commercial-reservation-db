@@ -28,7 +28,7 @@ nd_e1="$(aid 4321)"; nd_e2="$(aid 4322)"; nd_e3="$(aid 4323)"; nd_e4="$(aid 4324
 
 echo 'HU-COM-015 delivery - base: the 112 changesets that exist before the delivery data'
 liquibase rollback-count 999 >/dev/null
-db_labels='!client-notice-delivery'
+db_labels='!client-notice-delivery and !HU-COM-016'
 liquibase update >/dev/null
 nd_base="$(snapshot)"
 nd_base_objects="$(nd_objects)"
