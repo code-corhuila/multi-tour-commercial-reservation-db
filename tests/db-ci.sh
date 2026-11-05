@@ -597,4 +597,5 @@ source tests/reservation-cancellation-settlement-checks.sh
 source tests/reservation-modification-checks.sh
 source tests/customer-consultation-checks.sh
 source tests/client-notice-checks.sh
+source tests/client-notice-delivery-checks.sh
 exit "$fail"
