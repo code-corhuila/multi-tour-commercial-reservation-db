@@ -1,0 +1,10 @@
+ALTER TABLE commercial_reservation.outbox_event
+    DROP CONSTRAINT chk_outbox_event_delivery_state,
+    DROP CONSTRAINT chk_outbox_event_correlation_id_length,
+    DROP CONSTRAINT chk_outbox_event_last_error_length,
+    DROP CONSTRAINT chk_outbox_event_attempts_range,
+    DROP COLUMN correlation_id,
+    DROP COLUMN failed_at,
+    DROP COLUMN next_attempt_at,
+    DROP COLUMN last_error,
+    DROP COLUMN attempts;
