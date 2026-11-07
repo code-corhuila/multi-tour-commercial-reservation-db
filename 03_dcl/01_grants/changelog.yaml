@@ -212,3 +212,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/014_grant_delete_on_reservation_companion.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-015
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,dcl,grants"
+      comment: "A recorded credit and its applications are never edited: UPDATE is withdrawn from the writer on both tables (HU-COM-017 plan D-03, AC-D17.6)."
+      changes:
+        - sqlFile:
+            path: 015_revoke_update_on_credit_balance_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/015_revoke_update_on_credit_balance_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
