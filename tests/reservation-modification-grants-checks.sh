@@ -16,7 +16,7 @@ mg_delete_tables() { mg_sql "select count(*) from information_schema.role_table_
 
 echo 'HU-COM-012 db slice 2 - base: the 127 changesets that exist before the grants'
 liquibase rollback-count 999 >/dev/null
-db_labels='!reservation-modification-grants'
+db_labels='!reservation-modification-grants and !HU-COM-017'
 liquibase update >/dev/null
 mg_base="$(snapshot)"
 mg_base_delete="$(mg_delete_tables)"
