@@ -643,3 +643,66 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/042_create_credit_balance_application_tenant_target_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-043
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,10_indexes"
+      comment: "PROPOSED index of the deletion history of a tenant (HU-COM-019 plan D-06, AC-D19.8)."
+      changes:
+        - sqlFile:
+            path: 043_create_sensitive_data_deletion_tenant_deleted_at_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/043_create_sensitive_data_deletion_tenant_deleted_at_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-044
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,10_indexes"
+      comment: "PROPOSED partial index of the finalized departures, built concurrently (HU-COM-019 plan D-06, AC-D19.9)."
+      changes:
+        - sqlFile:
+            path: 044_create_salida_capacity_tenant_finalized_at_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/044_create_salida_capacity_tenant_finalized_at_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-045
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,10_indexes"
+      comment: "PROPOSED partial index of the departures past their estimated end, built concurrently (HU-COM-019 plan D-06, AC-D19.9)."
+      changes:
+        - sqlFile:
+            path: 045_create_salida_capacity_tenant_estimated_end_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/045_create_salida_capacity_tenant_estimated_end_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-046
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,10_indexes"
+      comment: "PROPOSED partial index of the cancelled departures, built concurrently (HU-COM-019 plan D-06, AC-D19.9)."
+      changes:
+        - sqlFile:
+            path: 046_create_salida_capacity_tenant_cancelled_at_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/046_create_salida_capacity_tenant_cancelled_at_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

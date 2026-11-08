@@ -456,3 +456,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/031_widen_outbox_event_for_credit_balance_events.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-032
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,04_alter"
+      comment: "PROPOSED end columns of the departure mirror: estimated end, real end and cancellation instant, coherent with the status (HU-COM-019 plan D-04, AC-D19.6)."
+      changes:
+        - sqlFile:
+            path: 032_add_salida_capacity_end_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/032_add_salida_capacity_end_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-033
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,04_alter"
+      comment: "PROPOSED seventh widening of outbox_event: SensitiveDataDeleted with its closed list of six keys and no required actor (HU-COM-019 plan D-05, AC-D19.10)."
+      changes:
+        - sqlFile:
+            path: 033_widen_outbox_event_for_sensitive_data_deleted.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/033_widen_outbox_event_for_sensitive_data_deleted.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
