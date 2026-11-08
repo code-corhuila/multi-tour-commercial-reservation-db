@@ -426,3 +426,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/029_add_outbox_event_delivery_columns.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-030
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,04_alter"
+      comment: "PROPOSED key from financial_decision.credit_balance_id to credit_balance, restricted (HU-COM-017 plan D-05, AC-D17.9)."
+      changes:
+        - sqlFile:
+            path: 030_add_financial_decision_credit_balance_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/030_add_financial_decision_credit_balance_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -466,3 +466,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/031_create_refund_authorization.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-032
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,03_tables"
+      comment: "PROPOSED credit_balance: one row per recorded credit with its closed origin and its single source, decision or payment attempt (HU-COM-017 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 032_create_credit_balance.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/032_create_credit_balance.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-033
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,03_tables"
+      comment: "PROPOSED credit_balance_application: one appended row per application of a credit to a reservation, with who applied it (HU-COM-017 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 033_create_credit_balance_application.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/033_create_credit_balance_application.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
