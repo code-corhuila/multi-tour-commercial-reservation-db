@@ -496,3 +496,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/033_create_credit_balance_application.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-034
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,03_tables"
+      comment: "PROPOSED sensitive_data_deletion: the append-only record of one retention deletion per reservation, with its anchor, basis and counts (HU-COM-019 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 034_create_sensitive_data_deletion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/034_create_sensitive_data_deletion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
