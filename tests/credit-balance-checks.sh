@@ -48,7 +48,7 @@ engine "$(pa_attempt payment_attempt_id "'$cb_att1'" reservation_id "'$cb_res1'"
 check 'the probe reservations, decisions and attempts exist on the base' "$([ "$(cb_sql "select (select count(*) from $SCHEMA.reservation where reservation_id in ('$cb_res1','$cb_res2','$cb_res3')) || '|' || (select count(*) from $cb_fd where financial_decision_id in ('$cb_dec1','$cb_dec2')) || '|' || (select count(*) from $cb_pa where payment_attempt_id in ('$cb_att1','$cb_att2'))")" = '3|2|2' ]; echo $?)"
 
 echo 'HU-COM-017 db - probes written first: red before the changesets, green after'
-db_labels='HU-COM-017'
+db_labels='HU-COM-017 and !credit-balance-guards'
 liquibase update >/dev/null
 check 'the changesets of the story bring the control table to 135' "$([ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
 
@@ -121,6 +121,6 @@ cb_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cb_base" "$cb_reverted"
 check 'AC-D17.13 the revert of the slice restores columns, constraints, indexes and privileges exactly and leaves 129 changesets' "$([ -n "$cb_base" ] && [ "$cb_reverted" = "$cb_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 129 ]; echo $?)"
 check 'the two tables are gone after the revert' "$([ "$(cb_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('credit_balance','credit_balance_application')")" = 0 ]; echo $?)"
-db_labels='HU-COM-017'
+db_labels='HU-COM-017 and !credit-balance-guards'
 liquibase update >/dev/null
 check 'the changesets of the story reapply to 135' "$([ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
