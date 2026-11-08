@@ -227,3 +227,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/015_revoke_update_on_credit_balance_tables.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-016
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,dcl,grants"
+      comment: "The writer may delete the rows of the two sensitive tables, per table, for the retention run (HU-COM-019 plan D-02, AC-D19.2)."
+      changes:
+        - sqlFile:
+            path: 016_grant_delete_on_sensitive_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/016_grant_delete_on_sensitive_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-017
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,dcl,grants"
+      comment: "A deletion record is never edited: UPDATE is withdrawn from the writer (HU-COM-019 plan D-03, AC-D19.5)."
+      changes:
+        - sqlFile:
+            path: 017_revoke_update_on_sensitive_data_deletion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/017_revoke_update_on_sensitive_data_deletion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
