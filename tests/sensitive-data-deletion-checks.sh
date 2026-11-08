@@ -45,13 +45,19 @@ echo 'HU-COM-019 db - base: the 143 changesets that exist before the story, with
 liquibase rollback-count 999 >/dev/null
 db_labels='!HU-COM-019'
 liquibase update >/dev/null
-sd_base="$(snapshot)"
+sd_lines() { sql "select string_agg(x, E'
+' order by x) from (
+    select 'c:' || table_name || '.' || column_name || ' ' || data_type || ' ' || is_nullable || ' ' || coalesce(column_default, '') as x from information_schema.columns where table_schema = '$SCHEMA'
+    union all select 'k:' || conrelid::regclass::text || ' ' || conname || ' ' || pg_get_constraintdef(oid) from pg_constraint where connamespace = '$SCHEMA'::regnamespace
+    union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
+    union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
+sd_base="$(snapshot)"; sd_base_lines="$(sd_lines)"
 sd_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
 check 'base holds exactly 143 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$sd_cust', '$tenant', 'Retention probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$sd_cust_b', '$sd_tenant_b', 'Retention probe B', now(), 'enc:v1:x2', 'enc:v1:y2', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$sd_svc', '$tenant', 'TOUR', 'Retention probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$sd_res'" customer_id "'$sd_cust'" service_id "'$sd_svc'"); $(rs_row reservation_id "'$sd_res2'" customer_id "'$sd_cust'" service_id "'$sd_svc'"); $(rs_row reservation_id "'$sd_res_b'" tenant_id "'$sd_tenant_b'" customer_id "'$sd_cust_b'" service_id "'$sd_svc'");" >/dev/null || true
-sql "insert into $SCHEMA.reservation_companion (reservation_companion_id, tenant_id, reservation_id, full_name) values ('$sd_comp', '$tenant', '$sd_res', 'Companion probe');
+sql "insert into $SCHEMA.reservation_companion (reservation_companion_id, tenant_id, reservation_id, full_name, document_number, birth_date_or_age) values ('$sd_comp', '$tenant', '$sd_res', 'Companion probe', 'DOC7020', 'enc:v1:z');
      insert into $sd_cs (customer_id, tenant_id, emergency_info) values ('$sd_cust', '$tenant', '{}'::jsonb);
      insert into $sd_ps (reservation_companion_id, tenant_id, activity_requirements) values ('$sd_comp', '$tenant', '{}'::jsonb)" >/dev/null 2>&1 || true
 check 'the probe reservations, companion and sensitive rows exist on the base' "$([ "$(sd_sql "select (select count(*) from $SCHEMA.reservation where reservation_id in ('$sd_res','$sd_res2','$sd_res_b')) || '|' || (select count(*) from $sd_cs where customer_id = '$sd_cust') || '|' || (select count(*) from $sd_ps where reservation_companion_id = '$sd_comp')")" = '3|1|1' ]; echo $?)"
@@ -82,7 +88,8 @@ sd_refusal "$(sd_row reservation_id "'$sd_res2'" anchor_basis "'WHENEVER'");" ch
 sd_refusal "$(sd_row reservation_id "'$sd_res2'" companion_rows_deleted -1);" chk_sensitive_data_deletion_count 'a negative count'
 sd_refusal "$(sd_row reservation_id "'$(aid 7099)'");" fk_sensitive_data_deletion_reservation 'a record for a reservation that does not exist'
 for basis in ESTIMATED_END CLOSING CANCELLATION_NO_VALUES CANCELLATION_BLOCKED; do
-  sd_accepted "$(sd_row reservation_id "'$sd_res2'" anchor_basis "'$basis'");delete from $sd_t where reservation_id = '$sd_res2'" "the basis $basis"
+  sd_accepted "$(sd_row reservation_id "'$sd_res2'" anchor_basis "'$basis'")" "the basis $basis"
+  sql "delete from $sd_t where reservation_id = '$sd_res2'" >/dev/null 2>&1 || true
 done
 
 echo 'deletionRecordCannotBeUpdatedDeletedOrRepeated (AC-D19.5)'
@@ -134,6 +141,9 @@ sd_n="$(sql "select count(*) from $CONTROL where labels ilike '%HU-COM-019%'" 2>
 liquibase rollback-count "$sd_n"
 sd_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$sd_base" "$sd_reverted"
+[ "$sd_base" = "$sd_reverted" ] || diff <(printf '%s
+' "$sd_base_lines") <(printf '%s
+' "$(sd_lines)") || true
 check 'AC-D19.12 the revert restores columns, constraints, indexes and privileges exactly and leaves 143 changesets' "$([ -n "$sd_base" ] && [ "$sd_reverted" = "$sd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"
 check 'AC-D19.12 after the revert the delete on the sensitive tables is refused again' "$(sd_as commercial_reservation_writer "delete from $sd_cs where customer_id = '$sd_cust'" | grep -q 'permission denied'; echo $?)"
 db_labels='HU-COM-019'
