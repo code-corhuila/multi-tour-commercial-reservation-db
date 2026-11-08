@@ -145,7 +145,7 @@ printf 'Base MD5: %s\nReverted MD5: %s\n' "$sd_base" "$sd_reverted"
 ' "$sd_base_lines") <(printf '%s
 ' "$(sd_lines)") || true
 check 'AC-D19.12 the revert restores columns, constraints, indexes and privileges exactly and leaves 143 changesets' "$([ -n "$sd_base" ] && [ "$sd_reverted" = "$sd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"
-check 'AC-D19.12 after the revert the delete on the sensitive tables is refused again' "$(sd_as commercial_reservation_writer "delete from $sd_cs where customer_id = '$sd_cust'" | grep -q 'permission denied'; echo $?)"
+check 'AC-D19.12 after the revert the delete on the customer sensitive table is refused again' "$(sd_as commercial_reservation_writer "delete from $sd_cs where customer_id = '$sd_cust'" | grep -q 'permission denied'; echo $?)"
 db_labels='HU-COM-019'
 liquibase update >/dev/null
 check 'the changesets of the story reapply to 152' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
