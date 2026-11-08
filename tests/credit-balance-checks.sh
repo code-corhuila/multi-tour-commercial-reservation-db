@@ -44,7 +44,7 @@ sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$cb_svc', '$tenant', 'TOUR', 'Credit probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$cb_res1'" customer_id "'$cb_cust'" service_id "'$cb_svc'"); $(rs_row reservation_id "'$cb_res2'" customer_id "'$cb_cust'" service_id "'$cb_svc'"); $(rs_row reservation_id "'$cb_res3'" customer_id "'$cb_cust2'" service_id "'$cb_svc'");" >/dev/null || true
 engine "$(fd_row financial_decision_id "'$cb_dec1'" reservation_id "'$cb_res1'"); $(fd_row financial_decision_id "'$cb_dec2'" reservation_id "'$cb_res1'" decision_kind "'MODIFICATION_EXCESS'" penalty_amount_cents NULL);" >/dev/null || true
-engine "$(pa_attempt payment_attempt_id "'$cb_att1'" reservation_id "'$cb_res1'" validation_status "'APPROVED'"); $(pa_attempt payment_attempt_id "'$cb_att2'" reservation_id "'$cb_res1'" validation_status "'APPROVED'");" >/dev/null || true
+engine "$(pa_attempt payment_attempt_id "'$cb_att1'" reservation_id "'$cb_res1'"); $(pa_attempt payment_attempt_id "'$cb_att2'" reservation_id "'$cb_res1'");" >/dev/null || true
 check 'the probe reservations, decisions and attempts exist on the base' "$([ "$(cb_sql "select (select count(*) from $SCHEMA.reservation where reservation_id in ('$cb_res1','$cb_res2','$cb_res3')) || '|' || (select count(*) from $cb_fd where financial_decision_id in ('$cb_dec1','$cb_dec2')) || '|' || (select count(*) from $cb_pa where payment_attempt_id in ('$cb_att1','$cb_att2'))")" = '3|2|2' ]; echo $?)"
 
 echo 'HU-COM-017 db - probes written first: red before the changesets, green after'
@@ -63,7 +63,7 @@ cb_refusal "$(cb_row recorded_by NULL);" 'null value in column "recorded_by".*no
 cb_refusal "$(cb_row credit_origin "'GIFT'");" chk_credit_balance_origin 'an origin outside the four codes'
 cb_refusal "$(cb_row amount_cents 0);" chk_credit_balance_amount_positive 'a credit of zero'
 cb_refusal "$(cb_row amount_cents -5);" chk_credit_balance_amount_positive 'a negative credit'
-cb_refusal "$(cb_row source_reservation_id "'$(aid 6099)'");" fk_credit_balance_reservation 'a credit for a reservation that does not exist'
+cb_refusal "$(cb_row source_reservation_id "'$(aid 6099)'" source_financial_decision_id "'$cb_dec2'");" fk_credit_balance_reservation 'a credit for a reservation that does not exist'
 cb_refusal "$(cb_row source_financial_decision_id "'$(aid 6098)'");" fk_credit_balance_decision 'a credit for a decision that does not exist'
 cb_refusal "$(cb_row credit_origin "'PAYMENT_EXCESS'" source_financial_decision_id "'$cb_dec2'" source_payment_attempt_id "'$cb_att1'");" chk_credit_balance_source 'an excess credit that carries a decision'
 cb_refusal "$(cb_row credit_origin "'PAYMENT_EXCESS'" source_financial_decision_id NULL);" chk_credit_balance_source 'an excess credit without an attempt'
@@ -100,8 +100,8 @@ cb_refusal "update $cb_ap set applied_amount_cents = 1 where credit_balance_appl
 cb_refusal "delete from $cb_ap where credit_balance_application_id = '$cb_app';" 'permission denied for table credit_balance_application' 'a delete of an application'
 
 echo 'aCreditRequestReferencesAnExistingCredit (AC-D17.9)'
-cb_refusal "$(fd_row decision_kind "'CREDIT_BALANCE_REFUND_REQUEST'" credit_balance_id "'$(aid 6094)'" base_amount_cents 10000 penalty_amount_cents NULL);" fk_financial_decision_credit_balance 'a refund request for a credit that does not exist'
-cb_accepted "$(fd_row financial_decision_id "'$cb_dec_rq'" decision_kind "'CREDIT_BALANCE_REFUND_REQUEST'" credit_balance_id "'$cb_ok'" base_amount_cents 10000 penalty_amount_cents NULL)" 'a refund request for an existing credit'
+cb_refusal "$(fd_row reservation_id "'$cb_res1'" decision_kind "'CREDIT_BALANCE_REFUND_REQUEST'" credit_balance_id "'$(aid 6094)'" base_amount_cents 10000 penalty_amount_cents NULL);" fk_financial_decision_credit_balance 'a refund request for a credit that does not exist'
+cb_accepted "$(fd_row financial_decision_id "'$cb_dec_rq'" reservation_id "'$cb_res1'" decision_kind "'CREDIT_BALANCE_REFUND_REQUEST'" credit_balance_id "'$cb_ok'" base_amount_cents 10000 penalty_amount_cents NULL)" 'a refund request for an existing credit'
 
 echo 'onlyThePlannedObjectsAreAddedAndRevertLeavesNoTrace, slice 1 (AC-D17.1, AC-D17.13)'
 cb_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
