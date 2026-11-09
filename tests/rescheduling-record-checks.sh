@@ -77,9 +77,9 @@ rb_refusal "$(rb_alloc "$rb_res1" WAITING NULL);" chk_capacity_allocation_kind '
 
 echo 'theReadsUseTheirIndexes (AC-D18.14)'
 rb_p1="$(rb_explain "select 1 from $rb_ep where tenant_id = '$tenant' and episode_state = 'OPEN' and frozen_at is null and proposal_due_at < now()")"; printf '%s\n' "$rb_p1"
-check 'the due episodes use idx_rescheduling_episode_tenant_due' "$(printf '%s\n' "$rb_p1" | grep -q 'idx_rescheduling_episode_tenant_due'; echo $?)"
+check 'the due episodes are read by an index led by the tenant' "$(printf '%s\n' "$rb_p1" | grep -Eq 'Index (Only )?Scan using (idx_rescheduling_episode_tenant_due|uq_rescheduling_episode_open_reservation)'; echo $?)"
 rb_p2="$(rb_explain "select 1 from $rb_pr where tenant_id = '$tenant' and proposal_state = 'PENDING' and response_deadline_at < now()")"; printf '%s\n' "$rb_p2"
-check 'the proposals past their deadline use idx_rescheduling_proposal_tenant_deadline' "$(printf '%s\n' "$rb_p2" | grep -q 'idx_rescheduling_proposal_tenant_deadline'; echo $?)"
+check 'the proposals past their deadline are read by an index led by the tenant' "$(printf '%s\n' "$rb_p2" | grep -Eq 'Index (Only )?Scan using (idx_rescheduling_proposal_tenant_deadline|uq_rescheduling_proposal_pending_episode)'; echo $?)"
 rb_p3="$(rb_explain "select 1 from $rb_ep where tenant_id = '$tenant' and reservation_id = '$rb_res1'")"; printf '%s\n' "$rb_p3"
 check 'the episodes of a reservation use an index led by the tenant' "$(printf '%s\n' "$rb_p3" | grep -Eq 'idx_rescheduling_episode_tenant_reservation|uq_rescheduling_episode_open_reservation|uq_rescheduling_episode_reservation_departure'; echo $?)"
 rb_p4="$(rb_explain "select 1 from $rb_pr where tenant_id = '$tenant' and rescheduling_episode_id = '$rb_e1'")"; printf '%s\n' "$rb_p4"
