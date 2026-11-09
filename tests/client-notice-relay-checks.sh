@@ -11,12 +11,12 @@ rl_read() { # tenant, event id: the read of one notice by tenant and event id, a
   echo "select count(*) from $rl_ob where tenant_id = '$1' and outbox_event_id = '$2' and event_type = 'ClientNotified'"
 }
 
-echo 'HU-COM-015 relay - base: the 126 changesets that exist before the relay index'
+echo 'HU-COM-015 relay - base: the 127 changesets that exist before the relay index'
 liquibase rollback-count 999 >/dev/null
 db_labels='!client-notice-relay-index and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 rl_base="$(snapshot)"
-check 'base holds exactly 126 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 126 ]; echo $?)"
+check 'base holds exactly 127 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$rl_cust', '$tenant', 'Relay probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$rl_cust_b', '$rl_tenant_b', 'Relay probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$rl_svc', '$tenant', 'TOUR', 'Relay probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$rl_res'" customer_id "'$rl_cust'" service_id "'$rl_svc'"); $(rs_row reservation_id "'$rl_res_b'" tenant_id "'$rl_tenant_b'" customer_id "'$rl_cust_b'" service_id "'$rl_svc'");" >/dev/null || true
@@ -39,7 +39,7 @@ check 'fifty thousand and two pending notices exist, two of them never tried' "$
 echo 'HU-COM-015 relay - probes written first: red before the changeset, green after'
 db_labels='client-notice-relay-index'
 liquibase update >/dev/null
-check 'the one changeset brings the control table to 127' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
+check 'the one changeset brings the control table to 128' "$([ "$(sql "select count(*) from $CONTROL")" = 128 ]; echo $?)"
 sql "analyze $rl_ob" >/dev/null 2>&1 || true
 
 echo 'thePendingReadUsesThePartialIndex (AC-D15.10)'
@@ -61,7 +61,7 @@ check 'the notices of the probes are gone before the revert' "$([ "$(sql "select
 liquibase rollback-count 1
 rl_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rl_base" "$rl_reverted"
-check 'AC-D15.13 the one-change revert restores columns, constraints, indexes and privileges exactly and leaves 126 changesets' "$([ -n "$rl_base" ] && [ "$rl_reverted" = "$rl_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 126 ]; echo $?)"
+check 'AC-D15.13 the one-change revert restores columns, constraints, indexes and privileges exactly and leaves 127 changesets' "$([ -n "$rl_base" ] && [ "$rl_reverted" = "$rl_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
 db_labels='client-notice-relay-index'
 liquibase update >/dev/null
-check 'AC-D15.13 the changeset reapplies to 127 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
+check 'AC-D15.13 the changeset reapplies to 128 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 128 ]; echo $?)"

@@ -26,13 +26,13 @@ cn_settlement() { # column/value pairs (SQL literals) that replace the defaults 
 cn_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 cn_object_count() { sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true; }
 
-echo 'HU-COM-013 db - base: the 99 changesets that exist before the story'
+echo 'HU-COM-013 db - base: the 100 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
 db_labels='!HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 cn_base="$(snapshot)"
 cn_base_objects="$(cn_object_count)"
-check 'base holds exactly 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'base holds exactly 100 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 100 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$cn_cust', '$tenant', 'Settlement probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$cn_cust_b', '$cn_tenant_b', 'Settlement probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$cn_svc', '$tenant', 'TOUR', 'Settlement probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 for cn_id in "$cn_res_ok" "$cn_res_pending" "$cn_res_expiry" "$cn_res_frozen" "$cn_res_a2"; do
@@ -47,7 +47,7 @@ check 'the probe reservations exist: four cancelled at the customer request, one
 echo 'HU-COM-013 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-013'
 liquibase update >/dev/null
-check 'the four changesets of the story bring the control table to 103' "$([ "$(sql "select count(*) from $CONTROL")" = 103 ]; echo $?)"
+check 'the four changesets of the story bring the control table to 104' "$([ "$(sql "select count(*) from $CONTROL")" = 104 ]; echo $?)"
 
 echo 'settlementRequiresEveryFieldAndANonBlankReason (AC-D13.2)'
 for cn_col in tenant_id reservation_id cancellation_cause reason validated_amount_cents penalty_bp penalty_amount_cents refundable_amount_cents registered_by registered_at; do
@@ -110,11 +110,11 @@ check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (s
 liquibase rollback-count 4
 cn_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cn_base" "$cn_reverted"
-check 'AC-D13.9 the four-change revert restores columns, constraints, indexes and privileges exactly and leaves 99 changesets' "$([ -n "$cn_base" ] && [ "$cn_reverted" = "$cn_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'AC-D13.9 the four-change revert restores columns, constraints, indexes and privileges exactly and leaves 100 changesets' "$([ -n "$cn_base" ] && [ "$cn_reverted" = "$cn_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 100 ]; echo $?)"
 check 'the settlement table and its key are gone after the revert' "$([ "$(cn_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename='reservation_cancellation'")" = 0 ] && [ "$(cn_sql "select count(*) from pg_constraint where conname='uq_reservation_tenant_id_cancellation_cause'")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 152 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 153 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
