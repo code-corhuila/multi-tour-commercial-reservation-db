@@ -541,3 +541,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/036_create_rescheduling_proposal.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-037
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,03_tables"
+      comment: "PROPOSED rescheduling_record: the append-only record of the agreed change of a rescheduling (HU-COM-018 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 037_create_rescheduling_record.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/037_create_rescheduling_record.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
