@@ -29,14 +29,14 @@ CREATE TABLE commercial_reservation.rescheduling_proposal (
         REFERENCES commercial_reservation.reservation (reservation_id) ON DELETE RESTRICT,
     CONSTRAINT chk_rescheduling_proposal_state CHECK (proposal_state IN ('PENDING', 'ACCEPTED', 'REJECTED', 'VOID', 'EXPIRED')),
     CONSTRAINT chk_rescheduling_proposal_party_size CHECK (party_size > 0),
-    CONSTRAINT chk_rescheduling_proposal_answer CHECK (
+    CONSTRAINT chk_rescheduling_proposal_answer CHECK (proposal_state NOT IN ('PENDING', 'ACCEPTED', 'REJECTED', 'VOID', 'EXPIRED') OR (
         (proposal_state = 'PENDING' AND answer_source IS NULL AND answered_at IS NULL AND answer_recorded_by IS NULL AND answer_recorded_at IS NULL AND closed_at IS NULL)
         OR (proposal_state IN ('ACCEPTED', 'REJECTED') AND answer_source IS NOT NULL AND answered_at IS NOT NULL AND answer_recorded_by IS NOT NULL AND answer_recorded_at IS NOT NULL AND closed_at IS NOT NULL)
-        OR (proposal_state IN ('VOID', 'EXPIRED') AND answer_source IS NULL AND answered_at IS NULL AND answer_recorded_by IS NULL AND answer_recorded_at IS NULL AND closed_at IS NOT NULL)),
+        OR (proposal_state IN ('VOID', 'EXPIRED') AND answer_source IS NULL AND answered_at IS NULL AND answer_recorded_by IS NULL AND answer_recorded_at IS NULL AND closed_at IS NOT NULL))),
     CONSTRAINT chk_rescheduling_proposal_source CHECK (
         (answer_source IS NULL AND answer_channel IS NULL AND answer_evidence IS NULL)
         OR (answer_source = 'CUSTOMER' AND answer_channel IS NULL AND answer_evidence IS NULL)
-        OR (answer_source = 'OUTSIDE_CHANNEL' AND answer_channel IN ('EMAIL', 'PHONE', 'WHATSAPP', 'IN_PERSON')
+        OR (answer_source = 'OUTSIDE_CHANNEL' AND answer_channel IS NOT NULL AND answer_channel IN ('EMAIL', 'PHONE', 'WHATSAPP', 'IN_PERSON')
             AND answer_evidence IS NOT NULL AND btrim(answer_evidence) <> '' AND char_length(answer_evidence) <= 500)),
     CONSTRAINT chk_rescheduling_proposal_remaining CHECK (remaining_response_minutes IS NULL OR (proposal_state = 'PENDING' AND remaining_response_minutes >= 0))
 );
