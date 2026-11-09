@@ -10,18 +10,18 @@ cs_cust="$SCHEMA.customer"; cs_tenant_b="00000000-0000-0000-0000-000000000002"
 cs_sql() { sql "$1" 2>/dev/null || true; }
 cs_explain_plain() { printf '%s\n' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 
-echo 'HU-COM-005 customer name search - base: the 85 changesets before the index'
+echo 'HU-COM-005 customer name search - base: the 86 changesets before the index'
 liquibase rollback-count 999 >/dev/null
 db_labels='!customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 cs_base="$(snapshot)"
-check 'base holds exactly 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
+check 'base holds exactly 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
 check 'on that base the name index does not exist' "$([ "$(cs_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_customer_tenant_full_name'")" = 0 ]; echo $?)"
 
 echo 'HU-COM-005 customer name search - probes written first: red before the changeset, green after'
 db_labels='customer-name-search'
 liquibase update >/dev/null
-check 'the name index brings the control table to 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
+check 'the name index brings the control table to 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
 
 echo 'theNameSearchOfATenantUsesItsIndex (AC-D5.11, T-10)'
 check 'AC-D5.11 idx_customer_tenant_full_name is on (tenant_id, lower(full_name) text_pattern_ops), valid, and not unique' "$([ "$(cs_sql "select indexdef from pg_indexes where schemaname='$SCHEMA' and indexname='idx_customer_tenant_full_name'")" = "CREATE INDEX idx_customer_tenant_full_name ON $SCHEMA.customer USING btree (tenant_id, lower(full_name) text_pattern_ops)" ] && [ "$(cs_sql "select indisvalid and not indisunique from pg_index where indexrelid='$SCHEMA.idx_customer_tenant_full_name'::regclass")" = t ]; echo $?)"
@@ -41,11 +41,11 @@ check 'the rows of the probes are gone before the revert' "$([ "$(sql "select co
 liquibase rollback-count 1
 cs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cs_base" "$cs_reverted"
-check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
+check 'AC-D5.13 the revert removes the index and leaves columns, constraints, indexes and privileges as the base had them' "$([ -n "$cs_base" ] && [ "$cs_reverted" = "$cs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
-check 'the changeset reapplies to 152 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
+check 'the changeset reapplies to 153 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 152 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 153 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
