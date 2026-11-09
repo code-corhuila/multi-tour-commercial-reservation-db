@@ -736,3 +736,78 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/048_create_rescheduling_proposal_pending_unique_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-049
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one active hold per reservation (HU-COM-018 plan D-06, AC-D18.12)."
+      changes:
+        - sqlFile:
+            path: 049_create_capacity_allocation_reprogramming_hold_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/049_create_capacity_allocation_reprogramming_hold_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-050
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,10_indexes"
+      comment: "PROPOSED partial index of the open episodes that wait for a proposal (HU-COM-018 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 050_create_rescheduling_episode_due_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/050_create_rescheduling_episode_due_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-051
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,10_indexes"
+      comment: "PROPOSED partial index of the pending proposals by response deadline (HU-COM-018 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 051_create_rescheduling_proposal_deadline_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/051_create_rescheduling_proposal_deadline_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-052
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,10_indexes"
+      comment: "PROPOSED index of the episodes of a reservation (HU-COM-018 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 052_create_rescheduling_episode_reservation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/052_create_rescheduling_episode_reservation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-053
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,10_indexes"
+      comment: "PROPOSED index of the proposals of an episode (HU-COM-018 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 053_create_rescheduling_proposal_episode_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/053_create_rescheduling_proposal_episode_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
