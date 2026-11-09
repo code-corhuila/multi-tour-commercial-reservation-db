@@ -179,3 +179,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/012_create_trg_rescheduling_proposal_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-013
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the suspension guard (HU-COM-020 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 013_create_trg_tenant_suspension_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/013_create_trg_tenant_suspension_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
