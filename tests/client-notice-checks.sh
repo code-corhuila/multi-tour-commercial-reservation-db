@@ -30,7 +30,7 @@ nc_objects() { sql "select (select count(*) from pg_tables where schemaname='$SC
 
 echo 'HU-COM-015 db - base: the 111 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
+db_labels='!HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018'
 liquibase update >/dev/null
 nc_base="$(snapshot)"
 nc_base_objects="$(nc_objects)"

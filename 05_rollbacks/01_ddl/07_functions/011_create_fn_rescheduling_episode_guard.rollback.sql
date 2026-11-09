@@ -1,0 +1,1 @@
+DROP FUNCTION commercial_reservation.fn_rescheduling_episode_guard();
