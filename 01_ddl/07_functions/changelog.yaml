@@ -149,3 +149,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/010_create_fn_credit_request_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-011
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,07_functions"
+      comment: "PROPOSED guard of the episode: it moves forward only and a closed one never changes (HU-COM-018 plan D-05, AC-D18.9)."
+      changes:
+        - sqlFile:
+            path: 011_create_fn_rescheduling_episode_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/011_create_fn_rescheduling_episode_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-functions-012
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,07_functions"
+      comment: "PROPOSED guard of the proposal: it is answered once and a closed one never changes (HU-COM-018 plan D-05, AC-D18.9)."
+      changes:
+        - sqlFile:
+            path: 012_create_fn_rescheduling_proposal_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/012_create_fn_rescheduling_proposal_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

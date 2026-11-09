@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_rescheduling_proposal_pending_episode;

@@ -149,3 +149,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/010_create_trg_credit_request_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-011
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the episode guard (HU-COM-018 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 011_create_trg_rescheduling_episode_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/011_create_trg_rescheduling_episode_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-012
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the proposal guard (HU-COM-018 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 012_create_trg_rescheduling_proposal_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/012_create_trg_rescheduling_proposal_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

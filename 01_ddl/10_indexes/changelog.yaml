@@ -706,3 +706,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/046_create_salida_capacity_tenant_cancelled_at_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-047
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one open episode per reservation (HU-COM-018 plan D-02, AC-D18.5)."
+      changes:
+        - sqlFile:
+            path: 047_create_rescheduling_episode_open_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/047_create_rescheduling_episode_open_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-048
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one pending proposal per episode (HU-COM-018 plan D-03, AC-D18.8)."
+      changes:
+        - sqlFile:
+            path: 048_create_rescheduling_proposal_pending_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/048_create_rescheduling_proposal_pending_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

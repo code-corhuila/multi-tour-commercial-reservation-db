@@ -511,3 +511,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/034_create_sensitive_data_deletion.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-035
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,03_tables"
+      comment: "PROPOSED rescheduling_episode: the incident of a reservation whose departure cannot run and the clocks of its rescheduling (HU-COM-018 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 035_create_rescheduling_episode.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/035_create_rescheduling_episode.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-036
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,03_tables"
+      comment: "PROPOSED rescheduling_proposal: each proposal of a new departure and its single answer (HU-COM-018 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 036_create_rescheduling_proposal.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/036_create_rescheduling_proposal.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
