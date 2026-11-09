@@ -28,7 +28,7 @@ nd_e1="$(aid 4321)"; nd_e2="$(aid 4322)"; nd_e3="$(aid 4323)"; nd_e4="$(aid 4324
 
 echo 'HU-COM-015 delivery - base: the 124 changesets that exist before the delivery data'
 liquibase rollback-count 999 >/dev/null
-db_labels='!client-notice-delivery and !HU-COM-017 and !HU-COM-019 and !HU-COM-018'
+db_labels='!client-notice-delivery and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020'
 liquibase update >/dev/null
 nd_base="$(snapshot)"
 nd_base_objects="$(nd_objects)"
@@ -40,7 +40,7 @@ engine "$(nd_notice "$nd_old")" >/dev/null || true
 check 'the probe reservation and one notice written before the columns exist' "$([ "$(nd_sql "select count(*) from $nd_ob where outbox_event_id = '$nd_old'")" = 1 ]; echo $?)"
 
 echo 'HU-COM-015 delivery - probes written first: red before the changesets, green after'
-db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018'
+db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020'
 liquibase update >/dev/null
 check 'the three changesets bring the control table to 127' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
 
@@ -104,6 +104,6 @@ nd_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$nd_base" "$nd_reverted"
 check 'AC-D15.13 the three-change revert restores columns, constraints, indexes and privileges exactly and leaves 124 changesets' "$([ -n "$nd_base" ] && [ "$nd_reverted" = "$nd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 124 ]; echo $?)"
 check 'AC-D15.13 the function and the trigger are gone after the revert' "$([ "$(nd_objects)" = "$nd_base_objects" ]; echo $?)"
-db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018'
+db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020'
 liquibase update >/dev/null
 check 'AC-D15.13 the changesets reapply to 127 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
