@@ -501,3 +501,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/034_relax_outbox_event_payment_review_payload_key_lists.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-035
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,04_alter"
+      comment: "PROPOSED allocation kind REPROGRAMMING_HOLD for the temporary hold of a rescheduling (HU-COM-018 plan D-06, DP-D18-5)."
+      changes:
+        - sqlFile:
+            path: 035_widen_capacity_allocation_kind_for_reprogramming_hold.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/035_widen_capacity_allocation_kind_for_reprogramming_hold.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-036
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,04_alter"
+      comment: "PROPOSED outbox event ReservationRescheduled with a closed list of seven keys (HU-COM-018 plan D-08, AC-D18.16)."
+      changes:
+        - sqlFile:
+            path: 036_widen_outbox_event_for_reservation_rescheduled.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/036_widen_outbox_event_for_reservation_rescheduled.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
