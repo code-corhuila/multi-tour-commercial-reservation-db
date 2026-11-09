@@ -607,4 +607,5 @@ source tests/credit-balance-checks.sh
 source tests/credit-balance-guards-checks.sh
 source tests/sensitive-data-deletion-checks.sh
 source tests/rescheduling-checks.sh
+source tests/rescheduling-record-checks.sh
 exit "$fail"
