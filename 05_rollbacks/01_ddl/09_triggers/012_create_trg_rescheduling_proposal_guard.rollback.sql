@@ -1,0 +1,1 @@
+DROP TRIGGER trg_rescheduling_proposal_guard ON commercial_reservation.rescheduling_proposal;
