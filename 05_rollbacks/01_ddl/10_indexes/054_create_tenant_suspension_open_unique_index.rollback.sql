@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_tenant_suspension_open_tenant;
