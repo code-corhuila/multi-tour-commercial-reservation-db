@@ -22,9 +22,9 @@ CREATE TABLE commercial_reservation.rescheduling_episode (
     CONSTRAINT chk_rescheduling_episode_state CHECK (episode_state IN ('OPEN', 'RESCHEDULED', 'CANCELLED')),
     CONSTRAINT chk_rescheduling_episode_reason CHECK (closed_reason IS NULL OR closed_reason IN ('ACCEPTED', 'REJECTED_BY_CUSTOMER', 'NO_ALTERNATIVE',
         'PROPOSAL_PERIOD_EXPIRED', 'RESPONSE_DEADLINE_EXPIRED', 'EPISODE_LIMIT_REACHED', 'PROPOSED_DEPARTURE_CANCELLED_WHILE_INACTIVE')),
-    CONSTRAINT chk_rescheduling_episode_closing CHECK (
+    CONSTRAINT chk_rescheduling_episode_closing CHECK (episode_state NOT IN ('OPEN', 'RESCHEDULED', 'CANCELLED') OR (
         ((episode_state = 'OPEN') = (closed_at IS NULL AND closed_reason IS NULL))
         AND (episode_state = 'OPEN' OR (closed_at IS NOT NULL AND closed_reason IS NOT NULL))
-        AND ((episode_state = 'RESCHEDULED') = (closed_reason = 'ACCEPTED'))),
+        AND ((episode_state = 'RESCHEDULED') = (closed_reason = 'ACCEPTED')))),
     CONSTRAINT chk_rescheduling_episode_freeze CHECK ((frozen_at IS NULL) = (remaining_episode_minutes IS NULL) AND (remaining_episode_minutes IS NULL OR remaining_episode_minutes >= 0))
 );
