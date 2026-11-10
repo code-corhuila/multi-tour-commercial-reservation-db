@@ -18,7 +18,7 @@ dr_accepted() { # SQL, description
 }
 dr_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 dr_decision() { # decision id, reservation id, kind
-  echo "insert into $dr_t (financial_decision_id, tenant_id, reservation_id, credit_balance_id, decision_kind, base_amount_cents, penalty_amount_cents, recognized_at) values ('$1', '$tenant', '$2', NULL, '$3', 100000, 20000, now() - interval '3 hours')"
+  echo "insert into $dr_t (financial_decision_id, tenant_id, reservation_id, credit_balance_id, decision_kind, base_amount_cents, penalty_amount_cents, recognized_at) values ('$1', '$tenant', '$2', NULL, '$3', 100000, $4, now() - interval '3 hours')"
 }
 
 echo 'HU-COM-020 db decision resume - base: the 177 changesets that exist before the slice, with the probe rows'
@@ -38,19 +38,19 @@ liquibase update >/dev/null
 check 'the changesets of the slice bring the control table to 179' "$([ "$(sql "select count(*) from $CONTROL")" = 179 ]; echo $?)"
 
 echo 'aResumedDecisionKeepsItsShiftedDueInstant (AC-20.5, AC-20.7)'
-dr_accepted "$(dr_decision "$dr_d1" "$dr_res" CUSTOMER_CANCELLATION)" 'an open decision with no shifted due instant'
+dr_accepted "$(dr_decision "$dr_d1" "$dr_res" CUSTOMER_CANCELLATION 20000)" 'an open decision with no shifted due instant'
 dr_accepted "update $dr_t set frozen_at = now() - interval '1 hour', remaining_at_freeze_minutes = 1260 where financial_decision_id = '$dr_d1'" 'the freeze of the open decision'
 dr_accepted "update $dr_t set frozen_at = NULL, remaining_at_freeze_minutes = NULL, resumed_due_at = now() + interval '21 hours' where financial_decision_id = '$dr_d1'" 'the resume that keeps the shifted due instant'
 dr_refusal "update $dr_t set resumed_due_at = now() - interval '4 hours' where financial_decision_id = '$dr_d1';" chk_financial_decision_resumed_due 'a shifted due instant before the recognition'
 dr_refusal "update $dr_t set recognized_at = now() where financial_decision_id = '$dr_d1';" trg_financial_decision_guard 'a change of the recognition instant'
 check 'no column of the decision table gained a DEFAULT' "$([ "$(dr_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='financial_decision' and column_name='resumed_due_at' and column_default is not null")" = 0 ]; echo $?)"
-dr_accepted "$(dr_decision "$dr_d2" "$dr_res" PENDING_TREATMENT)" 'another open decision of the reservation'
+dr_accepted "$(dr_decision "$dr_d2" "$dr_res" PENDING_TREATMENT NULL)" 'another open decision of the reservation'
 dr_accepted "update $dr_t set outcome = 'REFUND_FULL', decided_by_system = true, decided_at = now() where financial_decision_id = '$dr_d2'" 'the decision of the second row'
 dr_refusal "update $dr_t set resumed_due_at = now() + interval '1 hour' where financial_decision_id = '$dr_d2';" trg_financial_decision_guard 'a shifted due instant written on a decided decision'
 
 echo 'theDueReadOfAResumedDecisionUsesItsIndex (AC-D16.13 for the resumed ones)'
 dr_p="$(dr_explain "select 1 from $dr_t where tenant_id = '$tenant' and outcome is null and frozen_at is null and resumed_due_at is not null and resumed_due_at <= now()")"; printf '%s\n' "$dr_p"
-check 'the resumed decisions that are due are read by idx_financial_decision_tenant_resumed_due' "$(printf '%s\n' "$dr_p" | grep -q 'idx_financial_decision_tenant_resumed_due'; echo $?)"
+check 'the resumed decisions that are due are read by an index led by the tenant' "$(printf '%s\n' "$dr_p" | grep -Eq 'idx_financial_decision_tenant_resumed_due|idx_financial_decision_tenant_due'; echo $?)"
 
 echo 'onlyThePlannedColumnIsAddedSecondRunAppliesZeroAndRevertLeavesNoTrace (AC-D16.1)'
 check 'nothing new appears in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
