@@ -36,11 +36,11 @@ rb_event() { # payload (SQL literal), then column/value pairs that replace the d
 
 echo 'HU-COM-018 db slice 2 - base: the 161 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!rescheduling-record and !HU-COM-020'
+db_labels='!rescheduling-record and !HU-COM-020 and !decision-resume'
 liquibase update >/dev/null
 rb_base="$(snapshot)"
 rb_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
-check 'base holds exactly 177 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 161 ]; echo $?)"
+check 'base holds exactly 179 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 161 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$rb_cust', '$tenant', 'Record probe', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$rb_svc', '$tenant', 'TOUR', 'Record probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$rb_res1'" customer_id "'$rb_cust'" service_id "'$rb_svc'"); $(rs_row reservation_id "'$rb_res2'" customer_id "'$rb_cust'" service_id "'$rb_svc'"); $(rs_row reservation_id "'$rb_res3'" customer_id "'$rb_cust'" service_id "'$rb_svc'");" >/dev/null || true
