@@ -552,3 +552,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/036_create_refund_authorization_open_due_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-037
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-015,client-notice-delivery,client-notice-relay-index,ddl,10_indexes"
+      comment: "PROPOSED partial index of the relay read of pending events on (next_attempt_at NULLS FIRST, occurred_at), built concurrently (HU-COM-015 plan D-05, AC-D15.10)."
+      changes:
+        - sqlFile:
+            path: 037_create_outbox_event_pending_delivery_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/037_create_outbox_event_pending_delivery_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

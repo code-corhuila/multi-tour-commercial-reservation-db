@@ -1,0 +1,1 @@
+DROP TRIGGER trg_outbox_event_delivery_guard ON commercial_reservation.outbox_event;

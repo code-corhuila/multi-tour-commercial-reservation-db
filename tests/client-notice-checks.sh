@@ -41,7 +41,7 @@ engine "$(rs_row reservation_id "'$nc_res1'" customer_id "'$nc_cust'" service_id
 check 'the probe reservations exist on the base' "$([ "$(nc_sql "select count(*) from $SCHEMA.reservation where reservation_id in ('$nc_res1','$nc_res_b')")" = 2 ]; echo $?)"
 
 echo 'HU-COM-015 db - probes written first: red before the changesets, green after'
-db_labels='HU-COM-015'
+db_labels='HU-COM-015 and !client-notice-delivery'
 liquibase update >/dev/null
 check 'the two changesets of slice (a) bring the control table to 112' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"
 
@@ -96,6 +96,6 @@ liquibase rollback-count 2
 nc_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$nc_base" "$nc_reverted"
 check 'AC-D15.13 the two-change revert restores columns, constraints, indexes and privileges exactly and leaves 110 changesets' "$([ -n "$nc_base" ] && [ "$nc_reverted" = "$nc_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
-db_labels='HU-COM-015'
+db_labels='HU-COM-015 and !client-notice-delivery'
 liquibase update >/dev/null
 check 'AC-D15.13 the changesets reapply to 112 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 112 ]; echo $?)"

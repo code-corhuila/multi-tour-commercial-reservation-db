@@ -411,3 +411,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/028_widen_outbox_event_for_refund_authorized.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-029
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice-delivery,ddl,04_alter"
+      comment: "PROPOSED delivery data of an outbox event: attempts, last_error, next_attempt_at, failed_at, correlation_id and their checks (HU-COM-015 plan D-04, AC-D15.6, AC-D15.7)."
+      changes:
+        - sqlFile:
+            path: 029_add_outbox_event_delivery_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/029_add_outbox_event_delivery_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

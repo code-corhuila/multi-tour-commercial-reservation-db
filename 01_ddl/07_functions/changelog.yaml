@@ -104,3 +104,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/007_create_fn_refund_authorization_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-008
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice-delivery,ddl,07_functions"
+      comment: "PROPOSED fn_outbox_event_delivery_guard: delivery changes only its own columns and a pending or failed event is never deleted by the application (HU-COM-015 plan D-04, DP-D15-3, DP-D15-4)."
+      changes:
+        - sqlFile:
+            path: 008_create_fn_outbox_event_delivery_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/008_create_fn_outbox_event_delivery_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
