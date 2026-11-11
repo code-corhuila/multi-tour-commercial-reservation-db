@@ -48,7 +48,7 @@ ef_accepted "$(ef_episode "$ef_e2" "$ef_res2")" 'an open episode of another rese
 ef_refusal "update $ef_t set frozen_total_minutes = -1 where rescheduling_episode_id = '$ef_e2';" chk_rescheduling_episode_frozen_total 'a negative total'
 ef_accepted "update $ef_t set episode_state = 'CANCELLED', closed_at = now(), closed_reason = 'NO_ALTERNATIVE' where rescheduling_episode_id = '$ef_e2'" 'the closing of the second episode'
 ef_refusal "update $ef_t set frozen_total_minutes = 10 where rescheduling_episode_id = '$ef_e2';" trg_rescheduling_episode_guard 'a total written on a closed episode'
-ef_accepted "update $ef_t set frozen_total_minutes = 15 where rescheduling_episode_id = '$ef_e1'" 'the total of the first episode still grows after the other closed'
+ef_accepted "update $ef_t set frozen_total_minutes = 150 where rescheduling_episode_id = '$ef_e1'" 'the total of the first episode still grows after the other closed'
 
 echo 'onlyThePlannedColumnAndTheGuardChangeSecondRunAppliesZeroAndRevertLeavesNoTrace (AC-D16.1)'
 check 'nothing new appears in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
