@@ -556,3 +556,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/037_create_rescheduling_record.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-038
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,03_tables"
+      comment: "PROPOSED tenant_suspension: the append-only history of the periods of inactivity of a tenant (HU-COM-020 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 038_create_tenant_suspension.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/038_create_tenant_suspension.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

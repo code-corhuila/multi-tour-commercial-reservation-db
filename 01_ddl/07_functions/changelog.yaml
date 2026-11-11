@@ -179,3 +179,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/012_create_fn_rescheduling_proposal_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-013
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,07_functions"
+      comment: "PROPOSED guard of the suspension: closed once, never rewritten (HU-COM-020 plan D-03, AC-D20.4)."
+      changes:
+        - sqlFile:
+            path: 013_create_fn_tenant_suspension_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/013_create_fn_tenant_suspension_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

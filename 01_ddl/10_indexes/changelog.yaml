@@ -811,3 +811,65 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/053_create_rescheduling_proposal_episode_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-054
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one open suspension per tenant (HU-COM-020 plan D-02, AC-D20.3)."
+      changes:
+        - sqlFile:
+            path: 054_create_tenant_suspension_open_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/054_create_tenant_suspension_open_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-055
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,10_indexes"
+      comment: "PROPOSED index of the suspensions of a tenant by start (HU-COM-020 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 055_create_tenant_suspension_tenant_suspended_at_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/055_create_tenant_suspension_tenant_suspended_at_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-056
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "HU-COM-020,tenant-suspension,ddl,10_indexes"
+      comment: "PROPOSED partial index of the deadlines frozen by the inactivation, built concurrently (HU-COM-020 plan D-05, AC-D20.10)."
+      changes:
+        - sqlFile:
+            path: 056_create_payment_deadline_frozen_by_tenant_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/056_create_payment_deadline_frozen_by_tenant_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-057
+      author: FernandaRobayo
+      runInTransaction: false
+      labels: "decision-resume,HU-COM-020-resume,ddl,10_indexes"
+      comment: "PROPOSED partial index of the resumed decisions by shifted due instant, built concurrently (HU-COM-020 AC-20.5)."
+      changes:
+        - sqlFile:
+            path: 057_create_financial_decision_resumed_due_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/057_create_financial_decision_resumed_due_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

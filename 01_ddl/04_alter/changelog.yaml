@@ -531,3 +531,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/036_widen_outbox_event_for_reservation_rescheduled.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-037
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,04_alter"
+      comment: "PROPOSED freeze_cause of a frozen payment deadline: the inactivation of the tenant or the cancelled departure (HU-COM-020 plan D-04, DP-D20-3)."
+      changes:
+        - sqlFile:
+            path: 037_add_payment_deadline_freeze_cause.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/037_add_payment_deadline_freeze_cause.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-038
+      author: FernandaRobayo
+      labels: "decision-resume,HU-COM-020-resume,ddl,04_alter"
+      comment: "PROPOSED resumed_due_at: the shifted due instant of a financial decision that resumed after the inactivation of its tenant (HU-COM-020 AC-20.5, AC-20.7)."
+      changes:
+        - sqlFile:
+            path: 038_add_financial_decision_resumed_due_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/038_add_financial_decision_resumed_due_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
