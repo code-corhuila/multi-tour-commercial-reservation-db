@@ -13,7 +13,7 @@ rl_read() { # tenant, event id: the read of one notice by tenant and event id, a
 
 echo 'HU-COM-015 relay - base: the 126 changesets that exist before the relay index'
 liquibase rollback-count 999 >/dev/null
-db_labels='!client-notice-relay-index'
+db_labels='!client-notice-relay-index and !HU-COM-017'
 liquibase update >/dev/null
 rl_base="$(snapshot)"
 check 'base holds exactly 126 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 126 ]; echo $?)"

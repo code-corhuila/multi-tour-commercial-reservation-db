@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_credit_balance_payment_attempt;

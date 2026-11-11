@@ -568,3 +568,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/037_create_outbox_event_pending_delivery_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-038
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one credit per decision (HU-COM-017 plan D-02, AC-D17.4)."
+      changes:
+        - sqlFile:
+            path: 038_create_credit_balance_decision_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/038_create_credit_balance_decision_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-039
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,10_indexes"
+      comment: "PROPOSED partial unique key: one credit per validated payment attempt (HU-COM-017 plan D-02, AC-D17.4)."
+      changes:
+        - sqlFile:
+            path: 039_create_credit_balance_payment_attempt_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/039_create_credit_balance_payment_attempt_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

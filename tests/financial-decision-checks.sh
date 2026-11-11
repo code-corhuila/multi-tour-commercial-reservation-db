@@ -27,7 +27,7 @@ fd_row() { # column/value pairs (SQL literals) that replace the defaults of a va
 }
 
 echo 'HU-COM-016 db - base: the 112 changesets that exist before the story, with the probe reservations'
-db_labels='!HU-COM-016 and !client-notice-delivery'
+db_labels='!HU-COM-016 and !HU-COM-017 and !client-notice-delivery'
 liquibase update >/dev/null
 fd_base="$(snapshot)"
 fd_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"

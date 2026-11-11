@@ -1,0 +1,1 @@
+GRANT UPDATE ON commercial_reservation.credit_balance, commercial_reservation.credit_balance_application TO commercial_reservation_writer;
