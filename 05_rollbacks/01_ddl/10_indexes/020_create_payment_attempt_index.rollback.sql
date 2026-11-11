@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_payment_attempt_tenant_reservation_registered_at;
