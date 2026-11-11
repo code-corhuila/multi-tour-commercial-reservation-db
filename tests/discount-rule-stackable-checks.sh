@@ -8,7 +8,7 @@ st_col() { sql "select $1 from information_schema.columns where table_schema='$S
 
 echo 'HU-COM-003 stackable - base: the changesets that exist before the column, holding one rule'
 liquibase rollback-count 999 >/dev/null
-db_labels='!discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order and !exceptional-access-use'
+db_labels='!discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use'
 liquibase update >/dev/null
 st_base="$(snapshot)"
 check 'base holds exactly 98 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
