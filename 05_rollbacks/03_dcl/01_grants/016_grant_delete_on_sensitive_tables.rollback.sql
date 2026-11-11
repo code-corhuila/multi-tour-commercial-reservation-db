@@ -1,0 +1,1 @@
+REVOKE DELETE ON commercial_reservation.customer_sensitive_data FROM commercial_reservation_writer;
