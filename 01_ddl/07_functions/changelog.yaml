@@ -14,3 +14,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/003_create_fn_tenant_status_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-001
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-table,ddl,07_functions"
+      comment: "PROPOSED birth rule of a reservation: PENDING_PAYMENT, NO_PAYMENT, balance equal to the final value, final not above projected, no credit (HU-COM-007 plan D-05, AC-D7.4)."
+      changes:
+        - sqlFile:
+            path: 001_create_trg_reservation_birth_function.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/001_create_trg_reservation_birth_function.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

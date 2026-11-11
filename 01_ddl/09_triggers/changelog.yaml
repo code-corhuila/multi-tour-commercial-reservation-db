@@ -14,3 +14,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/09_triggers/003_create_trg_tenant_status_identifier_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-triggers-001
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-table,ddl,09_triggers"
+      comment: "PROPOSED trg_reservation_birth: BEFORE INSERT on reservation only (HU-COM-007 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 001_create_trg_reservation_birth.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/001_create_trg_reservation_birth.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
