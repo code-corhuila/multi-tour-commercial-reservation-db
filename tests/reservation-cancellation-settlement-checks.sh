@@ -28,7 +28,7 @@ cn_object_count() { sql "select (select count(*) from pg_tables where schemaname
 
 echo 'HU-COM-013 db - base: the 99 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016'
+db_labels='!HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017'
 liquibase update >/dev/null
 cn_base="$(snapshot)"
 cn_base_objects="$(cn_object_count)"
@@ -117,4 +117,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 129 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 129 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 135 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
