@@ -17,13 +17,13 @@ liquibase rollback-count 999 >/dev/null
 db_labels='!collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 cf_base="$(snapshot)"
-check 'base holds exactly 84 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 84 ]; echo $?)"
+check 'base holds exactly 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 check 'on that base tenant_catalog_settings does not exist' "$([ "$(sql "select to_regclass('$cf_t') is null")" = t ]; echo $?)"
 
 echo 'HU-COM-001 collaborator flag - probes written first: red before the changeset, green after'
 db_labels='collaborator-editing-flag'
 liquibase update >/dev/null
-check 'the table brings the control table to 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
+check 'the table brings the control table to 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
 
 echo 'the table (RF-004, T-05)'
 cf_cols='tenant_id uuid NO,collaborator_editing boolean NO,updated_by uuid NO,created_at timestamp with time zone NO,updated_at timestamp with time zone NO'
@@ -59,8 +59,8 @@ sql "truncate $cf_t" >/dev/null 2>&1 || true
 liquibase rollback-count 1
 cf_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cf_base" "$cf_reverted"
-check 'the one-change revert restores the schema exactly and leaves 84 changesets' "$([ -n "$cf_base" ] && [ "$cf_reverted" = "$cf_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 84 ]; echo $?)"
+check 'the one-change revert restores the schema exactly and leaves 85 changesets' "$([ -n "$cf_base" ] && [ "$cf_reverted" = "$cf_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 check 'the table is gone after the revert' "$([ "$(sql "select to_regclass('$cf_t') is null")" = t ]; echo $?)"
 db_labels='collaborator-editing-flag'
 liquibase update >/dev/null
-check 'the changeset reapplies to 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
+check 'the changeset reapplies to 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"

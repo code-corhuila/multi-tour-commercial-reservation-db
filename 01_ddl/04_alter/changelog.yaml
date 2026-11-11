@@ -486,3 +486,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/033_widen_outbox_event_for_sensitive_data_deleted.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-034
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "Rewrites the closed key lists of PaymentValidated and PaymentRejected: attemptId allowed, reason allowed and no longer required, old events stay valid (HU-COM-010 debt, decided by default)."
+      changes:
+        - sqlFile:
+            path: 034_relax_outbox_event_payment_review_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/034_relax_outbox_event_payment_review_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

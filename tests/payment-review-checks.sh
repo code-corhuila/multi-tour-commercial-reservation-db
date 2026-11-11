@@ -2,7 +2,7 @@
 # Sourced by db-ci.sh after the payment checks, on the same disposable PostgreSQL instance.
 # HU-COM-010 -db (issue multi-tour-docs#176), plan D-02 to D-10: the review of a payment proof is columns, constraints, a guard and indexes on
 # payment_attempt (HU-COM-009). 04_alter/016 (review columns and constraints), 07_functions/002 (fn_payment_attempt_guard), 09_triggers/002
-# (trg_payment_attempt_guard), 10_indexes/024 (the pending list) and 04_alter/017 (key lists of four outbox payloads), all with label payment-review.
+# (trg_payment_attempt_guard), 10_indexes/024 (the pending list), 04_alter/017 (key lists of four outbox payloads) and 04_alter/034 (the lists of PaymentValidated and PaymentRejected rewritten: attemptId allowed, reason optional), all with label payment-review.
 # Every changeset also carries HU-COM-010. Probes are written first: red before the changesets, green after (Annex J.1).
 pr_att="$SCHEMA.payment_attempt"; pr_proof="$SCHEMA.payment_proof_file"; pr_ob="$SCHEMA.outbox_event"; pr_cap="$SCHEMA.salida_capacity"
 pr_tenant_b="00000000-0000-0000-0000-000000000002"
@@ -49,7 +49,7 @@ check 'the probe reservations, customers and departure exist' "$([ "$(pr_sql "se
 echo 'HU-COM-010 payment review - probes written first: red before the changesets, green after'
 db_labels='payment-review'
 liquibase update >/dev/null
-check 'the review columns, the guard, the index and the key lists bring the control table to 84 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 84 ]; echo $?)"
+check 'the review columns, the guard, the index, the key lists and their relaxation bring the control table to 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
 
 echo 'attemptHasTheReviewColumnsNullable (AC-D10.1, AC-D10.2)'
 pr_review_cols="$(pr_sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by column_name) from information_schema.columns where table_schema='$SCHEMA' and table_name='payment_attempt' and column_name in ('decided_by','decided_at','decision_reason','verified_amount_cents','applied_amount_cents','excess_amount_cents','treatment_amount_cents')")"
@@ -147,6 +147,20 @@ rs_refusal "$(pr_event ReservationConfirmed "'{\"reservationId\":\"x\",\"payment
 rs_refusal "$(pr_event ReservationConfirmed "'{\"reservationId\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_reservation_confirmed 'ReservationConfirmed without the payment status'
 rs_refusal "$(pr_event CapacityReleased "'{\"serviceId\":\"x\",\"salidaId\":\"x\",\"reservationId\":\"x\",\"reason\":\"r\",\"contact\":\"x\"}'::jsonb");" 'chk_outbox_event_payload_keys_capacity_released\|chk_outbox_event_payload_no_sensitive_keys' 'CapacityReleased carrying a contact'
 rs_refusal "$(pr_event CapacityReleased "'{\"salidaId\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_capacity_released 'CapacityReleased with missing keys'
+echo 'theProofIdTravelsAndTheReasonIsOptional (04_alter/034, debt of the audit of 2026-11-06)'
+pr_validated_att="'{\"reservationId\":\"$pr_res\",\"attemptId\":\"$pr_a1\",\"amountCents\":100000,\"paymentStatus\":\"DEPOSIT_RECEIVED\",\"pendingBalanceCents\":200000,\"validatorId\":\"$actor\"}'::jsonb"
+pr_rejected_att="'{\"reservationId\":\"$pr_res\",\"attemptId\":\"$pr_a2\",\"pendingBalanceCents\":300000,\"validatorId\":\"$actor\"}'::jsonb"
+pr_rejected_att_reason="'{\"reservationId\":\"$pr_res\",\"attemptId\":\"$pr_a2\",\"reason\":\"Amount mismatch\",\"pendingBalanceCents\":300000,\"validatorId\":\"$actor\"}'::jsonb"
+rs_accepted "$(pr_event PaymentValidated "$pr_validated_att")" 'PaymentValidated with the attempt id'
+rs_accepted "$(pr_event PaymentValidated "$pr_validated")" 'PaymentValidated of the old shape, without the attempt id'
+rs_accepted "$(pr_event PaymentRejected "$pr_rejected_att")" 'PaymentRejected with the attempt id and without the reason'
+rs_accepted "$(pr_event PaymentRejected "$pr_rejected_att_reason")" 'PaymentRejected with the attempt id and the reason still allowed'
+rs_accepted "$(pr_event PaymentRejected "$pr_rejected")" 'PaymentRejected of the old shape, with the reason and without the attempt id'
+rs_refusal "$(pr_event PaymentValidated "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"amountCents\":1,\"paymentStatus\":\"FULLY_PAID\",\"pendingBalanceCents\":0,\"validatorId\":\"x\",\"fileName\":\"p.pdf\"}'::jsonb");" chk_outbox_event_payload_keys_payment_validated 'PaymentValidated with the attempt id and an unknown key'
+rs_refusal "$(pr_event PaymentValidated "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"amountCents\":1,\"paymentStatus\":\"FULLY_PAID\",\"pendingBalanceCents\":0}'::jsonb");" chk_outbox_event_payload_keys_payment_validated 'PaymentValidated with the attempt id and without the validator'
+rs_refusal "$(pr_event PaymentRejected "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"pendingBalanceCents\":0,\"validatorId\":\"x\",\"customerName\":\"Ana\"}'::jsonb");" chk_outbox_event_payload_keys_payment_rejected 'PaymentRejected with the attempt id and a customer name'
+rs_refusal "$(pr_event PaymentRejected "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"reason\":\"r\",\"pendingBalanceCents\":0}'::jsonb");" chk_outbox_event_payload_keys_payment_rejected 'PaymentRejected with the attempt id and without the validator'
+rs_refusal "$(pr_event PaymentRejected "'{\"attemptId\":\"x\",\"reason\":\"r\"}'::jsonb");" chk_outbox_event_payload_keys_payment_rejected 'PaymentRejected with missing required keys even with the attempt id'
 check 'AC-D10.10 no column of the outbox carries a name, a document, a contact or a file' "$([ "$(pr_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='outbox_event' and column_name ~* '(document|email|phone|contact|medical|birth|full_name|file|proof|bank|account)'")" = 0 ]; echo $?)"
 
 echo 'releasingMoreSeatsThanHeldIsRefused, aDecisionKeyIsUniquePerTenant and theReaderCannotSelectTheProofContent (AC-D10.11, AC-D10.12, AC-D10.13)'
@@ -170,14 +184,14 @@ pr_second="$(liquibase update 2>&1)"; printf '%s\n' "$pr_second"
 check 'AC-D10.14 a second update applies zero changesets' "$(printf '%s\n' "$pr_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
 sql "delete from $pr_ob where reservation_id in ('$pr_res','$pr_res_b'); delete from $SCHEMA.idempotency_key where key like 'decision-key-%'; delete from $pr_proof; delete from $pr_att; delete from $SCHEMA.reservation where reservation_id in ('$pr_res','$pr_res_b')" >/dev/null 2>&1 || true
 check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (select count(*) from $pr_att) + (select count(*) from $pr_proof)")" = 0 ]; echo $?)"
-liquibase rollback-count 5
+liquibase rollback-count 6
 pr_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$pr_base" "$pr_reverted"
-check 'AC-D10.15 the five-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pr_base" ] && [ "$pr_reverted" = "$pr_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"
+check 'AC-D10.15 the six-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pr_base" ] && [ "$pr_reverted" = "$pr_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"
 check 'the review columns, the guard function, the trigger and the four key lists are gone after the revert' "$([ "$(pr_sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='fn_payment_attempt_guard'")" = 0 ] && [ "$(pr_sql "select count(*) from pg_constraint where conname like 'chk_outbox_event_payload_keys_payment_validated' or conname like 'chk_outbox_event_payload_keys_payment_rejected' or conname like 'chk_payment_attempt_approved_complete'")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 152 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 153 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"

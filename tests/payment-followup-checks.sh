@@ -35,13 +35,13 @@ fu_ext() { # deadline id, hours, granted at, granted by (SQL literals)
 }
 fu_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 
-echo 'HU-COM-011 db - base: the 87 changesets that exist before the story'
+echo 'HU-COM-011 db - base: the 88 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
 db_labels='!HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 fu_base="$(snapshot)"
 fu_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
-check 'base holds exactly 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'base holds exactly 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$fu_cust', '$tenant', 'Follow-up probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$fu_cust_b', '$fu_tenant_b', 'Follow-up probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$fu_svc', '$tenant', 'TOUR', 'Follow-up probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$fu_res1'" customer_id "'$fu_cust'" service_id "'$fu_svc'"); $(rs_row reservation_id "'$fu_res2'" customer_id "'$fu_cust'" service_id "'$fu_svc'"); $(rs_row reservation_id "'$fu_res_b'" tenant_id "'$fu_tenant_b'" customer_id "'$fu_cust_b'" service_id "'$fu_svc'");" >/dev/null || true
@@ -51,7 +51,7 @@ check 'the probe reservations and deadlines exist on the base' "$([ "$(fu_sql "s
 echo 'HU-COM-011 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-011'
 liquibase update >/dev/null
-check 'the eleven changesets of the story bring the control table to 98' "$([ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
+check 'the eleven changesets of the story bring the control table to 99' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
 
 echo 'followupRequiresReservationAuthorTimeAndNote (AC-D11.2)'
 fu_refusal "$(fu_followup reservation_id NULL);" 'null value in column "reservation_id".*not-null constraint' 'a follow-up without reservation'

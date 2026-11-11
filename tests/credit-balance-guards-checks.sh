@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sourced by db-ci.sh after credit-balance-checks.sh, on the same disposable PostgreSQL instance, with the 135 changesets that exist before this slice.
+# Sourced by db-ci.sh after credit-balance-checks.sh, on the same disposable PostgreSQL instance, with the 136 changesets that exist before this slice.
 # HU-COM-017 -db (issue multi-tour-docs#183), plan D-04 to D-07, slice 2: the two guards (holder, tenant and ceiling of an application; ceiling of a credit-balance refund
 # request), the three indexes of the reads, the tenant isolation, the idempotency key and the outbox keys of the two credit events. Every changeset of the slice is labelled
 # HU-COM-017 and credit-balance-guards. Probes are written first: red before the changesets, green after (Annex J.1). The rows of the probes are removed by the owner at the end.
@@ -40,13 +40,13 @@ cg_event() { # payload (SQL literal), then column/value pairs that replace the d
   echo "insert into $cg_ob (tenant_id, event_type, reservation_id, actor_id, occurred_at, payload) values ('$tenant', ${v[event_type]}, ${v[reservation_id]}, ${v[actor_id]}, now(), $payload)"
 }
 
-echo 'HU-COM-017 db slice 2 - base: the 135 changesets that exist before the slice, with the probe rows'
+echo 'HU-COM-017 db slice 2 - base: the 136 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
 db_labels='!credit-balance-guards and !HU-COM-019'
 liquibase update >/dev/null
 cg_base="$(snapshot)"
 cg_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
-check 'base holds exactly 135 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
+check 'base holds exactly 136 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 136 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$cg_cust', '$tenant', 'Guard probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$cg_cust2', '$tenant', 'Guard probe B', now(), 'enc:v1:x2', 'enc:v1:y2', '{}'::jsonb, 'ACTIVE', true, now()), ('$cg_cust_b', '$cg_tenant_b', 'Guard probe C', now(), 'enc:v1:x3', 'enc:v1:y3', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$cg_svc', '$tenant', 'TOUR', 'Guard probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$cg_res1'" customer_id "'$cg_cust'" service_id "'$cg_svc'"); $(rs_row reservation_id "'$cg_res2'" customer_id "'$cg_cust'" service_id "'$cg_svc'"); $(rs_row reservation_id "'$cg_res3'" customer_id "'$cg_cust2'" service_id "'$cg_svc'"); $(rs_row reservation_id "'$cg_res_b'" tenant_id "'$cg_tenant_b'" customer_id "'$cg_cust_b'" service_id "'$cg_svc'");" >/dev/null || true
@@ -57,7 +57,7 @@ check 'the probe reservations, decisions and credits exist on the base' "$([ "$(
 echo 'HU-COM-017 db slice 2 - probes written first: red before the changesets, green after'
 db_labels='credit-balance-guards'
 liquibase update >/dev/null
-check 'the changesets of the slice bring the control table to 143' "$([ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"
+check 'the changesets of the slice bring the control table to 144' "$([ "$(sql "select count(*) from $CONTROL")" = 144 ]; echo $?)"
 
 echo 'anApplicationNeverCrossesATenantOrACustomer (AC-D17.7)'
 cg_refusal "$(cg_apply "$cg_ca" "$cg_res3" 10000);" trg_credit_balance_application_guard 'an application to a reservation of another customer of the same tenant'
@@ -131,7 +131,7 @@ cg_n="$(sql "select count(*) from $CONTROL where labels ilike '%credit-balance-g
 liquibase rollback-count "$cg_n"
 cg_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$cg_base" "$cg_reverted"
-check 'AC-D17.13 the revert of the slice restores columns, constraints, indexes and privileges exactly and leaves 135 changesets' "$([ -n "$cg_base" ] && [ "$cg_reverted" = "$cg_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
+check 'AC-D17.13 the revert of the slice restores columns, constraints, indexes and privileges exactly and leaves 136 changesets' "$([ -n "$cg_base" ] && [ "$cg_reverted" = "$cg_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 136 ]; echo $?)"
 db_labels='credit-balance-guards'
 liquibase update >/dev/null
-check 'the changesets of the slice reapply to 143' "$([ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"
+check 'the changesets of the slice reapply to 144' "$([ "$(sql "select count(*) from $CONTROL")" = 144 ]; echo $?)"
