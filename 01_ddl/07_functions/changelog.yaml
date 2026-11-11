@@ -194,3 +194,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/013_create_fn_tenant_suspension_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-014
+      author: FernandaRobayo
+      labels: "episode-frozen-total,HU-COM-020-freeze,ddl,07_functions"
+      comment: "PROPOSED guard of the episode learns the frozen total, which only grows (HU-COM-020 AC-18.13, AC-20.6)."
+      changes:
+        - sqlFile:
+            path: 014_replace_fn_rescheduling_episode_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/014_replace_fn_rescheduling_episode_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
