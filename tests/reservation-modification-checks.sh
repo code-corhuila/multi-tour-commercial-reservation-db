@@ -167,4 +167,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 135 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 135 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 143 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 143 ]; echo $?)"

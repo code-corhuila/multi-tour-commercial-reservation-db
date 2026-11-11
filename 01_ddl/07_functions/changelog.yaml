@@ -119,3 +119,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/008_create_fn_outbox_event_delivery_guard.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-009
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,07_functions"
+      comment: "PROPOSED guard of an application: same tenant, same customer, and applied plus set aside never above the recorded amount, under a row lock (HU-COM-017 plan D-04, AC-D17.7, AC-D17.8)."
+      changes:
+        - sqlFile:
+            path: 009_create_fn_credit_balance_application_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/009_create_fn_credit_balance_application_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-functions-010
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,07_functions"
+      comment: "PROPOSED guard of a credit-balance refund request: it never sets aside more than the credit holds (HU-COM-017 plan D-05, AC-D17.8)."
+      changes:
+        - sqlFile:
+            path: 010_create_fn_credit_request_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/010_create_fn_credit_request_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -598,3 +598,48 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/039_create_credit_balance_payment_attempt_unique_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-040
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,10_indexes"
+      comment: "PROPOSED index of the credits of a reservation, led by the tenant (HU-COM-017 plan D-06, AC-D17.10)."
+      changes:
+        - sqlFile:
+            path: 040_create_credit_balance_tenant_source_reservation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/040_create_credit_balance_tenant_source_reservation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-041
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,10_indexes"
+      comment: "PROPOSED index of the applications of a credit, led by the tenant (HU-COM-017 plan D-06, AC-D17.10)."
+      changes:
+        - sqlFile:
+            path: 041_create_credit_balance_application_tenant_credit_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/041_create_credit_balance_application_tenant_credit_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-042
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,10_indexes"
+      comment: "PROPOSED index of the applications to a reservation, led by the tenant (HU-COM-017 plan D-06, AC-D17.10)."
+      changes:
+        - sqlFile:
+            path: 042_create_credit_balance_application_tenant_target_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/042_create_credit_balance_application_tenant_target_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

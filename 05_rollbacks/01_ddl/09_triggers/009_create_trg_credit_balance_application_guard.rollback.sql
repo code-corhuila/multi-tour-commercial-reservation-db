@@ -1,0 +1,1 @@
+DROP TRIGGER trg_credit_balance_application_guard ON commercial_reservation.credit_balance_application;
