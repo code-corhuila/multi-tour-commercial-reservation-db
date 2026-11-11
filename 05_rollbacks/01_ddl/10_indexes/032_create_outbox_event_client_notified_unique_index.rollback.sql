@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS commercial_reservation.uq_outbox_event_client_notified_trigger;
