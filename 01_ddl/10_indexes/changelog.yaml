@@ -413,3 +413,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/027_create_payment_deadline_due_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-028
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,10_indexes"
+      comment: "PROPOSED index of the settlement read on (tenant_id, reservation_id) (HU-COM-013 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 028_create_reservation_cancellation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/028_create_reservation_cancellation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
