@@ -350,3 +350,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/024_add_discount_rule_stackable.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-025
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,04_alter"
+      comment: "PROPOSED unique key (tenant, reservation, cause) on reservation and the composite foreign key of the settlement (HU-COM-013 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 025_add_reservation_cancellation_cause_unique.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/025_add_reservation_cancellation_cause_unique.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
