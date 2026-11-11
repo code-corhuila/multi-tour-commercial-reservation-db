@@ -606,3 +606,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/041_add_rescheduling_episode_frozen_total.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-042
+      author: FernandaRobayo
+      labels: "exceptional-access-use,exceptional-access-used-at,HU-SEC-007-use,ddl,04_alter"
+      comment: "PROPOSED: the closed payload of PlatformExceptionalAccessUsed carries usedAt in place of occurredAt (spec 012 RN-SEC-012-07); the envelope keeps occurred_at."
+      changes:
+        - sqlFile:
+            path: 042_rename_exceptional_access_use_payload_instant_to_used_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/042_rename_exceptional_access_use_payload_instant_to_used_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
