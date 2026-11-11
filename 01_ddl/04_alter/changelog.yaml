@@ -561,3 +561,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/038_add_financial_decision_resumed_due_at.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-039
+      author: FernandaRobayo
+      labels: "departure-order,HU-COM-006-order,ddl,04_alter"
+      comment: "last_event_occurred_at: the occurredAt of the last departure event the mirror applied, so an older event never overwrites a newer state (HU-COM-006 DP-16, DD-8)."
+      changes:
+        - sqlFile:
+            path: 039_add_salida_capacity_last_event_occurred_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/039_add_salida_capacity_last_event_occurred_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

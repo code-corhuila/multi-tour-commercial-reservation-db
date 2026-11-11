@@ -40,7 +40,7 @@ re_answer() { # the columns an answer writes together with the state: state, sou
 
 echo 'HU-COM-018 db - base: the 153 changesets that exist before the story, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-018 and !HU-COM-020 and !decision-resume'
+db_labels='!HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order'
 liquibase update >/dev/null
 re_base="$(snapshot)"
 re_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
