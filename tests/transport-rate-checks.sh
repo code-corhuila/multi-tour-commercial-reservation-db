@@ -16,13 +16,13 @@ liquibase rollback-count 999 >/dev/null
 db_labels='!transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019'
 liquibase update >/dev/null
 tr_base="$(snapshot)"
-check 'base holds exactly 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
+check 'base holds exactly 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
 check 'on that base catalog_service has no transport_rate_per_person_cents' "$([ "$(tr_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='catalog_service' and column_name='transport_rate_per_person_cents'")" = 0 ]; echo $?)"
 
 echo 'HU-COM-001 transport rate - probes written first: red before the changeset, green after'
 db_labels='transport-rate'
 liquibase update >/dev/null
-check 'the column brings the control table to 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'the column brings the control table to 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 
 echo 'the column (RN-10, gap G-E)'
 check 'transport_rate_per_person_cents is bigint and nullable' "$([ "$(tr_sql "select data_type || ' ' || is_nullable from information_schema.columns where table_schema='$SCHEMA' and table_name='catalog_service' and column_name='transport_rate_per_person_cents'")" = 'bigint YES' ]; echo $?)"
@@ -46,7 +46,7 @@ sql "delete from $tr_t where service_id in ('$tr_a','$tr_b','$tr_c')" >/dev/null
 liquibase rollback-count 1
 tr_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$tr_base" "$tr_reverted"
-check 'the one-change revert restores the schema exactly and leaves 86 changesets' "$([ -n "$tr_base" ] && [ "$tr_reverted" = "$tr_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
+check 'the one-change revert restores the schema exactly and leaves 87 changesets' "$([ -n "$tr_base" ] && [ "$tr_reverted" = "$tr_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
 db_labels='transport-rate'
 liquibase update >/dev/null
-check 'the changeset reapplies to 87 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'the changeset reapplies to 88 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"

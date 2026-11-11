@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sourced by db-ci.sh after payment-followup-checks.sh, on the same disposable PostgreSQL instance and with the eleven changesets of
-# HU-COM-011 applied (98 in the control table). HU-COM-011 -db (issue multi-tour-docs#177), plan D-04, D-05, D-07: the cancellation columns
+# HU-COM-011 applied (99 in the control table). HU-COM-011 -db (issue multi-tour-docs#177), plan D-04, D-05, D-07: the cancellation columns
 # and the terminal guard of reservation, the closed key list of ReservationCancelled, the structure and the revert of the whole slice.
 # Probes are written first: red before the changesets, green after (Annex J.1).
 rc_t="$SCHEMA.reservation"; rc_ob="$SCHEMA.outbox_event"
@@ -75,11 +75,11 @@ check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (s
 liquibase rollback-count 11
 rc_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$fu_base" "$rc_reverted"
-check 'AC-D11.13 the eleven-change revert restores columns, constraints, indexes and privileges exactly and leaves 87 changesets' "$([ -n "$fu_base" ] && [ "$rc_reverted" = "$fu_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 87 ]; echo $?)"
+check 'AC-D11.13 the eleven-change revert restores columns, constraints, indexes and privileges exactly and leaves 88 changesets' "$([ -n "$fu_base" ] && [ "$rc_reverted" = "$fu_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 88 ]; echo $?)"
 check 'the follow-up table, the two guards and the extension, freeze and cancellation columns are gone after the revert' "$([ "$(rc_sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename='payment_followup'")" = 0 ] && [ "$(rc_sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname in ('fn_payment_deadline_extension_guard','fn_reservation_cancelled_guard')")" = 0 ] && [ "$(rc_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and column_name in ('extension_hours','frozen_at','cancellation_cause')")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 152 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 152 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 153 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
