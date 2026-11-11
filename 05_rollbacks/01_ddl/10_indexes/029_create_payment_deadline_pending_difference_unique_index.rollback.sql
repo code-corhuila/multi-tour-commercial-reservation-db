@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_payment_deadline_pending_difference_reservation;

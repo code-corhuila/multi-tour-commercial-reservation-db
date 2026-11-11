@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_reservation_modification_tenant_reservation_registered_at;
