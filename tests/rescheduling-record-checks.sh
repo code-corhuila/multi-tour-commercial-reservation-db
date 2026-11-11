@@ -36,7 +36,7 @@ rb_event() { # payload (SQL literal), then column/value pairs that replace the d
 
 echo 'HU-COM-018 db slice 2 - base: the 161 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!rescheduling-record and !HU-COM-020 and !decision-resume'
+db_labels='!rescheduling-record and !HU-COM-020 and !decision-resume and !departure-order'
 liquibase update >/dev/null
 rb_base="$(snapshot)"
 rb_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
