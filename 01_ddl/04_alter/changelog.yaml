@@ -334,3 +334,19 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/023_widen_outbox_event_for_reservation_cancelled.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+
+  - changeSet:
+      id: ddl-alter-024
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-rule-stackable,ddl,04_alter"
+      comment: "PROPOSED discount_rule.stackable boolean NOT NULL DEFAULT true; DP-04 decision of 2026-11-03."
+      changes:
+        - sqlFile:
+            path: 024_add_discount_rule_stackable.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/024_add_discount_rule_stackable.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
