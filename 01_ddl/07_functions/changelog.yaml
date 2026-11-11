@@ -29,3 +29,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/07_functions/001_create_trg_reservation_birth_function.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-functions-002
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,07_functions"
+      comment: "PROPOSED fn_payment_attempt_guard: a decided proof is final and the registration columns never change (HU-COM-010 plan D-04, DP-D10-3)."
+      changes:
+        - sqlFile:
+            path: 002_create_fn_payment_attempt_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/07_functions/002_create_fn_payment_attempt_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

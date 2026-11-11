@@ -359,3 +359,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/023_create_payment_deadline.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-025
+      author: FernandaRobayo
+      labels: "HU-COM-001,collaborator-editing-flag,ddl,03_tables"
+      comment: "PROPOSED tenant_catalog_settings: one row per tenant with the collaborator-editing flag, false by default (HU-COM-001 T-05, PDR RF-004)."
+      changes:
+        - sqlFile:
+            path: 025_create_tenant_catalog_settings.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/025_create_tenant_catalog_settings.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

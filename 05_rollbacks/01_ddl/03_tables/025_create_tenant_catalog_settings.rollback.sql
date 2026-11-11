@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.tenant_catalog_settings;
