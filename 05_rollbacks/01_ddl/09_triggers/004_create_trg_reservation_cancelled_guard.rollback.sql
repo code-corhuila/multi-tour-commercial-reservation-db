@@ -1,0 +1,1 @@
+DROP TRIGGER trg_reservation_cancelled_guard ON commercial_reservation.reservation;
