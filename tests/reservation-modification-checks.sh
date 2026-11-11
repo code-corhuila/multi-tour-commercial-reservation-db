@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sourced by db-ci.sh after the stackable checks, on the same disposable PostgreSQL instance and with the 99 changesets of the earlier stories applied.
+# Sourced by db-ci.sh after the stackable checks, on the same disposable PostgreSQL instance and with the 103 changesets of the earlier stories applied.
 # HU-COM-012 -db (issue multi-tour-docs#178), plan D-02 to D-07: the append-only history of the changes of a reservation, the terms per tour and change
 # type, the single pending-difference deadline, the closed key list of the modification event and the revoke. Seven changesets, every one labelled
 # HU-COM-012. Probes are written first: red before the changesets, green after (Annex J.1).
@@ -45,13 +45,13 @@ md_event() { # payload (SQL literal)
 }
 md_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
 
-echo 'HU-COM-012 db - base: the 99 changesets that exist before the story'
+echo 'HU-COM-012 db - base: the 103 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
 db_labels='!HU-COM-012'
 liquibase update >/dev/null
 md_base="$(snapshot)"
 md_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
-check 'base holds exactly 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'base holds exactly 103 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 103 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$md_cust', '$tenant', 'Modification probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$md_cust_b', '$md_tenant_b', 'Modification probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$md_svc', '$tenant', 'TOUR', 'Modification probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now()), ('$md_svc2', '$tenant', 'TOUR', 'Modification probe tour two', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$md_res1'" customer_id "'$md_cust'" service_id "'$md_svc'" salida_id "'$md_sal1'"); $(rs_row reservation_id "'$md_res2'" customer_id "'$md_cust'" service_id "'$md_svc'"); $(rs_row reservation_id "'$md_res_b'" tenant_id "'$md_tenant_b'" customer_id "'$md_cust_b'" service_id "'$md_svc'");" >/dev/null || true
@@ -60,7 +60,7 @@ check 'the probe reservations exist on the base' "$([ "$(md_sql "select count(*)
 echo 'HU-COM-012 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-012'
 liquibase update >/dev/null
-check 'the seven changesets of the story bring the control table to 106' "$([ "$(sql "select count(*) from $CONTROL")" = 106 ]; echo $?)"
+check 'the seven changesets of the story bring the control table to 110' "$([ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
 
 echo 'historyRequiresEveryFieldAndANonBlankReason (AC-D12.2)'
 for md_col in reservation_modification_id tenant_id reservation_id change_type reason previous_final_value_cents new_final_value_cents previous_pending_balance_cents new_pending_balance_cents excess_amount_cents previous_party_size new_party_size previous_service_id new_service_id previous_salida_id new_salida_id registered_by registered_at; do
@@ -160,11 +160,11 @@ check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (s
 liquibase rollback-count 7
 md_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$md_base" "$md_reverted"
-check 'AC-D12.13 the seven-change revert restores columns, constraints, indexes and privileges exactly and leaves 99 changesets' "$([ -n "$md_base" ] && [ "$md_reverted" = "$md_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'AC-D12.13 the seven-change revert restores columns, constraints, indexes and privileges exactly and leaves 103 changesets' "$([ -n "$md_base" ] && [ "$md_reverted" = "$md_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 103 ]; echo $?)"
 check 'the two tables, the key list and the pending-difference index are gone after the revert' "$([ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation_modification','service_change_policy')")" = 0 ] && [ "$(sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='uq_payment_deadline_pending_difference_reservation'")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname='chk_outbox_event_payload_keys_reservation_modified_change'")" = 0 ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 106 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 106 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 110 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 110 ]; echo $?)"
