@@ -1,0 +1,3 @@
+DROP INDEX commercial_reservation.idx_payment_deadline_reservation_id;
+DROP INDEX commercial_reservation.idx_payment_deadline_tenant_due;
+DROP INDEX commercial_reservation.uq_payment_deadline_initial_reservation;
