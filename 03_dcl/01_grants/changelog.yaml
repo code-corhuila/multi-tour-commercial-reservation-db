@@ -134,3 +134,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/009_revoke_on_payment_proof_file.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-010
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,dcl,grants"
+      comment: "The writer may not update a follow-up: it is appended and never edited (AC-D11.3, HU-COM-011 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 010_revoke_update_on_payment_followup.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/010_revoke_update_on_payment_followup.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

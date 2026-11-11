@@ -1,0 +1,1 @@
+DROP TRIGGER trg_payment_deadline_extension_guard ON commercial_reservation.payment_deadline;

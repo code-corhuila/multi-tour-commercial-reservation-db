@@ -383,3 +383,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/025_create_customer_name_search_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-026
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,10_indexes"
+      comment: "PROPOSED index of the follow-up history of a reservation on (tenant_id, reservation_id, contacted_at DESC) (HU-COM-011 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 026_create_payment_followup_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/026_create_payment_followup_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-027
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,10_indexes"
+      comment: "PROPOSED partial index of the due list of unfrozen deadlines on (tenant_id, due_at) (HU-COM-011 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 027_create_payment_deadline_due_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/027_create_payment_deadline_due_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_payment_followup_tenant_reservation_contacted_at;
