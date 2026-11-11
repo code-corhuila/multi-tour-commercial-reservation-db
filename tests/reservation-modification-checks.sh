@@ -47,7 +47,7 @@ md_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker 
 
 echo 'HU-COM-012 db - base: the 104 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order'
+db_labels='!HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order'
 liquibase update >/dev/null
 md_base="$(snapshot)"
 md_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"

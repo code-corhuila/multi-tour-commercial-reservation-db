@@ -14,7 +14,7 @@ cf_refusal() { # SQL, text of the engine answer, description
 
 echo 'HU-COM-001 collaborator flag - base: the changesets that exist before the table'
 liquibase rollback-count 999 >/dev/null
-db_labels='!collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order'
+db_labels='!collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order'
 liquibase update >/dev/null
 cf_base="$(snapshot)"
 check 'base holds exactly 85 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 85 ]; echo $?)"
