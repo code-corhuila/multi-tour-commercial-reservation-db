@@ -1,0 +1,1 @@
+DROP TRIGGER trg_rescheduling_episode_guard ON commercial_reservation.rescheduling_episode;
