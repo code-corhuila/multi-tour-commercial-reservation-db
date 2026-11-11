@@ -576,3 +576,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/039_add_salida_capacity_last_event_occurred_at.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-040
+      author: FernandaRobayo
+      labels: "episode-frozen-total,HU-COM-020-freeze,ddl,04_alter"
+      comment: "PROPOSED frozen_total_minutes: the minutes a rescheduling episode spent frozen, kept because episode_started_at is immutable (HU-COM-020 AC-18.13, AC-20.6)."
+      changes:
+        - sqlFile:
+            path: 040_add_rescheduling_episode_frozen_total.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/040_add_rescheduling_episode_frozen_total.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
