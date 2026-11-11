@@ -180,3 +180,35 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/012_revoke_update_on_reservation_modification.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-013
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification-grants,dcl,grants"
+      comment: "The writer may update the three amount columns of a discount line and no other column: a modification recomputes the lines (DP-D12-4, HU-COM-012 plan D-08)."
+      changes:
+        - sqlFile:
+            path: 013_grant_update_on_reservation_fixed_discount_amounts.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/013_grant_update_on_reservation_fixed_discount_amounts.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-014
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification-grants,dcl,grants"
+      comment: "The writer may delete the companions of a reservation and their sensitive rows: a modification replaces them (DP-D12-5, HU-COM-012 plan D-08)."
+      changes:
+        - sqlFile:
+            path: 014_grant_delete_on_reservation_companion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/014_grant_delete_on_reservation_companion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
