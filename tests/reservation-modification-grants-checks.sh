@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sourced by db-ci.sh after the modification checks, on the same disposable PostgreSQL instance and with the 123 changesets of the earlier stories applied.
+# Sourced by db-ci.sh after the modification checks, on the same disposable PostgreSQL instance and with the 127 changesets of the earlier stories applied.
 # HU-COM-012 -db, slice 2 (issue multi-tour-docs#178), plan D-08, DP-D12-4 and DP-D12-5: what the -api needs to store a modified reservation. The writer
 # (and so the application user) may UPDATE only the three amount columns of a discount line, never its type, value or rule copy, and may DELETE the rows of
 # the companions so a reservation can replace them. Two changesets, labelled HU-COM-012 and reservation-modification-grants. Probes first: red, then green.
@@ -14,13 +14,13 @@ mg_can_update() { # role, column
 }
 mg_delete_tables() { mg_sql "select count(*) from information_schema.role_table_grants where table_schema = '$SCHEMA' and grantee = '$writer' and privilege_type = 'DELETE'"; }
 
-echo 'HU-COM-012 db slice 2 - base: the 123 changesets that exist before the grants'
+echo 'HU-COM-012 db slice 2 - base: the 127 changesets that exist before the grants'
 liquibase rollback-count 999 >/dev/null
 db_labels='!reservation-modification-grants'
 liquibase update >/dev/null
 mg_base="$(snapshot)"
 mg_base_delete="$(mg_delete_tables)"
-check 'base holds exactly 123 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
+check 'base holds exactly 127 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$mg_cust', '$tenant', 'Grants probe', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$mg_svc', '$tenant', 'TOUR', 'Grants probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now());
      insert into $SCHEMA.discount_rule (discount_rule_id, tenant_id, name, starts_on, ends_on, priority, calculation_base, discount_type, discount_percentage_bp, discount_amount_cents, status, covers_all_services, created_at, updated_at) values ('$mg_rule', '$tenant', 'Grants probe rule', current_date, current_date + 90, 1, 'ORIGINAL_VALUE', 'PERCENTAGE', 1000, NULL, 'ACTIVE', true, now(), now())" >/dev/null 2>&1 || true
@@ -34,7 +34,7 @@ check 'RED the writer cannot yet update an amount column of a discount line' "$(
 check 'RED the writer cannot yet delete a companion' "$([ "$(mg_sql "select has_table_privilege('$writer', '$mg_c', 'DELETE')")" = f ]; echo $?)"
 db_labels='reservation-modification-grants'
 liquibase update >/dev/null
-check 'the two changesets of the slice bring the control table to 125' "$([ "$(sql "select count(*) from $CONTROL")" = 125 ]; echo $?)"
+check 'the two changesets of the slice bring the control table to 129' "$([ "$(sql "select count(*) from $CONTROL")" = 129 ]; echo $?)"
 
 echo 'theThreeAmountColumnsCanBeUpdatedAndNoOtherColumn (DP-D12-4)'
 for col in $mg_amount_cols; do
@@ -66,11 +66,11 @@ sql "delete from $mg_fd where reservation_id = '$mg_res'; delete from $SCHEMA.re
 liquibase rollback-count 2
 mg_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$mg_base" "$mg_reverted"
-check 'AC-D12.16 the revert restores columns, constraints, indexes and privileges exactly and leaves 123 changesets' "$([ -n "$mg_base" ] && [ "$mg_reverted" = "$mg_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
+check 'AC-D12.16 the revert restores columns, constraints, indexes and privileges exactly and leaves 127 changesets' "$([ -n "$mg_base" ] && [ "$mg_reverted" = "$mg_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
 check 'AC-D12.16 after the revert the writer cannot update an amount column nor delete a companion' "$([ "$(mg_can_update "$writer" base_cents)" = f ] && [ "$(mg_sql "select has_table_privilege('$writer', '$mg_c', 'DELETE')")" = f ]; echo $?)"
 db_labels=''
 liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 125 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 125 ]; echo $?)"
+check 'a full build from empty without any label filter applies exactly 129 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 129 ]; echo $?)"
