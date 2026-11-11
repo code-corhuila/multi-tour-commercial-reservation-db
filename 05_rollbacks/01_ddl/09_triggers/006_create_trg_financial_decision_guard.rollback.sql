@@ -1,0 +1,1 @@
+DROP TRIGGER trg_financial_decision_guard ON commercial_reservation.financial_decision;

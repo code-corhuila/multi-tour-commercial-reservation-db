@@ -1,0 +1,1 @@
+DROP TRIGGER trg_refund_authorization_guard ON commercial_reservation.refund_authorization;
