@@ -33,7 +33,7 @@ rs_seed() { # one customer per tenant (the same document in both) and one tour o
 
 echo 'HU-COM-007 reservation - base: the 53 changesets before the reservation table, its function and its trigger'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-007 and !HU-COM-008 and !HU-COM-009'
+db_labels='!HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate'
 liquibase update >/dev/null
 rs_base="$(snapshot)"
 check 'base holds exactly 53 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
@@ -107,6 +107,8 @@ check 'a query scoped to tenant A returns no row of tenant B' "$([ "$(rs_sql "se
 rs_refusal "$(rs_row customer_id "'$(aid 2299)'");" fk_reservation_customer 'a reservation of a customer that does not exist'
 rs_refusal "$(rs_row service_id "'$(aid 2299)'");" fk_reservation_service 'a reservation of a service that does not exist'
 check 'DP-D7-4 default: the customer key is simple, so the engine does not compare tenants; the -api load and this scoped probe do' "$([ "$(rs_sql "select count(*) from pg_constraint where conrelid='$rs_t'::regclass and conname='fk_reservation_customer' and array_length(conkey,1)=1")" = 1 ]; echo $?)"
+rs_accepted "$(rs_row tenant_id "'$tenant'" customer_id "'$rs_customer_b'");" 'aReservationCannotPointAtACustomerOfAnotherTenant, as DP-D7-4 decided by default: a reservation of tenant A for a customer of tenant B (the engine compares no tenants; the -api loads the customer by tenant and id and refuses it, so a composite key would turn this line into a refusal)'
+check 'aReservationCannotPointAtACustomerOfAnotherTenant: the customer of tenant B is not found from tenant A by a scoped query, which is how the -api reaches it' "$([ "$(rs_sql "select count(*) from $SCHEMA.customer where tenant_id='$tenant' and customer_id='$rs_customer_b'")" = 0 ] && [ "$(rs_sql "select count(*) from $SCHEMA.customer where tenant_id='$rs_tenant_b' and customer_id='$rs_customer_b'")" = 1 ]; echo $?)"
 
 echo 'no DELETE for the application (AC-D7.14)'
 check 'neither the writer nor the application user holds DELETE on reservation, the reader does not either' "$([ "$(sql "select has_table_privilege('$app','$rs_t','DELETE') or has_table_privilege('$writer','$rs_t','DELETE') or has_table_privilege('$reader','$rs_t','DELETE')")" = f ] && [ "$(sql "select has_table_privilege('$reader','$rs_t','SELECT')")" = t ]; echo $?)"
@@ -316,7 +318,7 @@ rs_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$rs_base" "$rs_reverted"
 check 'the twelve-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$rs_base" ] && [ "$rs_reverted" = "$rs_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 53 ]; echo $?)"
 check 'the three tables, the function, the trigger, the keys and the widening are gone after the revert' "$([ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation','reserved_service','reservation_fixed_discount')")" = 0 ] && [ "$(sql "select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace and proname='trg_reservation_birth'")" = 0 ] && [ "$(sql "select count(*) from pg_constraint where conname in ('fk_outbox_event_reservation','fk_reservation_companion_reservation','fk_reservation_additional_discount_reservation','chk_outbox_event_payload_keys_reservation_created')")" = 0 ]; echo $?)"
-db_labels='!HU-COM-008 and !HU-COM-009'
+db_labels='!HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate'
 liquibase update >/dev/null
 check 'the twelve changesets reapply to 65 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 65 ]; echo $?)"
 liquibase rollback-count 999 >/dev/null
