@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_financial_decision_treatment_reservation;

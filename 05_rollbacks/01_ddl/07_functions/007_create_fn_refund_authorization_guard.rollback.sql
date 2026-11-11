@@ -1,0 +1,1 @@
+DROP FUNCTION commercial_reservation.fn_refund_authorization_guard();

@@ -492,3 +492,63 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/032_create_outbox_event_client_notified_unique_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-033
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,10_indexes"
+      comment: "PROPOSED unique index of one treatment decision per cancellation (HU-COM-016 plan D-05, DP-D16-3)."
+      changes:
+        - sqlFile:
+            path: 033_create_financial_decision_treatment_unique_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/033_create_financial_decision_treatment_unique_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-034
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,10_indexes"
+      comment: "PROPOSED partial index of the open unfrozen decisions by recognition instant (HU-COM-016 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 034_create_financial_decision_due_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/034_create_financial_decision_due_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-035
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,10_indexes"
+      comment: "PROPOSED index of the refunds of a reservation (HU-COM-016 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 035_create_refund_authorization_reservation_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/035_create_refund_authorization_reservation_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-indexes-036
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,10_indexes"
+      comment: "PROPOSED partial index of the open refunds by due instant (HU-COM-016 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 036_create_refund_authorization_open_due_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/036_create_refund_authorization_open_due_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

@@ -40,7 +40,7 @@ check 'the probe reservations exist on the base' "$([ "$(fd_sql "select count(*)
 echo 'HU-COM-016 db - probes written first: red before the changesets, green after'
 db_labels='HU-COM-016'
 liquibase update >/dev/null
-check 'the changesets of the story bring the control table to 114' "$([ "$(sql "select count(*) from $CONTROL")" = 114 ]; echo $?)"
+check 'the changesets of the story bring the control table to 123' "$([ "$(sql "select count(*) from $CONTROL")" = 123 ]; echo $?)"
 
 echo 'aDecisionRequiresEveryFieldAClosedKindAndPositiveAmounts (AC-D16.2)'
 fd_accepted "$(fd_row financial_decision_id "'$fd_id_cc'")" 'a whole customer-cancellation decision with its penalty'

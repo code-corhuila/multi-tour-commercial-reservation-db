@@ -396,3 +396,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/027_widen_outbox_event_for_client_notified.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-028
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,04_alter"
+      comment: "PROPOSED fifth widening of outbox_event: RefundAuthorized with its closed key list (HU-COM-016 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 028_widen_outbox_event_for_refund_authorized.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/028_widen_outbox_event_for_refund_authorized.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
