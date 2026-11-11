@@ -576,3 +576,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/039_add_salida_capacity_last_event_occurred_at.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-040
+      author: FernandaRobayo
+      labels: "exceptional-access-use,HU-SEC-007-use,ddl,04_alter"
+      comment: "PROPOSED ninth widening of outbox_event: PlatformExceptionalAccessUsed, the audit of each use of an exceptional access token, with authorization_id as its aggregate and a closed key list (HU-SEC-007 G-SEC9-1)."
+      changes:
+        - sqlFile:
+            path: 040_widen_outbox_event_for_platform_exceptional_access_used.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/040_widen_outbox_event_for_platform_exceptional_access_used.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

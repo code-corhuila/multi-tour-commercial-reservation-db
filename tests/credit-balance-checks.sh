@@ -35,7 +35,7 @@ cb_apply() { # column/value pairs (SQL literals) that replace the defaults of a 
 
 echo 'HU-COM-017 db - base: the 130 changesets that exist before the story, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order'
+db_labels='!HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !departure-order and !exceptional-access-use'
 liquibase update >/dev/null
 cb_base="$(snapshot)"
 cb_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
