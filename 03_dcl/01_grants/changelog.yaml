@@ -257,3 +257,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/017_revoke_update_on_sensitive_data_deletion.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-018
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,dcl,grants"
+      comment: "A rescheduling record is never edited: UPDATE is withdrawn from the writer (HU-COM-018 plan D-04, AC-D18.11)."
+      changes:
+        - sqlFile:
+            path: 018_revoke_update_on_rescheduling_record.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/018_revoke_update_on_rescheduling_record.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

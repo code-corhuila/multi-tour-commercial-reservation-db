@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_rescheduling_episode_tenant_reservation;

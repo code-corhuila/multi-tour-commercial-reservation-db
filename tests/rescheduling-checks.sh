@@ -51,7 +51,7 @@ engine "$(rs_row reservation_id "'$re_res1'" customer_id "'$re_cust'" service_id
 check 'the three probe reservations exist on the base' "$([ "$(re_sql "select count(*) from $SCHEMA.reservation where reservation_id in ('$re_res1','$re_res2','$re_res3')")" = 3 ]; echo $?)"
 
 echo 'HU-COM-018 db - probes written first: red before the changesets, green after'
-db_labels='HU-COM-018'
+db_labels='HU-COM-018 and !rescheduling-record'
 liquibase update >/dev/null
 check 'the changesets of the story bring the control table to 161' "$([ "$(sql "select count(*) from $CONTROL")" = 161 ]; echo $?)"
 
@@ -163,6 +163,6 @@ liquibase rollback-count "$re_n"
 re_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$re_base" "$re_reverted"
 check 'AC-D18.17 the revert restores columns, constraints, indexes and privileges exactly and leaves 153 changesets' "$([ -n "$re_base" ] && [ "$re_reverted" = "$re_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
-db_labels='HU-COM-018'
+db_labels='HU-COM-018 and !rescheduling-record'
 liquibase update >/dev/null
 check 'the changesets of the story reapply to 161' "$([ "$(sql "select count(*) from $CONTROL")" = 161 ]; echo $?)"

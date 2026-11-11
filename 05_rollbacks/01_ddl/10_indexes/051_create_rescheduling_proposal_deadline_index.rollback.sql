@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_rescheduling_proposal_tenant_deadline;
