@@ -184,3 +184,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/019_add_customer_terms_acceptance.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-013
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-keys,ddl,04_alter"
+      comment: "PROPOSED foreign keys of reservation_companion and reservation_additional_discount to reservation, the keys that 004 and 005 left waiting (HU-COM-007 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 013_add_reservation_foreign_keys_to_companion_and_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/013_add_reservation_foreign_keys_to_companion_and_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
