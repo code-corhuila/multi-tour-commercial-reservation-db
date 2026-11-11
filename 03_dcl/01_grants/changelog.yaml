@@ -119,3 +119,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/008_revoke_update_on_reservation_fixed_discount.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-009
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,dcl,grants"
+      comment: "The reader may not read the proof content and the writer may not update a proof (AC-D9.5)."
+      changes:
+        - sqlFile:
+            path: 009_revoke_on_payment_proof_file.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/009_revoke_on_payment_proof_file.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

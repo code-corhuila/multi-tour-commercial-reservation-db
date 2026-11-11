@@ -185,6 +185,21 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
   - changeSet:
+      id: ddl-alter-012
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-outbox,ddl,04_alter"
+      comment: "PROPOSED second widening of outbox_event: the key to reservation and the seven reservation, payment and capacity events (HU-COM-007 plan D-09, debt DD-5)."
+      changes:
+        - sqlFile:
+            path: 012_widen_outbox_event_for_reservation_payment_and_capacity_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/012_widen_outbox_event_for_reservation_payment_and_capacity_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
       id: ddl-alter-013
       author: FernandaRobayo
       labels: "HU-COM-007,reservation-keys,ddl,04_alter"
