@@ -12,7 +12,7 @@ cs_explain_plain() { printf '%s\n' "explain $1;" | docker exec -i -e PGPASSWORD 
 
 echo 'HU-COM-005 customer name search - base: the 86 changesets before the index'
 liquibase rollback-count 999 >/dev/null
-db_labels='!customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order'
+db_labels='!customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use'
 liquibase update >/dev/null
 cs_base="$(snapshot)"
 check 'base holds exactly 86 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 86 ]; echo $?)"
