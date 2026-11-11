@@ -604,4 +604,5 @@ source tests/refund-guards-checks.sh
 source tests/client-notice-delivery-checks.sh
 source tests/client-notice-relay-checks.sh
 source tests/credit-balance-checks.sh
+source tests/credit-balance-guards-checks.sh
 exit "$fail"

@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_credit_balance_tenant_source_reservation;

@@ -441,3 +441,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/030_add_financial_decision_credit_balance_foreign_key.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-031
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,04_alter"
+      comment: "PROPOSED sixth widening of outbox_event: CreditBalanceRecorded and CreditBalanceApplied with their closed key lists (HU-COM-017 plan D-07, AC-D17.12)."
+      changes:
+        - sqlFile:
+            path: 031_widen_outbox_event_for_credit_balance_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/031_widen_outbox_event_for_credit_balance_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
