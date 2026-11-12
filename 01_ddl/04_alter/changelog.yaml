@@ -651,3 +651,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/044_widen_outbox_event_for_payment_parameters_changed.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-045
+      author: FernandaRobayo
+      labels: "restricted-access-reason,HU-COM-020-marker,ddl,04_alter"
+      comment: "PROPOSED: outbox_event gains the nullable envelope column reason, which admits only RESTRICTED_ACCESS, the audit marker of an action of the restricted Administrator of an inactive tenant (HU-COM-020 AC-20.13, DP-05 default)."
+      changes:
+        - sqlFile:
+            path: 045_add_outbox_event_reason_for_restricted_access.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/045_add_outbox_event_reason_for_restricted_access.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
