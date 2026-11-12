@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.account_session_cutoff;
