@@ -17,7 +17,7 @@ do_row() { # departure id, marker literal
 
 echo 'HU-COM-006 db departure order - base: the 179 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!departure-order and !exceptional-access-use'
+db_labels='!departure-order and !exceptional-access-use and !reservation-confirmed-value'
 liquibase update >/dev/null
 do_base="$(snapshot)"
 check 'base holds exactly 179 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 179 ]; echo $?)"
