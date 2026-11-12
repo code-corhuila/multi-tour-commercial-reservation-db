@@ -35,13 +35,14 @@ liquibase update >/dev/null
 check 'the changeset of the slice adds one changeset to the control table' "$([ "$(sql "select count(*) from $CONTROL")" = "$((sc_n0 + 1))" ]; echo $?)"
 
 echo 'the table (AC-D22.1)'
-sc_cols='account_id uuid NO,tenant_id uuid NO,revoked_from timestamp with time zone NO,created_at timestamp with time zone NO,updated_at timestamp with time zone NO'
-check 'AC-D22.1 account_session_cutoff holds its five columns, all required' "$([ "$(cols_of account_session_cutoff)" = "$sc_cols" ]; echo $?)"
+sc_cols='account_id uuid NO,tenant_id uuid YES,revoked_from timestamp with time zone NO,created_at timestamp with time zone NO,updated_at timestamp with time zone NO'
+check 'AC-D22.1 account_session_cutoff holds its five columns, all required but tenant_id' "$([ "$(cols_of account_session_cutoff)" = "$sc_cols" ]; echo $?)"
 check 'AC-D22.1 no column has a DEFAULT and there is no foreign key' "$([ "$(sc_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='account_session_cutoff' and column_default is not null")" = 0 ] && [ "$(sc_sql "select count(*) from pg_constraint where conrelid='$sc_t'::regclass and contype='f'")" = 0 ]; echo $?)"
 check 'AC-D22.2 the primary key is account_id' "$([ "$(sc_sql "select pg_get_constraintdef(oid) from pg_constraint where conname='pk_account_session_cutoff' and conrelid='$sc_t'::regclass")" = 'PRIMARY KEY (account_id)' ]; echo $?)"
-sc_names='chk_account_session_cutoff_account_id_required,chk_account_session_cutoff_created_at_required,chk_account_session_cutoff_revoked_from_required,chk_account_session_cutoff_tenant_id_required,chk_account_session_cutoff_updated_at_required,pk_account_session_cutoff'
+sc_names='chk_account_session_cutoff_account_id_required,chk_account_session_cutoff_created_at_required,chk_account_session_cutoff_revoked_from_required,chk_account_session_cutoff_updated_at_required,pk_account_session_cutoff'
 check 'AC-D22.3 the named constraints are exactly the planned ones' "$([ "$(sc_sql "select string_agg(conname, ',' order by conname collate \"C\") from pg_constraint where conrelid='$sc_t'::regclass and contype <> 'n'")" = "$sc_names" ]; echo $?)"
 sc_accepted "$(sc_row)" 'a whole row'
+sc_accepted "$(sc_row '' null)" 'a row with no tenant (the account of a Platform Administrator)'
 
 echo 'the refusals (AC-D22.2, AC-D22.3)'
 sc_a1="$(aid 9401)"
@@ -52,7 +53,7 @@ sc_without() { # the column left null, in the order of the table
   v[$1]='null'
   echo "insert into $sc_t (account_id, tenant_id, revoked_from, created_at, updated_at) values (${v[account_id]}, ${v[tenant_id]}, ${v[revoked_from]}, ${v[created_at]}, ${v[updated_at]})"
 }
-for column in account_id tenant_id revoked_from created_at updated_at; do
+for column in account_id revoked_from created_at updated_at; do
   sc_refusal "$(sc_without "$column");" "ERROR:  23502.*column \"$column\"" "AC-D22.3 a row without $column"
 done
 
