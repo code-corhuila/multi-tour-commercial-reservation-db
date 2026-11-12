@@ -17,7 +17,7 @@ POSTGRES_IMAGE="postgres:18"
 SCHEMA="commercial_reservation"
 CONTROL="databasechangelog_commercial_reservation"
 LOCK="databasechangeloglock_commercial_reservation"
-db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason' # Keep all 181 existing checks on their original 23-changeset schema.
+db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log' # Keep all 181 existing checks on their original 23-changeset schema.
 
 suffix="$$"
 runner_image="cr-db-runner:ci-$suffix"
@@ -617,4 +617,5 @@ source tests/reservation-confirmed-value-checks.sh
 source tests/payment-parameters-changed-checks.sh
 source tests/account-session-cutoff-checks.sh
 source tests/restricted-access-reason-checks.sh
+source tests/establishment-contact-log-checks.sh
 exit "$fail"
