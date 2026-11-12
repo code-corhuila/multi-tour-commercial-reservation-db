@@ -43,7 +43,7 @@ sd_event() { # payload (SQL literal), then column/value pairs that replace the d
 
 echo 'HU-COM-019 db - base: the 144 changesets that exist before the story, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value'
+db_labels='!HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed'
 liquibase update >/dev/null
 sd_lines() { sql "select string_agg(x, E'
 ' order by x) from (
