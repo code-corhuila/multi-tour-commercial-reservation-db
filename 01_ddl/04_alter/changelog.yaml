@@ -621,3 +621,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/042_rename_exceptional_access_use_payload_instant_to_used_at.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-043
+      author: FernandaRobayo
+      labels: "reservation-confirmed-value,HU-CSH-003-value,ddl,04_alter"
+      comment: "PROPOSED: the closed payload of ReservationConfirmed admits commercialValueCents, the final value of the reservation at its confirmation, as a non-negative whole number of cents (HU-CSH-003 DP-RM-B3)."
+      changes:
+        - sqlFile:
+            path: 043_allow_commercial_value_in_reservation_confirmed_payload.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/043_allow_commercial_value_in_reservation_confirmed_payload.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
