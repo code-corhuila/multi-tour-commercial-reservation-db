@@ -571,3 +571,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/038_create_tenant_suspension.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-039
+      author: FernandaRobayo
+      labels: "HU-SEC-005,account-session-cutoff,ddl,03_tables"
+      comment: "PROPOSED account_session_cutoff: the cutoff per revoked account, so that a token issued before it is refused (HU-SEC-005 AC4, HU-SEC-006 AC7, -db spec 022)."
+      changes:
+        - sqlFile:
+            path: 039_create_account_session_cutoff.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/039_create_account_session_cutoff.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
