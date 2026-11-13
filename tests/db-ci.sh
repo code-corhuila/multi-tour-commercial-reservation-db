@@ -17,7 +17,7 @@ POSTGRES_IMAGE="postgres:18"
 SCHEMA="commercial_reservation"
 CONTROL="databasechangelog_commercial_reservation"
 LOCK="databasechangeloglock_commercial_reservation"
-db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log' # Keep all 181 existing checks on their original 23-changeset schema.
+db_labels='!HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice' # Keep all 181 existing checks on their original 23-changeset schema.
 
 suffix="$$"
 runner_image="cr-db-runner:ci-$suffix"
@@ -463,7 +463,7 @@ snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
     union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
     union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
 liquibase rollback-count 999 >/dev/null
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason' >/dev/null
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice' >/dev/null
 check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
 check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
@@ -529,7 +529,7 @@ check "the runner sits on the external platform network" "$(echo "$composed" | g
 # disposable instance; never roll back a developer's infrastructure database.
 echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
 liquibase rollback-count 999
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason'
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice'
 record_base="$(snapshot)"
 echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
 liquibase update
@@ -618,4 +618,5 @@ source tests/payment-parameters-changed-checks.sh
 source tests/account-session-cutoff-checks.sh
 source tests/restricted-access-reason-checks.sh
 source tests/establishment-contact-log-checks.sh
+source tests/rescheduling-proposed-notice-checks.sh
 exit "$fail"
