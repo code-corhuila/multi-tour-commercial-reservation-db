@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.cancellation_penalty_policy;
