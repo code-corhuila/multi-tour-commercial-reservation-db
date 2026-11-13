@@ -16,7 +16,7 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 75 # the complete db-ci.sh (about 1,490 checks) took 54 minutes on a loaded workstation
     steps:
       - uses: actions/checkout@v4
 
