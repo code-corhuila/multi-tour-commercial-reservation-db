@@ -26,7 +26,7 @@ ea_accepted() { # SQL, description
 
 echo 'HU-SEC-007 db exceptional access use - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!exceptional-access-use'
+db_labels='!exceptional-access-use and !cancellation-penalty-policy'
 liquibase update >/dev/null
 ea_base="$(snapshot)"
 ea_n0="$(sql "select count(*) from $CONTROL")"
