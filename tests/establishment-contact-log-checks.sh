@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sourced by db-ci.sh after account-session-cutoff-checks.sh, on the same disposable PostgreSQL instance, with every changeset that exists before the slice (counted at run time); the slice is four changesets:
-# alter 045 (contact columns), table 040 (change), index 058 and grant 019 (UPDATE withdrawn). All carry the label establishment-contact-log.
+# alter 046 (contact columns), table 040 (change), index 058 and grant 019 (UPDATE withdrawn). All carry the label establishment-contact-log.
 # HU-COM-002 -db (docs spec 002, PROPOSED, 2026-11-12): AC-D2.11 to AC-D2.15. The contact of an association is three optional columns; every inactivation or reactivation leaves one row in
 # associated_establishment_change (event, reason, actor, instant), appended and never edited. Probes are written first: red before the changesets, green after (Annex J.1).
 ec_t="$SCHEMA.associated_establishment_change"
