@@ -888,3 +888,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/058_create_associated_establishment_change_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-059
+      author: FernandaRobayo
+      labels: "HU-COM-013,cancellation-penalty-policy,ddl,10_indexes"
+      comment: "PROPOSED uniques per tenant and per service, and the service foreign key index, of cancellation_penalty_policy (HU-COM-013 DP-02a)."
+      changes:
+        - sqlFile:
+            path: 059_create_cancellation_penalty_policy_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/059_create_cancellation_penalty_policy_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
