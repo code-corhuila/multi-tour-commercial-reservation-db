@@ -272,3 +272,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/03_dcl/01_grants/018_revoke_update_on_rescheduling_record.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: dcl-grants-019
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,dcl,grants"
+      comment: "The change log of the associated establishments is never edited: UPDATE is withdrawn from the writer (HU-COM-002 AC-D2.14)."
+      changes:
+        - sqlFile:
+            path: 019_revoke_update_on_associated_establishment_change.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/019_revoke_update_on_associated_establishment_change.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

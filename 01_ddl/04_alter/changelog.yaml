@@ -666,3 +666,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/045_add_outbox_event_reason_for_restricted_access.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-046
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,ddl,04_alter"
+      comment: "PROPOSED: associated_establishment gains the optional contact_email, contact_phone and contact_address, bounded in length (HU-COM-002 AC-D2.11)."
+      changes:
+        - sqlFile:
+            path: 046_add_associated_establishment_contact.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/046_add_associated_establishment_contact.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

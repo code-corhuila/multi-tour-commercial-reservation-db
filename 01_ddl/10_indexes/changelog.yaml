@@ -873,3 +873,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/057_create_financial_decision_resumed_due_index.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-058
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,ddl,10_indexes"
+      comment: "PROPOSED index of the change log of a tenant, newest first (HU-COM-002 AC-D2.12)."
+      changes:
+        - sqlFile:
+            path: 058_create_associated_establishment_change_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/058_create_associated_establishment_change_index.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
