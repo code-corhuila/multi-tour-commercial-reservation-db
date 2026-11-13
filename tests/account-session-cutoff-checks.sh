@@ -22,7 +22,7 @@ sc_accepted() { # SQL, description
 
 echo 'account session cutoff - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!account-session-cutoff'
+db_labels='!account-session-cutoff and !restricted-access-reason'
 liquibase update >/dev/null
 sc_base="$(snapshot)"
 sc_n0="$(sql "select count(*) from $CONTROL")"
