@@ -28,7 +28,7 @@ nd_e1="$(aid 4321)"; nd_e2="$(aid 4322)"; nd_e3="$(aid 4323)"; nd_e4="$(aid 4324
 
 echo 'HU-COM-015 delivery - base: the 124 changesets that exist before the delivery data'
 liquibase rollback-count 999 >/dev/null
-db_labels='!client-notice-delivery and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy'
+db_labels='!client-notice-delivery and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy and !vehicle-total-capacity'
 liquibase update >/dev/null
 nd_base="$(snapshot)"
 nd_base_objects="$(nd_objects)"
