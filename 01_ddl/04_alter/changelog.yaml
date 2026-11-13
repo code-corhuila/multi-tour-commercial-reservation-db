@@ -696,3 +696,33 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/047_widen_client_notified_trigger_codes_for_rescheduling_proposed.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-049
+      author: FernandaRobayo
+      labels: "fk-tenant-composite,DD-11,ddl,04_alter"
+      comment: "PROPOSED: UNIQUE (tenant_id, key) on the ten parent tables that other tenant-scoped tables reference (DD-11 of HU-COM-011, DD-7 and DP-D9-12 of HU-COM-009)."
+      changes:
+        - sqlFile:
+            path: 049_add_tenant_composite_keys_to_parent_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/049_add_tenant_composite_keys_to_parent_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-050
+      author: FernandaRobayo
+      labels: "fk-tenant-composite,DD-11,ddl,04_alter"
+      comment: "PROPOSED: the 48 simple foreign keys between tenant-scoped tables become composite (tenant_id, key); added NOT VALID, then validated (DD-11, DD-7)."
+      changes:
+        - sqlFile:
+            path: 050_make_tenant_scoped_foreign_keys_composite.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/050_make_tenant_scoped_foreign_keys_composite.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
