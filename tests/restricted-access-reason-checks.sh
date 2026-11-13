@@ -25,7 +25,7 @@ ra_key='chk_outbox_event_reason'
 
 echo 'AC-20.13 db restricted access reason - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy'
+db_labels='!restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy and !vehicle-total-capacity'
 liquibase update >/dev/null
 ra_base="$(snapshot)"
 ra_n0="$(sql "select count(*) from $CONTROL")"
