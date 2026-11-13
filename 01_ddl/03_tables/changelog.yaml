@@ -601,3 +601,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/03_tables/040_create_associated_establishment_change.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-tables-041
+      author: FernandaRobayo
+      labels: "HU-COM-013,cancellation-penalty-policy,ddl,03_tables"
+      comment: "PROPOSED cancellation_penalty_policy: the penalty percentage of a tenant or a service on a customer cancellation, last change only (HU-COM-013 DP-02a, PDR RF-021, RN-RES-008)."
+      changes:
+        - sqlFile:
+            path: 041_create_cancellation_penalty_policy.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/041_create_cancellation_penalty_policy.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

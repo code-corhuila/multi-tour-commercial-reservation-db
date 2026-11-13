@@ -1,0 +1,3 @@
+DROP INDEX commercial_reservation.idx_cancellation_penalty_policy_service_id;
+DROP INDEX commercial_reservation.uq_cancellation_penalty_policy_tenant_service;
+DROP INDEX commercial_reservation.uq_cancellation_penalty_policy_tenant;
