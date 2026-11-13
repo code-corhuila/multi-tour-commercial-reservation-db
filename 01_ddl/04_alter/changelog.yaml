@@ -681,3 +681,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/04_alter/046_add_associated_establishment_contact.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-alter-047
+      author: FernandaRobayo
+      labels: "rescheduling-proposed-notice,HU-COM-015-proposal-notice,ddl,04_alter"
+      comment: "PROPOSED: the guard of ClientNotified admits the trigger code ReschedulingProposed, the notice of a rescheduling proposal (HU-COM-015 AC-15.5, DD-6 default)."
+      changes:
+        - sqlFile:
+            path: 047_widen_client_notified_trigger_codes_for_rescheduling_proposed.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/047_widen_client_notified_trigger_codes_for_rescheduling_proposed.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

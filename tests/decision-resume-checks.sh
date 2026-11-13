@@ -23,7 +23,7 @@ dr_decision() { # decision id, reservation id, kind
 
 echo 'HU-COM-020 db decision resume - base: the 177 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason'
+db_labels='!decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice'
 liquibase update >/dev/null
 dr_base="$(snapshot)"
 check 'base holds exactly 177 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 177 ]; echo $?)"
