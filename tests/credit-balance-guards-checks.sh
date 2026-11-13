@@ -42,7 +42,7 @@ cg_event() { # payload (SQL literal), then column/value pairs that replace the d
 
 echo 'HU-COM-017 db slice 2 - base: the 136 changesets that exist before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!credit-balance-guards and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff'
+db_labels='!credit-balance-guards and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason'
 liquibase update >/dev/null
 cg_base="$(snapshot)"
 cg_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
