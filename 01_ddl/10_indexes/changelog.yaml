@@ -903,3 +903,18 @@ databaseChangeLog:
             path: ../../05_rollbacks/01_ddl/10_indexes/059_create_cancellation_penalty_policy_indexes.rollback.sql
             relativeToChangelogFile: true
             splitStatements: false
+  - changeSet:
+      id: ddl-indexes-060
+      author: FernandaRobayo
+      labels: "fk-tenant-composite,DD-11,ddl,10_indexes"
+      comment: "PROPOSED: (tenant_id, column) index on the 33 composite foreign keys that no existing index serves (DD-11, Annex A one index per foreign key)."
+      changes:
+        - sqlFile:
+            path: 060_create_tenant_scoped_foreign_key_indexes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/10_indexes/060_create_tenant_scoped_foreign_key_indexes.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

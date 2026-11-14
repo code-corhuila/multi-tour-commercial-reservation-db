@@ -32,7 +32,7 @@ ts2_def() { sql "select string_agg(x, E'
 
 echo 'HU-COM-020 db - base: the 170 changesets that exist before the story, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice'
+db_labels='!HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !fk-tenant-composite'
 liquibase update >/dev/null
 ts2_base="$(snapshot)"; ts2_base_def="$(ts2_def)"
 ts2_base_objects="$(sql "select (select count(*) from pg_tables where schemaname='$SCHEMA') || '|' || (select count(*) from pg_proc where pronamespace='$SCHEMA'::regnamespace) || '|' || (select count(*) from pg_trigger where not tgisinternal and tgrelid in (select oid from pg_class where relnamespace='$SCHEMA'::regnamespace))" 2>/dev/null || true)"
