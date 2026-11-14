@@ -697,6 +697,21 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
   - changeSet:
+      id: ddl-alter-048
+      author: FernandaRobayo
+      labels: "vehicle-total-capacity,HU-COM-006-vehicle-total,ddl,04_alter"
+      comment: "PROPOSED: salida_capacity keeps the nullable total capacity of the assigned vehicles, to recompute the effective capacity when the tour capacity changes (HU-COM-006 ND-08, DP-D6-8, H8)."
+      changes:
+        - sqlFile:
+            path: 048_add_salida_capacity_vehicle_capacity_ceiling.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/048_add_salida_capacity_vehicle_capacity_ceiling.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
       id: ddl-alter-049
       author: FernandaRobayo
       labels: "fk-tenant-composite,DD-11,ddl,04_alter"
