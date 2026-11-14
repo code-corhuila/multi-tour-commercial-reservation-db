@@ -13,6 +13,12 @@ cp_refusal() { # SQL, text of the engine answer, description
   answer="$(engine "begin; $1; rollback" postgres 2>&1 || true)"; printf '%s\n' "$answer"
   check "DP-02a db: $3 is refused by $2" "$(printf '%s\n' "$answer" | grep -q "$2"; echo $?)"
 }
+cp_not_null_refusal() { # SQL, NOT NULL constraint name, column, description (the engine names the column; the constraint is read from the catalog)
+  local answer
+  answer="$(engine "begin; $1; rollback" postgres 2>&1 || true)"; printf '%s\n' "$answer"
+  check "DP-02a db: $4 is refused (SQLSTATE 23502 on $3)" "$(printf '%s\n' "$answer" | grep -q "ERROR:  23502.*column \"$3\""; echo $?)"
+  check "$2 exists in the catalog as a NOT NULL constraint" "$([ "$(sql "select count(*) from pg_constraint where conrelid='$cp_t'::regclass and contype='n' and conname='$2'")" = 1 ]; echo $?)"
+}
 cp_accepted() { # SQL, description
   local status=0
   engine "begin; $1; rollback;" postgres >/dev/null || status=$?
@@ -21,7 +27,7 @@ cp_accepted() { # SQL, description
 
 echo 'DP-02a db cancellation penalty policy - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!cancellation-penalty-policy'
+db_labels='!cancellation-penalty-policy and !fk-tenant-composite and !vehicle-total-capacity'
 liquibase update >/dev/null
 cp_base="$(snapshot)"
 cp_n0="$(sql "select count(*) from $CONTROL")"
@@ -35,7 +41,7 @@ check 'the slice adds two changesets to the control table' "$([ "$(sql "select c
 
 echo 'thePenaltyPolicyTableHoldsTheLastChangeOfATenantOrOfAService'
 check 'the table has the seven planned columns, service_id nullable, no DEFAULT anywhere' "$([ "$(sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='cancellation_penalty_policy' and column_default is null and column_name in ('cancellation_penalty_policy_id','tenant_id','service_id','penalty_bp','changed_by','change_reason','changed_at')")" = 7 ] && [ "$(sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='cancellation_penalty_policy'")" = 7 ] && [ "$(sql "select is_nullable from information_schema.columns where table_schema='$SCHEMA' and table_name='cancellation_penalty_policy' and column_name='service_id'")" = YES ]; echo $?)"
-check 'the only foreign key is fk_cancellation_penalty_policy_service, to catalog_service, ON DELETE RESTRICT' "$([ "$(sql "select string_agg(conname || '->' || confrelid::regclass::text || '(' || confdeltype || ')', ',') from pg_constraint where conrelid='$cp_t'::regclass and contype='f'")" = "fk_cancellation_penalty_policy_service->$SCHEMA.catalog_service(r)" ]; echo $?)"
+check 'the only foreign key is fk_cancellation_penalty_policy_service, to catalog_service, ON DELETE RESTRICT' "$([ "$(sql "select string_agg(conname || '->' || confrelid::regclass::text || '(' || confdeltype::text || ')', ',') from pg_constraint where conrelid='$cp_t'::regclass and contype='f'")" = "fk_cancellation_penalty_policy_service->$SCHEMA.catalog_service(r)" ]; echo $?)"
 cp_accepted "$(cp_row 1 'null' 5000 "'Seasonal commercial policy'")" 'a tenant-level row of 50 %'
 cp_accepted "$(cp_row 2 "'$cp_svc1'" 0 "'No penalty for this tour'")" 'a service row of 0 (no penalty)'
 cp_accepted "$(cp_row 3 "'$cp_svc1'" 10000 "'Non refundable'")" 'a service row of 10 000 (the whole validated value)'
@@ -44,10 +50,10 @@ cp_accepted "$(cp_row 4 'null' 5000 "'Seasonal commercial policy'"); $(cp_row 5 
 echo 'thePenaltyPolicyRefusesWhatTheEngineCanRefuse'
 cp_refusal "$(cp_row 7 'null' -1 "'x'")" 'chk_cancellation_penalty_policy_penalty' 'a penalty below 0'
 cp_refusal "$(cp_row 8 'null' 10001 "'x'")" 'chk_cancellation_penalty_policy_penalty' 'a penalty above 10 000'
-cp_refusal "$(cp_row 9 'null' null "'x'")" 'chk_cancellation_penalty_policy_penalty_required' 'a row with no penalty'
+cp_not_null_refusal "$(cp_row 9 'null' null "'x'")" chk_cancellation_penalty_policy_penalty_required penalty_bp 'a row with no penalty'
 cp_refusal "$(cp_row 10 'null' 5000 "'   '")" 'chk_cancellation_penalty_policy_change_reason' 'a blank reason'
-cp_refusal "$(cp_row 11 'null' 5000 'null')" 'chk_cancellation_penalty_policy_change_reason_required' 'a row with no reason'
-cp_refusal "$(cp_row 12 'null' 5000 "'x'" 'null')" 'chk_cancellation_penalty_policy_tenant_required' 'a row with no tenant'
+cp_not_null_refusal "$(cp_row 11 'null' 5000 'null')" chk_cancellation_penalty_policy_change_reason_required change_reason 'a row with no reason'
+cp_not_null_refusal "$(cp_row 12 'null' 5000 "'x'" 'null')" chk_cancellation_penalty_policy_tenant_required tenant_id 'a row with no tenant'
 cp_refusal "$(cp_row 13 'null' 5000 "'x'"); $(cp_row 14 'null' 3000 "'y'")" 'uq_cancellation_penalty_policy_tenant' 'a second tenant-level row of the same tenant'
 cp_refusal "$(cp_row 15 "'$cp_svc1'" 5000 "'x'"); $(cp_row 16 "'$cp_svc1'" 3000 "'y'")" 'uq_cancellation_penalty_policy_tenant_service' 'a second row for the same service'
 cp_accepted "$(cp_row 17 'null' 5000 "'x'"); $(cp_row 18 'null' 3000 "'y'" "'$(aid 2)'")" 'a tenant-level row for each of two tenants'

@@ -32,7 +32,8 @@ db_labels='!client-notice-delivery and !HU-COM-017 and !HU-COM-019 and !HU-COM-0
 liquibase update >/dev/null
 nd_base="$(snapshot)"
 nd_base_objects="$(nd_objects)"
-check 'base holds exactly 124 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 124 ]; echo $?)"
+nd_n0="$(sql "select count(*) from $CONTROL")"
+check "base holds every changeset before the delivery data ($nd_n0)" "$([ "$nd_n0" -gt 0 ] && [ "$(sql "select count(*) from $CONTROL where labels ilike '%client-notice-delivery%'")" = 0 ]; echo $?)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$nd_cust', '$tenant', 'Delivery probe', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
      insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$nd_svc', '$tenant', 'TOUR', 'Delivery probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
 engine "$(rs_row reservation_id "'$nd_res'" customer_id "'$nd_cust'" service_id "'$nd_svc'");" >/dev/null || true
@@ -42,7 +43,7 @@ check 'the probe reservation and one notice written before the columns exist' "$
 echo 'HU-COM-015 delivery - probes written first: red before the changesets, green after'
 db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity'
 liquibase update >/dev/null
-check 'the three changesets bring the control table to 127' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
+check 'the three changesets are added to the control table' "$([ "$(sql "select count(*) from $CONTROL")" = $((nd_n0 + 3)) ]; echo $?)"
 
 echo 'theAttemptColumnsExistAndOldRowsKeepTheirDefaults (AC-D15.6)'
 check 'AC-D15.6 attempts is integer NOT NULL DEFAULT 0; last_error and correlation_id are text; next_attempt_at and failed_at are timestamptz; all nullable but attempts' "$([ "$(nd_sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable || ' ' || coalesce(column_default, ''), ',' order by column_name) from information_schema.columns where table_schema='$SCHEMA' and table_name='outbox_event' and column_name in ('attempts','last_error','next_attempt_at','failed_at','correlation_id')")" = 'attempts integer NO 0,correlation_id text YES ,failed_at timestamp with time zone YES ,last_error text YES ,next_attempt_at timestamp with time zone YES ' ]; echo $?)"
@@ -102,8 +103,8 @@ check 'the events of the probes are gone before the revert' "$([ "$(sql "select 
 liquibase rollback-count 3
 nd_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$nd_base" "$nd_reverted"
-check 'AC-D15.13 the three-change revert restores columns, constraints, indexes and privileges exactly and leaves 124 changesets' "$([ -n "$nd_base" ] && [ "$nd_reverted" = "$nd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 124 ]; echo $?)"
+check 'AC-D15.13 the three-change revert restores columns, constraints, indexes and privileges exactly and leaves the changesets of the base' "$([ -n "$nd_base" ] && [ "$nd_reverted" = "$nd_base" ] && [ "$(sql "select count(*) from $CONTROL")" = $nd_n0 ]; echo $?)"
 check 'AC-D15.13 the function and the trigger are gone after the revert' "$([ "$(nd_objects)" = "$nd_base_objects" ]; echo $?)"
 db_labels='client-notice-delivery and !client-notice-relay-index and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity'
 liquibase update >/dev/null
-check 'AC-D15.13 the changesets reapply to 127 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 127 ]; echo $?)"
+check 'AC-D15.13 the changesets reapply: the base plus three' "$([ "$(sql "select count(*) from $CONTROL")" = $((nd_n0 + 3)) ]; echo $?)"
