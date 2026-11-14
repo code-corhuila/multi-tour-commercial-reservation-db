@@ -22,7 +22,7 @@ ef_episode() { # episode id, reservation id (the first probe reservation by defa
 
 echo 'HU-COM-020 db episode frozen total - base: every changeset that exists before the slice, with the probe rows'
 liquibase rollback-count 999 >/dev/null
-db_labels='!episode-frozen-total and !cancellation-penalty-policy'
+db_labels='!episode-frozen-total and !cancellation-penalty-policy and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity'
 liquibase update >/dev/null
 ef_base="$(sql "select count(*) from $CONTROL")"; ef_snap="$(snapshot)"
 sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$ef_cust', '$tenant', 'Freeze total probe', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
