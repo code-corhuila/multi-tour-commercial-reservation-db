@@ -40,7 +40,7 @@ tk_accepted() { # SQL, description
 
 echo 'DD-11 db tenant composite keys - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!fk-tenant-composite and !cancellation-penalty-policy'
+db_labels='!fk-tenant-composite and !cancellation-penalty-policy and !vehicle-total-capacity'
 liquibase update >/dev/null
 tk_base="$(snapshot)"
 tk_n0="$(sql "select count(*) from $CONTROL")"
