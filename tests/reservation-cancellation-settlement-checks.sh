@@ -28,7 +28,7 @@ cn_object_count() { sql "select (select count(*) from pg_tables where schemaname
 
 echo 'HU-COM-013 db - base: the 100 changesets that exist before the story'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !fk-tenant-composite'
+db_labels='!HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite'
 liquibase update >/dev/null
 cn_base="$(snapshot)"
 cn_base_objects="$(cn_object_count)"
@@ -45,7 +45,7 @@ cn_sql "update $cn_r set reservation_status = 'CANCELLED', cancellation_cause = 
 check 'the probe reservations exist: four cancelled at the customer request, one by expiry, one pending' "$([ "$(cn_sql "select count(*) from $cn_r where reservation_id in ('$cn_res_ok','$cn_res_frozen','$cn_res_a2','$cn_res_b') and cancellation_cause = 'CUSTOMER_REQUEST'")" = 4 ] && [ "$(cn_sql "select count(*) from $cn_r where reservation_id = '$cn_res_expiry' and cancellation_cause = 'PAYMENT_EXPIRY'")" = 1 ] && [ "$(cn_sql "select count(*) from $cn_r where reservation_id = '$cn_res_pending' and reservation_status = 'PENDING_PAYMENT'")" = 1 ]; echo $?)"
 
 echo 'HU-COM-013 db - probes written first: red before the changesets, green after'
-db_labels='HU-COM-013'
+db_labels='HU-COM-013 and !cancellation-penalty-policy'
 liquibase update >/dev/null
 check 'the four changesets of the story bring the control table to 104' "$([ "$(sql "select count(*) from $CONTROL")" = 104 ]; echo $?)"
 
@@ -117,4 +117,4 @@ liquibase update >/dev/null
 liquibase rollback-count 999 >/dev/null
 liquibase update >/dev/null
 liquibase validate >/dev/null
-check 'a full build from empty without any label filter applies exactly 179 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 153 ]; echo $?)"
+check 'a full build from empty without any label filter applies every changeset of the repository' "$([ "$(sql "select count(*) from $CONTROL")" = $all_changesets ]; echo $?)"

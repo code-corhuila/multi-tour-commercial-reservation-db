@@ -8,17 +8,18 @@ st_col() { sql "select $1 from information_schema.columns where table_schema='$S
 
 echo 'HU-COM-003 stackable - base: the changesets that exist before the column, holding one rule'
 liquibase rollback-count 999 >/dev/null
-db_labels='!discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !fk-tenant-composite'
+db_labels='!discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite'
 liquibase update >/dev/null
 st_base="$(snapshot)"
-check 'base holds exactly 98 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
+st_n0="$(sql "select count(*) from $CONTROL")"
+check "base holds every changeset before the column ($st_n0)" "$([ "$st_n0" -gt 0 ] && [ "$(sql "select count(*) from $CONTROL where labels ilike '%discount-rule-stackable%'")" = 0 ]; echo $?)"
 check 'on that base discount_rule has no stackable column' "$([ "$(st_col 'count(*)')" = 0 ]; echo $?)"
 engine "$(cd_rule "'$(aid 1601)'")" >/dev/null || true
 
 echo 'HU-COM-003 stackable - probes written first: red before the changeset, green after'
 db_labels='discount-rule-stackable'
 liquibase update >/dev/null
-check 'the column brings the control table to 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'the column adds one changeset to the control table' "$([ "$(sql "select count(*) from $CONTROL")" = $((st_n0 + 1)) ]; echo $?)"
 
 echo 'the column (DP-04)'
 check 'stackable is boolean NOT NULL with DEFAULT true' "$([ "$(st_col "data_type || ' ' || is_nullable || ' ' || column_default")" = 'boolean NO true' ]; echo $?)"
@@ -39,8 +40,8 @@ check 'a second update applies zero changesets' "$(printf '%s\n' "$st_second" | 
 liquibase rollback-count 1
 st_reverted="$(snapshot)"
 printf 'Base MD5: %s\nReverted MD5: %s\n' "$st_base" "$st_reverted"
-check 'the one-change revert restores the schema exactly and leaves 98 changesets' "$([ -n "$st_base" ] && [ "$st_reverted" = "$st_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 98 ]; echo $?)"
+check 'the one-change revert restores the schema exactly and leaves the changesets of the base' "$([ -n "$st_base" ] && [ "$st_reverted" = "$st_base" ] && [ "$(sql "select count(*) from $CONTROL")" = $st_n0 ]; echo $?)"
 db_labels='discount-rule-stackable'
 liquibase update >/dev/null
-check 'the changeset reapplies to 99 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 99 ]; echo $?)"
+check 'the changeset reapplies: the base plus one' "$([ "$(sql "select count(*) from $CONTROL")" = $((st_n0 + 1)) ]; echo $?)"
 sql "delete from $st_t where discount_rule_id in ('$(aid 1601)','$(aid 1602)')" >/dev/null 2>&1 || true

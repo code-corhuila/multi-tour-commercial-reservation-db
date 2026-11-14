@@ -28,6 +28,8 @@ container="cr-db-ci-pg-$suffix"
 throwaway="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 export POSTGRES_PASSWORD="$throwaway" PGPASSWORD="$throwaway" LIQUIBASE_COMMAND_PASSWORD="$throwaway"
 host_dir="$(pwd -W 2>/dev/null || pwd)"
+# every changeset of the repository, counted from the changelogs, so the probes of a full build never keep a stale number
+all_changesets="$(grep -rhE '^[[:space:]]+id: ' 0[1-4]_*/changelog.yaml 0[1-4]_*/*/changelog.yaml | wc -l)"
 
 cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; docker network rm "$network" >/dev/null 2>&1 || true; docker rmi "$runner_image" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
@@ -463,7 +465,7 @@ snapshot() { sql "select md5(string_agg(x, '|' order by x)) from (
     union all select 'i:' || indexdef from pg_indexes where schemaname = '$SCHEMA'
     union all select 'p:' || grantee || ' ' || table_name || ' ' || privilege_type from information_schema.role_table_grants where table_schema = '$SCHEMA') s" 2>/dev/null || true; }
 liquibase rollback-count 999 >/dev/null
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !cancellation-penalty-policy and !fk-tenant-composite' >/dev/null
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !cancellation-penalty-policy and !fk-tenant-composite' >/dev/null
 check "the 16 changesets of HU-COM-001 build alone, without the label HU-COM-002" "$([ "$(sql "select count(*) from $CONTROL")" = 16 ]; echo $?)"
 tables_now() { sql "select count(*) from pg_tables where schemaname = '$SCHEMA' and tablename like 'associated_establishment%'" 2>/dev/null || true; }
 check "on that base neither HU-COM-002 table exists" "$([ "$(tables_now)" = 0 ]; echo $?)"
@@ -529,7 +531,7 @@ check "the runner sits on the external platform network" "$(echo "$composed" | g
 # disposable instance; never roll back a developer's infrastructure database.
 echo "HU-COM-002 T-06 - section 8, eleven steps (literal engine and runner answers)"
 liquibase rollback-count 999
-liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !cancellation-penalty-policy and !fk-tenant-composite'
+liquibase update --label-filter='!HU-COM-002 and !HU-COM-003 and !HU-COM-004 and !HU-COM-005 and !HU-COM-006 and !HU-WRK-007 and !HU-COM-007 and !HU-COM-008 and !HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !cancellation-penalty-policy and !fk-tenant-composite'
 record_base="$(snapshot)"
 echo "T-06 STEP 1 - apply this slice over HU-COM-001 (16 -> 23)"
 liquibase update

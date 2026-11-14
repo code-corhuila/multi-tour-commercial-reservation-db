@@ -24,7 +24,7 @@ ec_change() { # association id, event type, reason as an SQL expression
 
 echo 'establishment contact and log - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!establishment-contact-log'
+db_labels='!establishment-contact-log and !cancellation-penalty-policy'
 liquibase update >/dev/null
 ec_base="$(snapshot)"
 ec_n0="$(sql "select count(*) from $CONTROL")"

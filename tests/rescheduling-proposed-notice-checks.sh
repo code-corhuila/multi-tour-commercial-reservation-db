@@ -23,7 +23,7 @@ rp_key='chk_outbox_event_client_notified_codes'
 
 echo 'AC-15.5 db rescheduling proposed notice - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!rescheduling-proposed-notice and !fk-tenant-composite'
+db_labels='!rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy'
 liquibase update >/dev/null
 rp_base="$(snapshot)"
 rp_n0="$(sql "select count(*) from $CONTROL")"

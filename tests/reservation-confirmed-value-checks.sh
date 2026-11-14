@@ -27,7 +27,7 @@ rv_base_keys='"reservationId":"x","paymentStatus":"FULLY_PAID"'
 
 echo 'DP-RM-B3 db reservation confirmed value - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !rescheduling-proposed-notice and !fk-tenant-composite'
+db_labels='!reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !cancellation-penalty-policy'
 liquibase update >/dev/null
 rv_base="$(snapshot)"
 rv_n0="$(sql "select count(*) from $CONTROL")"
