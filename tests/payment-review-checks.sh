@@ -34,7 +34,7 @@ pr_event() { # event type, payload (SQL literal)
 
 echo 'HU-COM-010 payment review - base: the 79 changesets of HU-COM-001 to HU-COM-009'
 liquibase rollback-count 999 >/dev/null
-db_labels='!HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity'
+db_labels='!HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity and !cancellation-penalty-policy'
 liquibase update >/dev/null
 pr_base="$(snapshot)"
 check 'base holds exactly 79 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"

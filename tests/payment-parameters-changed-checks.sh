@@ -28,7 +28,7 @@ pc_accepted() { # SQL, description
 
 echo 'DP-04 db payment parameters changed - base: every changeset that exists before the slice'
 liquibase rollback-count 999 >/dev/null
-db_labels='!payment-parameters-changed and !cancellation-penalty-policy'
+db_labels='!payment-parameters-changed and !cancellation-penalty-policy and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity'
 liquibase update >/dev/null
 pc_base="$(snapshot)"
 pc_n0="$(sql "select count(*) from $CONTROL")"
