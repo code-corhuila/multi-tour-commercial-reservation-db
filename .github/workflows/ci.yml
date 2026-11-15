@@ -4,7 +4,7 @@ name: ci
 # Pull requests toward develop, qa and main only, to save the course's automation minutes.
 on:
   pull_request:
-    branches: [develop, qa, main]
+    branches: [develop, qa]
 
 concurrency:
   group: ci-${{ github.ref }}
