@@ -1,0 +1,1 @@
+GRANT UPDATE ON commercial_reservation.rescheduling_record TO commercial_reservation_writer;

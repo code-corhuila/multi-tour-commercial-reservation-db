@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_salida_capacity_tenant_id_service_id;

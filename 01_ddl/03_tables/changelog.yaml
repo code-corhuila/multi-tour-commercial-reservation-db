@@ -1,0 +1,618 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-tables-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "idempotency_key: one key table for the whole domain, unique per tenant and key, 8 to 128 characters (norm 5.3.8)."
+      changes:
+        - sqlFile:
+            path: 001_create_idempotency_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/001_create_idempotency_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "outbox_event: events written with the change they announce, read by the relay through the API (norm 5.3.11)."
+      changes:
+        - sqlFile:
+            path: 002_create_outbox_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/002_create_outbox_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-003
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "catalog_service: the services a tenant offers, with closed value sets as CHECKs and no defaults (plan.md DD-8, DD-16)."
+      changes:
+        - sqlFile:
+            path: 003_create_catalog_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/003_create_catalog_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-004
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,03_tables"
+      comment: "salida_capacity: the capacity and held seats of a departure, one row per tenant and departure (plan.md DD-19; name and columns proposed in 06-data)."
+      changes:
+        - sqlFile:
+            path: 004_create_salida_capacity.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/004_create_salida_capacity.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-005
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,03_tables"
+      comment: "associated_establishment: the hotels and restaurants a tenant associates, closed value sets as CHECKs, no defaults and no columns of rooms, dishes, menus, seats, rates or availability (HU-COM-002, RN-01, RN-02)."
+      changes:
+        - sqlFile:
+            path: 005_create_associated_establishment.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/005_create_associated_establishment.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-006
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,03_tables"
+      comment: "PROPOSED associated_establishment_image: the promotional image in a table of its own, one per association, 800 KB at most and PNG, JPEG or WebP only (ADR-005 E6, plan.md D-02)."
+      changes:
+        - sqlFile:
+            path: 006_create_associated_establishment_image.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/006_create_associated_establishment_image.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-007
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-table,ddl,03_tables"
+      comment: "DP-03: discount rule values in integer basis points or cents; open decisions stay absent."
+      changes:
+        - sqlFile:
+            path: 007_create_discount_rule.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/007_create_discount_rule.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-008
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-tables,ddl,03_tables"
+      comment: "customer: identity, tenant, full name and creation time only; columns of open decisions stay absent (HU-COM-005 plan D-02, D-07)."
+      changes:
+        - sqlFile:
+            path: 008_create_customer.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/008_create_customer.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-009
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-tables,ddl,03_tables"
+      comment: "reservation_companion: identity, tenant, reservation and full name only; document, birth, contact and sensitive data wait for decisions, the reservation key for HU-COM-007 (plan D-08)."
+      changes:
+        - sqlFile:
+            path: 009_create_reservation_companion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/009_create_reservation_companion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-010
+      author: FernandaRobayo
+      labels: "HU-COM-004,additional-discount,ddl,03_tables"
+      comment: "PROPOSED reservation_additional_discount: one per reservation, six port fields, no cap, no foreign key yet (HU-COM-004 -db plan D-02, D-03; the authorizable_reason table stays out, still blocked by G-C and DP-04-3)."
+      changes:
+        - sqlFile:
+            path: 010_create_reservation_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/010_create_reservation_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-011
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,ddl,03_tables"
+      comment: "customer_sensitive_data: emergency data apart from the ordinary row (HU-COM-005 DP-D5-7 default, PROPOSED 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 011_create_customer_sensitive_data.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/011_create_customer_sensitive_data.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-012
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,ddl,03_tables"
+      comment: "reservation_companion_sensitive_data: activity requirements apart from the ordinary row (DP-D5-7 default)."
+      changes:
+        - sqlFile:
+            path: 012_create_reservation_companion_sensitive_data.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/012_create_reservation_companion_sensitive_data.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-013
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-persistence,ddl,03_tables"
+      comment: "PROPOSED discount_rule_service: services covered by a rule, unique (rule, service); default DP-01 of 2026-10-28."
+      changes:
+        - sqlFile:
+            path: 013_create_discount_rule_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/013_create_discount_rule_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-014
+      author: FernandaRobayo
+      labels: "HU-COM-004,authorizable-reason,ddl,03_tables"
+      comment: "PROPOSED authorizable_reason: tenant reasons for an additional discount, ENABLED or DISABLED, unique by normalized text."
+      changes:
+        - sqlFile:
+            path: 014_create_authorizable_reason.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/014_create_authorizable_reason.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-015
+      author: FernandaRobayo
+      labels: "HU-COM-006,processed-event,ddl,03_tables"
+      comment: "PROPOSED processed_event: ids of the events already applied, for idempotent consumption (ADR-004 D4, HU-COM-006 plan D-05, debt DD-2)."
+      changes:
+        - sqlFile:
+            path: 015_create_processed_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/015_create_processed_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-024
+      author: FernandaRobayo
+      labels: "HU-WRK-007,tenant-status,ddl,03_tables"
+      comment: "PROPOSED tenant_status: the local copy of the tenants (spec 021, ADR-004 D4, D5)."
+      changes:
+        - sqlFile:
+            path: 024_create_tenant_status.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/024_create_tenant_status.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-016
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-table,ddl,03_tables"
+      comment: "PROPOSED reservation: identity, tenant, customer, departure, tour, people, values, closed status lists and the creator (HU-COM-007 plan D-02 and D-04, debt DD-3)."
+      changes:
+        - sqlFile:
+            path: 016_create_reservation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/016_create_reservation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-017
+      author: FernandaRobayo
+      labels: "HU-COM-007,reserved-service,ddl,03_tables"
+      comment: "PROPOSED reserved_service: one row per reserved service with the base rate and the transport fare used, one row per tour in a reservation (HU-COM-007 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 017_create_reserved_service.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/017_create_reserved_service.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-018
+      author: FernandaRobayo
+      labels: "HU-COM-007,fixed-discount,ddl,03_tables"
+      comment: "PROPOSED reservation_fixed_discount: one immutable line per general rule in force at creation, zero amounts included (HU-COM-007 plan D-06, debt DD-3)."
+      changes:
+        - sqlFile:
+            path: 018_create_reservation_fixed_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/018_create_reservation_fixed_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-019
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,ddl,03_tables"
+      comment: "PROPOSED payment_attempt: the registration columns of a payment attempt, transfer with a validation status and cash with none (HU-COM-009 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 019_create_payment_attempt.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/019_create_payment_attempt.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-020
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,ddl,03_tables"
+      comment: "PROPOSED payment_proof_file: one proof file per attempt, the row coherent with its bytes (HU-COM-009 plan D-04, ADR-005 E6)."
+      changes:
+        - sqlFile:
+            path: 020_create_payment_proof_file.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/020_create_payment_proof_file.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-021
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-capacity,ddl,03_tables"
+      comment: "PROPOSED capacity_allocation: the seats a reservation holds on a departure, with a kind and a release time (HU-COM-009 plan D-05, DP-D9-11)."
+      changes:
+        - sqlFile:
+            path: 021_create_capacity_allocation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/021_create_capacity_allocation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-022
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,03_tables"
+      comment: "PROPOSED payment_condition: the payment parameters of a tenant or service, bounded, with the last change author, reason and time (HU-COM-009 plan D-11)."
+      changes:
+        - sqlFile:
+            path: 022_create_payment_condition.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/022_create_payment_condition.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-023
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,03_tables"
+      comment: "PROPOSED payment_deadline: the due instants of a reservation, with the initial deadline (HU-COM-009 plan D-13, DP-D9-4)."
+      changes:
+        - sqlFile:
+            path: 023_create_payment_deadline.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/023_create_payment_deadline.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-025
+      author: FernandaRobayo
+      labels: "HU-COM-001,collaborator-editing-flag,ddl,03_tables"
+      comment: "PROPOSED tenant_catalog_settings: one row per tenant with the collaborator-editing flag, false by default (HU-COM-001 T-05, PDR RF-004)."
+      changes:
+        - sqlFile:
+            path: 025_create_tenant_catalog_settings.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/025_create_tenant_catalog_settings.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-026
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,03_tables"
+      comment: "PROPOSED payment_followup: the append-only contacts a collaborator makes with the customer of a reservation pending payment, with a required note (HU-COM-011 plan D-02, DP-D11-1)."
+      changes:
+        - sqlFile:
+            path: 026_create_payment_followup.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/026_create_payment_followup.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-027
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,03_tables"
+      comment: "PROPOSED reservation_cancellation: the append-only settlement of a cancellation requested by the customer (HU-COM-013 plan D-02, DP-D13-1, DP-D13-2)."
+      changes:
+        - sqlFile:
+            path: 027_create_reservation_cancellation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/027_create_reservation_cancellation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-tables-028
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,03_tables"
+      comment: "PROPOSED reservation_modification: the append-only history of the changes of a reservation, with before and after values (HU-COM-012 plan D-02, DP-D12-2)."
+      changes:
+        - sqlFile:
+            path: 028_create_reservation_modification.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/028_create_reservation_modification.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-tables-029
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,03_tables"
+      comment: "PROPOSED service_change_policy: the terms per tenant, tour and change type, with no list of change types (HU-COM-012 plan D-03, DP-D12-1)."
+      changes:
+        - sqlFile:
+            path: 029_create_service_change_policy.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/029_create_service_change_policy.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-030
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,03_tables"
+      comment: "PROPOSED financial_decision: one row per 24-running-hour decision with its kind, outcome, author and freeze pair (HU-COM-016 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 030_create_financial_decision.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/030_create_financial_decision.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-031
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,03_tables"
+      comment: "PROPOSED refund_authorization: one row per authorized refund with its execution state and cash movement reference (HU-COM-016 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 031_create_refund_authorization.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/031_create_refund_authorization.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-032
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,03_tables"
+      comment: "PROPOSED credit_balance: one row per recorded credit with its closed origin and its single source, decision or payment attempt (HU-COM-017 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 032_create_credit_balance.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/032_create_credit_balance.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-033
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,03_tables"
+      comment: "PROPOSED credit_balance_application: one appended row per application of a credit to a reservation, with who applied it (HU-COM-017 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 033_create_credit_balance_application.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/033_create_credit_balance_application.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-034
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,03_tables"
+      comment: "PROPOSED sensitive_data_deletion: the append-only record of one retention deletion per reservation, with its anchor, basis and counts (HU-COM-019 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 034_create_sensitive_data_deletion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/034_create_sensitive_data_deletion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-035
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,03_tables"
+      comment: "PROPOSED rescheduling_episode: the incident of a reservation whose departure cannot run and the clocks of its rescheduling (HU-COM-018 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 035_create_rescheduling_episode.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/035_create_rescheduling_episode.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-036
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,03_tables"
+      comment: "PROPOSED rescheduling_proposal: each proposal of a new departure and its single answer (HU-COM-018 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 036_create_rescheduling_proposal.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/036_create_rescheduling_proposal.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-037
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,03_tables"
+      comment: "PROPOSED rescheduling_record: the append-only record of the agreed change of a rescheduling (HU-COM-018 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 037_create_rescheduling_record.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/037_create_rescheduling_record.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-038
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,03_tables"
+      comment: "PROPOSED tenant_suspension: the append-only history of the periods of inactivity of a tenant (HU-COM-020 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 038_create_tenant_suspension.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/038_create_tenant_suspension.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-039
+      author: FernandaRobayo
+      labels: "HU-SEC-005,account-session-cutoff,ddl,03_tables"
+      comment: "PROPOSED account_session_cutoff: the cutoff per revoked account, so that a token issued before it is refused (HU-SEC-005 AC4, HU-SEC-006 AC7, -db spec 022)."
+      changes:
+        - sqlFile:
+            path: 039_create_account_session_cutoff.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/039_create_account_session_cutoff.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-040
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,ddl,03_tables"
+      comment: "PROPOSED associated_establishment_change: the append-only trace of the registration, inactivation and reactivation of an association, with the reason and the actor (HU-COM-002 AC-D2.12, AC-D2.13, PDR RF-018)."
+      changes:
+        - sqlFile:
+            path: 040_create_associated_establishment_change.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/040_create_associated_establishment_change.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-tables-041
+      author: FernandaRobayo
+      labels: "HU-COM-013,cancellation-penalty-policy,ddl,03_tables"
+      comment: "PROPOSED cancellation_penalty_policy: the penalty percentage of a tenant or a service on a customer cancellation, last change only (HU-COM-013 DP-02a, PDR RF-021, RN-RES-008)."
+      changes:
+        - sqlFile:
+            path: 041_create_cancellation_penalty_policy.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/03_tables/041_create_cancellation_penalty_policy.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

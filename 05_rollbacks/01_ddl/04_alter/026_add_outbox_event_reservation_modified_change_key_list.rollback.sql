@@ -1,0 +1,2 @@
+ALTER TABLE commercial_reservation.outbox_event
+    DROP CONSTRAINT chk_outbox_event_payload_keys_reservation_modified_change;

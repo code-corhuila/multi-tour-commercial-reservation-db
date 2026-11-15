@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_payment_deadline_tenant_due_at;

@@ -1,0 +1,1 @@
+DROP TRIGGER trg_credit_request_guard ON commercial_reservation.financial_decision;

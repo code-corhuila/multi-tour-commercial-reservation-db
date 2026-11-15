@@ -1,0 +1,301 @@
+#!/usr/bin/env bash
+# Sourced by db-ci.sh after the digital-channel checks, on the same disposable PostgreSQL instance.
+# HU-COM-009 -db (issue multi-tour-docs#175), plan D-02 to D-13. Stage (a): payment_attempt (03_tables/019) and payment_proof_file
+# (03_tables/020), the revokes on the proof (03_dcl/01_grants/009) and the attempt index (10_indexes/020), all with label
+# payment-attempt-proof. Every changeset also carries HU-COM-009. The helpers rs_row, rs_refusal and rs_accepted come from
+# reservation-checks.sh. Probes are written first: red before the changesets, green after (Annex J.1).
+pa_att="$SCHEMA.payment_attempt"; pa_proof="$SCHEMA.payment_proof_file"
+pa_tenant_b="00000000-0000-0000-0000-000000000002"
+pa_cust="$(aid 2501)"; pa_cust_b="$(aid 2502)"; pa_svc="$(aid 2503)"; pa_res="$(aid 2510)"; pa_res_b="$(aid 2511)"
+pa_hash="$(printf 'a%.0s' $(seq 1 64))"
+pa_sql() { sql "$1" 2>/dev/null || true; }
+pa_attempt() { # column/value pairs (SQL literals) that replace the defaults of a valid transfer attempt
+  local -A v=([payment_attempt_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [reservation_id]="'$pa_res'" [payment_method]="'TRANSFER'"
+    [received_amount_cents]=100000 [validation_status]="'IN_VALIDATION'" [payment_status_snapshot]="'NO_PAYMENT'" [registered_by]="'$actor'" [registered_at]="now()")
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_att (payment_attempt_id, tenant_id, reservation_id, payment_method, received_amount_cents, validation_status, payment_status_snapshot, registered_by, registered_at) values (${v[payment_attempt_id]}, ${v[tenant_id]}, ${v[reservation_id]}, ${v[payment_method]}, ${v[received_amount_cents]}, ${v[validation_status]}, ${v[payment_status_snapshot]}, ${v[registered_by]}, ${v[registered_at]})"
+}
+pa_proof_row() { # attempt id, then column/value pairs (SQL literals) that replace the defaults of a valid proof
+  local att="$1"; shift
+  local -A v=([payment_proof_file_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [content]="'\\x616263'::bytea" [content_type]="'application/pdf'" [size_bytes]=3 [sha256]="'$pa_hash'")
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_proof (payment_proof_file_id, tenant_id, payment_attempt_id, content, content_type, size_bytes, sha256) values (${v[payment_proof_file_id]}, ${v[tenant_id]}, '$att', ${v[content]}, ${v[content_type]}, ${v[size_bytes]}, ${v[sha256]})"
+}
+pa_role_refusal() { # SQL, role, text of the engine answer, description
+  local answer
+  answer="$(engine "$1" "$2" 2>&1 || true)"; printf '%s\n' "$answer"
+  check "HU-COM-009 payment: $4 is refused by $3" "$(printf '%s\n' "$answer" | grep -q "$3"; echo $?)"
+}
+
+echo 'HU-COM-009 payment - base: the 67 changesets of HU-COM-001 to HU-COM-008'
+liquibase rollback-count 999 >/dev/null
+db_labels='!HU-COM-009 and !HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity and !cancellation-penalty-policy'
+liquibase update >/dev/null
+pa_base="$(snapshot)"
+check 'base holds exactly 67 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
+check 'T-01 precondition: the schema, the control table, both roles, reservation, catalog_service, salida_capacity and the outbox exist' "$([ "$(sql "select count(*) from pg_namespace where nspname='$SCHEMA'")" = 1 ] && [ "$(sql "select count(*) from pg_roles where rolname in ('$reader','$writer')")" = 2 ] && [ "$(sql "select count(*) from pg_tables where schemaname='$SCHEMA' and tablename in ('reservation','catalog_service','salida_capacity','outbox_event','customer')")" = 5 ]; echo $?)"
+check 'on that base neither payment_attempt nor payment_proof_file exists' "$([ "$(sql "select to_regclass('$pa_att') is null and to_regclass('$pa_proof') is null")" = t ]; echo $?)"
+rs_seed
+sql "insert into $SCHEMA.customer (customer_id, tenant_id, full_name, created_at, document_number, birth_date_or_age, contact_info, status, terms_accepted, terms_accepted_at) values ('$pa_cust', '$tenant', 'Payment probe A', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now()), ('$pa_cust_b', '$pa_tenant_b', 'Payment probe B', now(), 'enc:v1:x', 'enc:v1:y', '{}'::jsonb, 'ACTIVE', true, now());
+     insert into $SCHEMA.catalog_service (service_id, tenant_id, service_type, commercial_name, catalog_status, base_rate_cents, base_operational_cost_cents, configured_capacity, transport_required, high_risk, created_at, updated_at) values ('$pa_svc', '$tenant', 'TOUR', 'Payment probe tour', 'ACTIVE', 150000, 90000, 12, false, false, now(), now())" >/dev/null 2>&1 || true
+engine "$(rs_row reservation_id "'$pa_res'" customer_id "'$pa_cust'" service_id "'$pa_svc'"); $(rs_row reservation_id "'$pa_res_b'" tenant_id "'$pa_tenant_b'" customer_id "'$pa_cust_b'" service_id "'$pa_svc'");" >/dev/null || true
+check 'the probe reservations of two tenants exist' "$([ "$(sql "select count(*) from $SCHEMA.reservation where reservation_id in ('$pa_res','$pa_res_b')")" = 2 ]; echo $?)"
+
+echo 'HU-COM-009 payment (a) - probes written first: red before the changesets, green after'
+db_labels='payment-attempt-proof'
+liquibase update >/dev/null
+check 'attempt, proof, revokes and attempt index bring the control table to 71 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 71 ]; echo $?)"
+
+echo 'paymentAttemptHoldsTheRegistrationColumns (AC-D9.1, AC-D9.2)'
+pa_cols='payment_attempt_id uuid NO,tenant_id uuid NO,reservation_id uuid NO,payment_method text NO,received_amount_cents bigint NO,validation_status text YES,payment_status_snapshot text NO,registered_by uuid NO,registered_at timestamp with time zone NO'
+check 'AC-D9.2 payment_attempt holds exactly the nine registration columns of the plan' "$([ "$(cols_of payment_attempt)" = "$pa_cols" ]; echo $?)"
+check 'AC-D9.1 nothing new appears in public' "$([ "$(sql "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p','v','m','S','f') and c.relname not like 'databasechangelog%'")" = 0 ]; echo $?)"
+check 'every constraint of the two tables is named pk_, uq_, chk_ or fk_' "$([ "$(pa_sql "select count(*) from pg_constraint where conrelid in ('$pa_att'::regclass, '$pa_proof'::regclass) and contype in ('p','u','c','f') and conname !~ '^(pk|uq|chk|fk)_'")" = 0 ]; echo $?)"
+
+echo 'anAttemptWithoutRequiredValuesIsRefusedByName (AC-D9.3)'
+for pa_pair in tenant_id:tenant reservation_id:reservation payment_method:method received_amount_cents:received_amount payment_status_snapshot:payment_status_snapshot registered_by:registered_by registered_at:registered_at; do
+  pa_col="${pa_pair%%:*}"; pa_name="chk_payment_attempt_${pa_pair##*:}_required"
+  rs_refusal "$(pa_attempt "$pa_col" NULL);" "ERROR:  23502.*column \"$pa_col\"" "an attempt without $pa_col"
+  check "AC-D9.3 $pa_name exists in the catalog as a NOT NULL constraint" "$([ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_att'::regclass and contype='n' and conname='$pa_name'")" = 1 ]; echo $?)"
+done
+rs_refusal "$(pa_attempt received_amount_cents 0);" chk_payment_attempt_amount_positive 'an attempt of zero'
+rs_refusal "$(pa_attempt received_amount_cents -500);" chk_payment_attempt_amount_positive 'a negative amount'
+rs_refusal "$(pa_attempt payment_method "'CARD'");" chk_payment_attempt_method 'a method outside transfer and cash'
+rs_refusal "$(pa_attempt reservation_id "'$(aid 2599)'");" fk_payment_attempt_reservation 'an attempt for a reservation that does not exist'
+
+echo 'aTransferCarriesAValidationStatusAndCashCarriesNone (AC-D9.4)'
+rs_refusal "$(pa_attempt validation_status NULL);" chk_payment_attempt_status_matches_method 'a transfer without validation status'
+rs_refusal "$(pa_attempt payment_method "'CASH'" validation_status "'APPROVED'");" chk_payment_attempt_status_matches_method 'cash with a validation status'
+rs_refusal "$(pa_attempt validation_status "'En validación'");" chk_payment_attempt_status_matches_method 'a Spanish display value as the status'
+rs_refusal "$(pa_attempt payment_status_snapshot "'Pagado'");" chk_payment_attempt_payment_status_snapshot 'a snapshot outside the five situation codes'
+for pa_status in IN_VALIDATION APPROVED REJECTED; do rs_accepted "$(pa_attempt validation_status "'$pa_status'")" "a transfer $pa_status"; done
+rs_accepted "$(pa_attempt payment_method "'CASH'" validation_status NULL)" 'cash with no validation status'
+for pa_snap in NO_PAYMENT PARTIAL DEPOSIT_RECEIVED BALANCE_PENDING FULLY_PAID; do rs_accepted "$(pa_attempt payment_status_snapshot "'$pa_snap'")" "the snapshot $pa_snap"; done
+
+echo 'aProofIsOnePerAttemptAndItsRowTellsTheTruthAboutTheBytes (AC-D9.6)'
+pa_att_1="$(aid 2520)"; pa_att_2="$(aid 2521)"
+engine "$(pa_attempt payment_attempt_id "'$pa_att_1'"); $(pa_attempt payment_attempt_id "'$pa_att_2'" payment_method "'CASH'" validation_status NULL);" >/dev/null || true
+check 'two attempts of the first tenant are stored by the application user' "$([ "$(pa_sql "select count(*) from $pa_att where payment_attempt_id in ('$pa_att_1','$pa_att_2')")" = 2 ]; echo $?)"
+pa_cols_p='payment_proof_file_id uuid NO,tenant_id uuid NO,payment_attempt_id uuid NO,content bytea NO,content_type text NO,size_bytes integer NO,sha256 text NO'
+check 'AC-D9.6 payment_proof_file holds exactly the seven columns of the plan and no creation time (DP-D9-9)' "$([ "$(cols_of payment_proof_file)" = "$pa_cols_p" ]; echo $?)"
+check 'AC-D9.6 uq_payment_proof_file_payment_attempt is the unique key of the one-to-one and the foreign key restricts' "$([ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_proof'::regclass and ((conname='uq_payment_proof_file_payment_attempt' and contype='u') or (conname='fk_payment_proof_file_payment_attempt' and contype='f' and pg_get_constraintdef(oid) like '%ON DELETE RESTRICT'))")" = 2 ]; echo $?)"
+rs_refusal "$(pa_proof_row "$pa_att_1" content_type "'image/gif'");" chk_payment_proof_file_content_type 'a type outside pdf, jpeg and png'
+rs_refusal "$(pa_proof_row "$pa_att_1" size_bytes 4);" chk_payment_proof_file_size 'a size that differs from the content length'
+rs_refusal "$(pa_proof_row "$pa_att_1" size_bytes 0 content "''::bytea");" chk_payment_proof_file_size 'a size of zero'
+rs_refusal "$(pa_proof_row "$pa_att_1" size_bytes 5242881 content "decode(repeat('00', 5242881), 'hex')");" chk_payment_proof_file_size 'a file of 5 242 881 bytes'
+rs_refusal "$(pa_proof_row "$pa_att_1" sha256 "'abc'");" chk_payment_proof_file_sha256 'a short hash'
+rs_refusal "$(pa_proof_row "$pa_att_1" sha256 "'$(printf 'A%.0s' $(seq 1 64))'");" chk_payment_proof_file_sha256 'a hash in capital letters'
+rs_refusal "$(pa_proof_row "$(aid 2599)");" fk_payment_proof_file_payment_attempt 'a proof of an attempt that does not exist'
+for pa_type in application/pdf image/jpeg image/png; do rs_accepted "$(pa_proof_row "$pa_att_1" content_type "'$pa_type'")" "a proof of type $pa_type"; done
+rs_accepted "$(pa_proof_row "$pa_att_1" size_bytes 5242880 content "decode(repeat('00', 5242880), 'hex')")" 'a file of exactly 5 242 880 bytes'
+engine "$(pa_proof_row "$pa_att_1");" >/dev/null || true
+rs_refusal "$(pa_proof_row "$pa_att_1");" uq_payment_proof_file_payment_attempt 'a second proof for one attempt'
+check 'AC-D9.6 exactly one proof is stored for the attempt' "$([ "$(pa_sql "select count(*) from $pa_proof where payment_attempt_id='$pa_att_1'")" = 1 ]; echo $?)"
+
+echo 'theReaderRoleCannotReadTheProofTable and noRowOfTheSliceCanBeDeleted (AC-D9.5, AC-D9.14)'
+pa_role_refusal "select content from $pa_proof;" "$reader" 'permission denied for table payment_proof_file' 'the reader selecting the proof'
+check 'AC-D9.5 the reader still reads the attempt table, and the writer reads and inserts the proof' "$([ "$(sql "select has_table_privilege('$reader','$pa_att','SELECT') and has_table_privilege('$writer','$pa_proof','SELECT') and has_table_privilege('$writer','$pa_proof','INSERT') and not has_table_privilege('$reader','$pa_proof','SELECT')")" = t ]; echo $?)"
+rs_refusal "update $pa_proof set content_type = 'image/png';" 'permission denied for table payment_proof_file' 'UPDATE of a proof by the application user'
+check 'AC-D9.5 the writer and the application user hold no UPDATE on the proof' "$([ "$(sql "select has_table_privilege('$writer','$pa_proof','UPDATE') or has_table_privilege('$app','$pa_proof','UPDATE')")" = f ]; echo $?)"
+rs_refusal "delete from $pa_proof;" 'permission denied for table payment_proof_file' 'DELETE of a proof by the application user'
+rs_refusal "delete from $pa_att;" 'permission denied for table payment_attempt' 'DELETE of an attempt by the application user'
+check 'AC-D9.14 no DELETE on the two tables for the writer, the application user or the reader' "$([ "$(sql "select count(*) from information_schema.tables t where t.table_schema='$SCHEMA' and t.table_name in ('payment_attempt','payment_proof_file') and (has_table_privilege('$writer', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$reader', format('%I.%I', t.table_schema, t.table_name), 'DELETE'))")" = 0 ]; echo $?)"
+
+echo 'twoTenantsHoldTheSameDataAndNoneSeesTheOther (AC-D9.7)'
+engine "$(pa_attempt tenant_id "'$pa_tenant_b'" reservation_id "'$pa_res_b'");" >/dev/null || true
+check 'AC-D9.7 both tenants stored an attempt with the same values' "$([ "$(pa_sql "select count(distinct tenant_id) from $pa_att where received_amount_cents=100000 and validation_status='IN_VALIDATION'")" = 2 ]; echo $?)"
+check 'AC-D9.7 a query scoped to tenant A never returns a row of tenant B' "$([ "$(pa_sql "select count(*) from $pa_att where tenant_id='$tenant' and reservation_id='$pa_res_b'")" = 0 ] && [ "$(pa_sql "select count(*) from $pa_proof where tenant_id='$pa_tenant_b'")" = 0 ]; echo $?)"
+
+echo 'theAttemptsOfAReservationUseTheirIndex (AC-D9.16)'
+pa_explain() { printf '%s\n' 'set enable_seqscan = off;' "explain $1;" | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres 2>&1 || true; }
+sql "insert into $pa_att (payment_attempt_id, tenant_id, reservation_id, payment_method, received_amount_cents, validation_status, payment_status_snapshot, registered_by, registered_at)
+     select gen_random_uuid(), '$tenant', '$pa_res', 'TRANSFER', 1000, 'IN_VALIDATION', 'NO_PAYMENT', '$actor', now() - n * interval '1 minute' from generate_series(1, 300) n; analyze $pa_att" >/dev/null 2>&1 || true
+pa_plan="$(pa_explain "select payment_attempt_id from $pa_att where tenant_id='$tenant' and reservation_id='$pa_res' order by registered_at desc")"; printf '%s\n' "$pa_plan"
+check 'AC-D9.16 idx_payment_attempt_tenant_reservation_registered_at exists on (tenant_id, reservation_id, registered_at DESC)' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_payment_attempt_tenant_reservation_registered_at' and indexdef like '%(tenant_id, reservation_id, registered_at DESC)%'")" = 1 ]; echo $?)"
+check 'AC-D9.16 the attempts of a reservation, newest first, use that index' "$(printf '%s\n' "$pa_plan" | grep -q 'idx_payment_attempt_tenant_reservation_registered_at'; echo $?)"
+
+
+# ---- (b) the upper CHECK of salida_capacity (04_alter/014), capacity_allocation (03_tables/021) and its indexes (10_indexes/021),
+# all with label payment-capacity. Every changeset also carries HU-COM-009. The start and status of the departure are the columns of HU-COM-006.
+pa_cap="$SCHEMA.salida_capacity"; pa_alloc="$SCHEMA.capacity_allocation"
+pa_sal="$(aid 2530)"; pa_sal_last="$(aid 2531)"; pa_sal_b="$(aid 2532)"
+pa_allocation() { # allocation id, reservation id, then column/value pairs (SQL literals) that replace the defaults of a valid allocation
+  local id="$1" res="$2"; shift 2
+  local -A v=([tenant_id]="'$tenant'" [salida_id]="'$pa_sal'" [party_size]=2 [allocation_kind]="'RESERVATION'" [allocated_at]="now()" [released_at]=NULL)
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_alloc (capacity_allocation_id, tenant_id, salida_id, reservation_id, party_size, allocation_kind, allocated_at, released_at) values ('$id', ${v[tenant_id]}, ${v[salida_id]}, '$res', ${v[party_size]}, ${v[allocation_kind]}, ${v[allocated_at]}, ${v[released_at]})"
+}
+pa_cap_row() { # salida id, tenant, effective capacity, held seats
+  echo "insert into $pa_cap (salida_capacity_id, tenant_id, salida_id, service_id, effective_capacity, held_seats, hora_inicio, status) values (gen_random_uuid(), '$2', '$1', '$pa_svc', $3, $4, now() + interval '30 days', 'SCHEDULED')"
+}
+echo 'HU-COM-009 payment (b) - probes written first: red before the changesets, green after'
+sql "$(pa_cap_row "$pa_sal" "$tenant" 10 9); $(pa_cap_row "$pa_sal_last" "$tenant" 10 9); $(pa_cap_row "$pa_sal_b" "$pa_tenant_b" 4 0)" >/dev/null 2>&1 || true
+check 'the probe departures exist before stage (b)' "$([ "$(pa_sql "select count(*) from $pa_cap where salida_id in ('$pa_sal','$pa_sal_last','$pa_sal_b')")" = 3 ]; echo $?)"
+db_labels='payment-capacity'
+liquibase update >/dev/null
+check 'the upper check, the allocation table and its indexes bring the control table to 74 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 74 ]; echo $?)"
+
+echo 'heldSeatsNeverPassTheCapacityAndTwoHoldsOfTheLastSeatLeaveOneWinner (AC-D9.8)'
+check 'AC-D9.8 chk_salida_capacity_held_within_effective exists and is validated' "$([ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_cap'::regclass and conname='chk_salida_capacity_held_within_effective' and convalidated and pg_get_constraintdef(oid) like '%held_seats <= effective_capacity%'")" = 1 ]; echo $?)"
+rs_refusal "update $pa_cap set held_seats = 11 where salida_id = '$pa_sal';" chk_salida_capacity_held_within_effective 'an update that leaves the held seats above the capacity'
+rs_refusal "update $pa_cap set effective_capacity = 8 where salida_id = '$pa_sal';" chk_salida_capacity_held_within_effective 'a capacity below the held seats'
+rs_refusal "$(pa_cap_row "$(aid 2533)" "$tenant" 3 4);" chk_salida_capacity_held_within_effective 'a new row with more held seats than capacity'
+rs_refusal "update $pa_cap set held_seats = -1 where salida_id = '$pa_sal';" chk_salida_capacity_held_seats 'a negative held count (the earlier check stays)'
+rs_accepted "update $pa_cap set held_seats = 10 where salida_id = '$pa_sal'" 'a hold that reaches the capacity exactly'
+pa_hold="update $pa_cap set held_seats = held_seats + 1 where salida_id = '$pa_sal_last' and held_seats + 1 <= effective_capacity;"
+pa_out1="$(mktemp)"; pa_out2="$(mktemp)"
+printf '%s\n' "set role $app;" 'begin;' "$pa_hold" 'select pg_sleep(3);' 'commit;' | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres > "$pa_out1" 2>&1 &
+sleep 1
+printf '%s\n' "set role $app;" 'begin;' "$pa_hold" 'commit;' | docker exec -i -e PGPASSWORD "$container" psql -X -U postgres -d postgres > "$pa_out2" 2>&1 &
+wait
+cat "$pa_out1" "$pa_out2"
+check 'AC-D9.8 two sessions holding the last seat at once: exactly one UPDATE 1 and one UPDATE 0' "$([ "$(cat "$pa_out1" "$pa_out2" | grep -c '^UPDATE 1$')" = 1 ] && [ "$(cat "$pa_out1" "$pa_out2" | grep -c '^UPDATE 0$')" = 1 ]; echo $?)"
+check 'AC-D9.8 the departure ends with its capacity held, not above it' "$([ "$(pa_sql "select held_seats from $pa_cap where salida_id='$pa_sal_last'")" = 10 ]; echo $?)"
+rm -f "$pa_out1" "$pa_out2"
+
+echo 'capacityAllocationHoldsTheColumnsOfTheDictionary (AC-D9.9)'
+pa_cols_c='capacity_allocation_id uuid NO,tenant_id uuid NO,salida_id uuid NO,reservation_id uuid NO,party_size integer NO,allocation_kind text NO,allocated_at timestamp with time zone NO,released_at timestamp with time zone YES'
+check 'AC-D9.9 capacity_allocation holds exactly the eight columns of the plan, the release time empty while held' "$([ "$(cols_of capacity_allocation)" = "$pa_cols_c" ]; echo $?)"
+check 'AC-D9.9 salida_id has no foreign key (cross-domain, Annex J.3.4) and the key to the reservation restricts' "$([ "$(pa_sql "select count(*) from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=any(c.conkey) where c.conrelid='$pa_alloc'::regclass and c.contype='f' and a.attname='salida_id'")" = 0 ] && [ "$(pa_sql "select count(*) from pg_constraint where conrelid='$pa_alloc'::regclass and conname='fk_capacity_allocation_reservation' and pg_get_constraintdef(oid) like '%ON DELETE RESTRICT'")" = 1 ]; echo $?)"
+pa_al_1="$(aid 2540)"; pa_al_2="$(aid 2541)"; pa_al_3="$(aid 2542)"; pa_al_4="$(aid 2543)"
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" party_size 0);" chk_capacity_allocation_party_size 'an allocation of zero people'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" party_size -2);" chk_capacity_allocation_party_size 'an allocation of negative people'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" allocation_kind "'TEMPORARY'");" chk_capacity_allocation_kind 'a kind other than RESERVATION'
+rs_refusal "$(pa_allocation "$pa_al_1" "$(aid 2599)");" fk_capacity_allocation_reservation 'an allocation for a reservation that does not exist'
+rs_refusal "$(pa_allocation "$pa_al_1" "$pa_res" tenant_id NULL);" 'ERROR:  23502.*column "tenant_id"' 'an allocation without tenant'
+
+echo 'aReservationHasOneActiveAllocationAtATime (AC-D9.10)'
+engine "$(pa_allocation "$pa_al_1" "$pa_res");" >/dev/null || true
+check 'AC-D9.10 the first allocation of the reservation is stored with its default kind and no release time' "$([ "$(pa_sql "select allocation_kind || '/' || (released_at is null) from $pa_alloc where capacity_allocation_id='$pa_al_1'")" = 'RESERVATION/true' ]; echo $?)"
+rs_refusal "$(pa_allocation "$pa_al_2" "$pa_res");" uq_capacity_allocation_active_reservation 'a second active allocation of the same reservation'
+rs_accepted "update $pa_alloc set party_size = 3 where capacity_allocation_id = '$pa_al_1'" 'an increase of travellers on the active row'
+engine "update $pa_alloc set released_at = now() where capacity_allocation_id = '$pa_al_1';" >/dev/null || true
+rs_accepted "$(pa_allocation "$pa_al_2" "$pa_res")" 'another allocation after the first was released'
+rs_accepted "$(pa_allocation "$pa_al_3" "$pa_res_b" tenant_id "'$pa_tenant_b'" salida_id "'$pa_sal_b'")" 'an allocation of the other tenant with its own reservation'
+check 'AC-D9.10 the unique is partial: only active allocations of the reservation kind, per tenant and reservation' "$([ "$(pa_sql "select indexdef from pg_indexes where schemaname='$SCHEMA' and indexname='uq_capacity_allocation_active_reservation'")" = "CREATE UNIQUE INDEX uq_capacity_allocation_active_reservation ON $SCHEMA.capacity_allocation USING btree (tenant_id, reservation_id) WHERE ((released_at IS NULL) AND (allocation_kind = 'RESERVATION'::text))" ]; echo $?)"
+
+echo 'theCapacityRowCarriesTheStartAndStatusOfTheDeparture (AC-D9.11)'
+check 'AC-D9.11 hora_inicio and status exist and are required on salida_capacity (columns of HU-COM-006, not created here)' "$([ "$(pa_sql "select string_agg(column_name || ' ' || data_type || ' ' || is_nullable, ',' order by column_name) from information_schema.columns where table_schema='$SCHEMA' and table_name='salida_capacity' and column_name in ('hora_inicio','status')")" = 'hora_inicio timestamp with time zone NO,status text NO' ]; echo $?)"
+check 'AC-D9.11 no changeset of this story adds a column to salida_capacity' "$([ "$(grep -il 'add column' 01_ddl/04_alter/014_*.sql 01_ddl/03_tables/021_*.sql | wc -l)" = 0 ]; echo $?)"
+
+echo 'isolationNoDeleteAndThePlanOfTheActiveAllocations (AC-D9.7, AC-D9.14, AC-D9.16)'
+check 'AC-D9.7 a query scoped to tenant A never returns an allocation of tenant B' "$([ "$(pa_sql "select count(*) from $pa_alloc where tenant_id='$tenant' and reservation_id='$pa_res_b'")" = 0 ]; echo $?)"
+rs_refusal "delete from $pa_alloc;" 'permission denied for table capacity_allocation' 'DELETE of an allocation by the application user'
+check 'AC-D9.14 no DELETE on capacity_allocation for the writer, the application user or the reader' "$([ "$(sql "select has_table_privilege('$writer','$pa_alloc','DELETE') or has_table_privilege('$app','$pa_alloc','DELETE') or has_table_privilege('$reader','$pa_alloc','DELETE')")" = f ]; echo $?)"
+sql "insert into $pa_alloc (capacity_allocation_id, tenant_id, salida_id, reservation_id, party_size, allocation_kind, allocated_at, released_at)
+     select gen_random_uuid(), '$tenant', case when n % 50 = 0 then '$pa_sal'::uuid else gen_random_uuid() end, '$pa_res', 1, 'RESERVATION', now(), now() from generate_series(1, 300) n; analyze $pa_alloc" >/dev/null 2>&1 || true
+pa_plan="$(pa_explain "select party_size from $pa_alloc where tenant_id='$tenant' and salida_id='$pa_sal' and released_at is null")"; printf '%s\n' "$pa_plan"
+check 'AC-D9.16 the active allocations of a departure use idx_capacity_allocation_tenant_salida_active' "$(printf '%s\n' "$pa_plan" | grep -q 'idx_capacity_allocation_tenant_salida_active'; echo $?)"
+check 'AC-D9.16 the foreign key to the reservation has its own index' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname='idx_capacity_allocation_reservation_id' and indexdef like '%(reservation_id)'")" = 1 ]; echo $?)"
+
+
+# ---- (c) payment_condition (03_tables/022), payment_deadline (03_tables/023), their indexes (10_indexes/022, 023) and the closed key lists of the two
+# payment payloads of the outbox (04_alter/015), all with label payment-parameters. Every changeset also carries HU-COM-009.
+pa_pc="$SCHEMA.payment_condition"; pa_dl="$SCHEMA.payment_deadline"; pa_ob="$SCHEMA.outbox_event"
+pa_condition() { # column/value pairs (SQL literals) that replace the defaults of a valid DEPOSIT row of the tenant
+  local -A v=([payment_condition_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [service_id]=NULL [payment_type]="'DEPOSIT'" [initial_wait_hours]=24 [additional_wait_hours]=48
+    [minimum_deposit_bp]=3000 [balance_deadline_advance_hours]=72 [transfer_enabled]=true [cash_enabled]=true [changed_by]="'$actor'" [change_reason]="'Initial configuration'" [changed_at]="now()")
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_pc (payment_condition_id, tenant_id, service_id, payment_type, initial_wait_hours, additional_wait_hours, minimum_deposit_bp, balance_deadline_advance_hours, transfer_enabled, cash_enabled, changed_by, change_reason, changed_at) values (${v[payment_condition_id]}, ${v[tenant_id]}, ${v[service_id]}, ${v[payment_type]}, ${v[initial_wait_hours]}, ${v[additional_wait_hours]}, ${v[minimum_deposit_bp]}, ${v[balance_deadline_advance_hours]}, ${v[transfer_enabled]}, ${v[cash_enabled]}, ${v[changed_by]}, ${v[change_reason]}, ${v[changed_at]})"
+}
+pa_deadline() { # column/value pairs (SQL literals) that replace the defaults of a valid initial deadline
+  local -A v=([payment_deadline_id]="gen_random_uuid()" [tenant_id]="'$tenant'" [reservation_id]="'$pa_res'" [deadline_kind]="'INITIAL_PAYMENT'" [due_at]="now() + interval '24 hours'")
+  while [ $# -ge 2 ]; do v[$1]="$2"; shift 2; done
+  echo "insert into $pa_dl (payment_deadline_id, tenant_id, reservation_id, deadline_kind, due_at) values (${v[payment_deadline_id]}, ${v[tenant_id]}, ${v[reservation_id]}, ${v[deadline_kind]}, ${v[due_at]})"
+}
+echo 'HU-COM-009 payment (c) - probes written first: red before the changesets, green after'
+db_labels='payment-parameters'
+liquibase update >/dev/null
+check 'the two tables, their indexes and the key lists bring the control table to 79 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"
+
+echo 'paymentParametersAreBoundedAndUniquePerTenantServiceAndType (AC-D9.12)'
+pa_cols_pc='payment_condition_id uuid NO,tenant_id uuid NO,service_id uuid YES,payment_type text NO,initial_wait_hours integer NO,additional_wait_hours integer NO,minimum_deposit_bp integer YES,balance_deadline_advance_hours integer YES,transfer_enabled boolean NO,cash_enabled boolean NO,changed_by uuid NO,change_reason text NO,changed_at timestamp with time zone NO'
+check 'AC-D9.12 payment_condition holds exactly the thirteen columns of the plan, with no penalty column and no DEFAULT' "$([ "$(cols_of payment_condition)" = "$pa_cols_pc" ] && [ "$(pa_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='payment_condition' and column_default is not null")" = 0 ]; echo $?)"
+rs_refusal "$(pa_condition payment_type "'PARTIAL'");" 'chk_payment_condition_type\|chk_payment_condition_minimum_deposit' 'a payment type outside total and deposit'
+rs_refusal "$(pa_condition initial_wait_hours 0);" chk_payment_condition_initial_wait 'an initial wait of zero hours'
+rs_refusal "$(pa_condition initial_wait_hours 721);" chk_payment_condition_initial_wait 'an initial wait of 721 hours'
+rs_refusal "$(pa_condition additional_wait_hours 0);" chk_payment_condition_additional_wait 'an additional wait of zero hours'
+rs_refusal "$(pa_condition additional_wait_hours 721);" chk_payment_condition_additional_wait 'an additional wait of 721 hours'
+rs_refusal "$(pa_condition minimum_deposit_bp 0);" chk_payment_condition_minimum_deposit 'a deposit of 0 basis points'
+rs_refusal "$(pa_condition minimum_deposit_bp 10001);" chk_payment_condition_minimum_deposit 'a deposit of 10 001 basis points'
+rs_refusal "$(pa_condition minimum_deposit_bp NULL);" chk_payment_condition_minimum_deposit 'a deposit without a minimum'
+rs_refusal "$(pa_condition payment_type "'FULL_PAYMENT'" minimum_deposit_bp 3000);" chk_payment_condition_minimum_deposit 'a total payment carrying a minimum deposit'
+rs_refusal "$(pa_condition balance_deadline_advance_hours 0);" chk_payment_condition_balance_advance 'a balance advance of zero hours'
+rs_refusal "$(pa_condition balance_deadline_advance_hours 721);" chk_payment_condition_balance_advance 'a balance advance of 721 hours'
+rs_refusal "$(pa_condition service_id "'$(aid 2599)'");" fk_payment_condition_service 'a parameter of a service that does not exist'
+for pa_pair in tenant_id:tenant payment_type:payment_type initial_wait_hours:initial_wait additional_wait_hours:additional_wait transfer_enabled:transfer_enabled cash_enabled:cash_enabled changed_by:changed_by change_reason:change_reason changed_at:changed_at; do
+  pa_col="${pa_pair%%:*}"
+  rs_refusal "$(pa_condition "$pa_col" NULL);" "ERROR:  23502.*column \"$pa_col\"" "a parameter without $pa_col"
+done
+rs_accepted "$(pa_condition payment_type "'FULL_PAYMENT'" minimum_deposit_bp NULL balance_deadline_advance_hours NULL)" 'a total payment with no minimum and no balance advance'
+rs_accepted "$(pa_condition minimum_deposit_bp 1)" 'a deposit of the lowest minimum, 1 basis point'
+rs_accepted "$(pa_condition minimum_deposit_bp 10000 initial_wait_hours 720 additional_wait_hours 720)" 'a deposit of the highest bounds'
+engine "$(pa_condition);" >/dev/null || true
+rs_refusal "$(pa_condition);" uq_payment_condition_tenant_payment_type 'a second tenant-level row of one payment type'
+engine "$(pa_condition service_id "'$pa_svc'");" >/dev/null || true
+rs_refusal "$(pa_condition service_id "'$pa_svc'");" uq_payment_condition_tenant_service_payment_type 'a second row for one tenant, service and type'
+rs_accepted "$(pa_condition payment_type "'FULL_PAYMENT'" minimum_deposit_bp NULL service_id "'$pa_svc'")" 'the other type for the same service'
+rs_accepted "$(pa_condition tenant_id "'$pa_tenant_b'")" 'the same tenant-level row in another tenant (isolation)'
+check 'AC-D9.12 the two uniques are partial indexes: tenant and type where the service is empty, tenant, service and type where it is not' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and ((indexname='uq_payment_condition_tenant_payment_type' and indexdef like 'CREATE UNIQUE INDEX%(tenant_id, payment_type) WHERE (service_id IS NULL)') or (indexname='uq_payment_condition_tenant_service_payment_type' and indexdef like 'CREATE UNIQUE INDEX%(tenant_id, service_id, payment_type) WHERE (service_id IS NOT NULL)'))")" = 2 ]; echo $?)"
+
+echo 'aParameterChangeKeepsAuthorReasonAndTime (AC-D9.13)'
+rs_refusal "$(pa_condition change_reason "''");" chk_payment_condition_change_reason 'an empty reason'
+rs_refusal "$(pa_condition change_reason "'   '");" chk_payment_condition_change_reason 'a blank reason'
+rs_refusal "update $pa_pc set change_reason = ' ' where tenant_id = '$tenant' and service_id is null and payment_type = 'DEPOSIT';" chk_payment_condition_change_reason 'a change that blanks the reason'
+rs_accepted "update $pa_pc set minimum_deposit_bp = 5000, changed_by = '$actor', change_reason = 'Raised for the high season', changed_at = now() where tenant_id = '$tenant' and service_id is null and payment_type = 'DEPOSIT'" 'a change with its author, reason and time'
+
+echo 'aReservationHasOneInitialDeadlineAndADeadlineNeedsItsReservation (AC-D9.20)'
+pa_cols_dl='payment_deadline_id uuid NO,tenant_id uuid NO,reservation_id uuid NO,deadline_kind text NO,due_at timestamp with time zone NO'
+check 'AC-D9.20 payment_deadline holds exactly the five columns of the plan' "$([ "$(cols_of payment_deadline)" = "$pa_cols_dl" ]; echo $?)"
+rs_refusal "$(pa_deadline reservation_id "'$(aid 2599)'");" fk_payment_deadline_reservation 'a deadline for a reservation that does not exist'
+rs_refusal "$(pa_deadline deadline_kind "'EXTENSION'");" chk_payment_deadline_kind 'a deadline kind outside the three codes'
+rs_refusal "$(pa_deadline due_at NULL);" 'ERROR:  23502.*column "due_at"' 'a deadline without a due instant'
+rs_refusal "$(pa_deadline tenant_id NULL);" 'ERROR:  23502.*column "tenant_id"' 'a deadline without tenant'
+engine "$(pa_deadline);" >/dev/null || true
+rs_refusal "$(pa_deadline);" uq_payment_deadline_initial_reservation 'a second initial deadline of one reservation'
+rs_accepted "$(pa_deadline deadline_kind "'BALANCE'")" 'a balance deadline beside the initial one'
+rs_accepted "$(pa_deadline deadline_kind "'PENDING_DIFFERENCE'")" 'a pending-difference deadline beside the initial one'
+rs_accepted "$(pa_deadline tenant_id "'$pa_tenant_b'" reservation_id "'$pa_res_b'")" 'the initial deadline of the other tenant'
+
+echo 'theOutboxAcceptsTheTwoEventsWithNoFileColumn (AC-D9.15)'
+pa_ev1="'{\"reservationId\":\"$pa_res\",\"attemptId\":\"$pa_att_1\",\"modality\":\"TRANSFER\",\"registeredAmountCents\":100000,\"validationStatus\":\"IN_VALIDATION\"}'::jsonb"
+pa_ev2="'{\"serviceId\":\"$pa_svc\",\"salidaId\":\"$pa_sal\",\"reservationId\":\"$pa_res\",\"allocationKind\":\"RESERVATION\"}'::jsonb"
+pa_event() { # event type, payload (SQL literal)
+  echo "insert into $pa_ob (tenant_id, event_type, reservation_id, actor_id, occurred_at, payload) values ('$tenant', '$1', '$pa_res', '$actor', now(), $2)"
+}
+rs_accepted "$(pa_attempt payment_attempt_id "'$(aid 2560)'"); $(pa_event PaymentEvidenceRegistered "$pa_ev1"); $(pa_event CapacityAllocated "$pa_ev2")" 'an attempt and its two events in one transaction'
+rs_refusal "$(pa_event PaymentEvidenceRegistered "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"modality\":\"TRANSFER\",\"registeredAmountCents\":1,\"validationStatus\":\"IN_VALIDATION\",\"fileName\":\"proof.pdf\"}'::jsonb");" chk_outbox_event_payload_keys_payment_evidence_registered 'PaymentEvidenceRegistered carrying a file name'
+rs_refusal "$(pa_event PaymentEvidenceRegistered "'{\"reservationId\":\"x\",\"attemptId\":\"x\",\"modality\":\"TRANSFER\",\"registeredAmountCents\":1,\"validationStatus\":\"IN_VALIDATION\",\"bankAccount\":\"123\"}'::jsonb");" chk_outbox_event_payload_keys_payment_evidence_registered 'PaymentEvidenceRegistered carrying a bank account'
+rs_refusal "$(pa_event PaymentEvidenceRegistered "'{\"reservationId\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_payment_evidence_registered 'PaymentEvidenceRegistered with missing keys'
+rs_refusal "$(pa_event CapacityAllocated "'{\"serviceId\":\"x\",\"salidaId\":\"x\",\"reservationId\":\"x\",\"allocationKind\":\"RESERVATION\",\"account\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_capacity_allocated 'CapacityAllocated carrying an account'
+rs_refusal "$(pa_event CapacityAllocated "'{\"salidaId\":\"x\"}'::jsonb");" chk_outbox_event_payload_keys_capacity_allocated 'CapacityAllocated with missing keys'
+check 'AC-D9.15 no column of the outbox names a file, a proof, a bank datum or an account' "$([ "$(pa_sql "select count(*) from information_schema.columns where table_schema='$SCHEMA' and table_name='outbox_event' and column_name ~* '(file|proof|bank|account|content|iban)'")" = 0 ]; echo $?)"
+
+echo 'noDeleteIsolationAndThePlanOfTheParametersOfATenant (AC-D9.7, AC-D9.14, AC-D9.16)'
+rs_refusal "delete from $pa_pc;" 'permission denied for table payment_condition' 'DELETE of a parameter by the application user'
+rs_refusal "delete from $pa_dl;" 'permission denied for table payment_deadline' 'DELETE of a deadline by the application user'
+check 'AC-D9.14 no DELETE on the five tables of the story for the writer, the application user or the reader' "$([ "$(sql "select count(*) from information_schema.tables t where t.table_schema='$SCHEMA' and t.table_name in ('payment_attempt','payment_proof_file','capacity_allocation','payment_condition','payment_deadline') and (has_table_privilege('$writer', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$app', format('%I.%I', t.table_schema, t.table_name), 'DELETE') or has_table_privilege('$reader', format('%I.%I', t.table_schema, t.table_name), 'DELETE'))")" = 0 ]; echo $?)"
+engine "$(pa_condition tenant_id "'$pa_tenant_b'" service_id "'$pa_svc'" payment_type "'DEPOSIT'");" >/dev/null || true
+check 'AC-D9.7 a query scoped to tenant A returns no parameter and no deadline of tenant B' "$([ "$(pa_sql "select count(*) from $pa_pc where tenant_id='$tenant' and changed_by='$(aid 2599)'")" = 0 ] && [ "$(pa_sql "select count(*) from $pa_dl where tenant_id='$tenant' and reservation_id='$pa_res_b'")" = 0 ]; echo $?)"
+sql "insert into $pa_pc (payment_condition_id, tenant_id, service_id, payment_type, initial_wait_hours, additional_wait_hours, minimum_deposit_bp, balance_deadline_advance_hours, transfer_enabled, cash_enabled, changed_by, change_reason, changed_at)
+     select gen_random_uuid(), gen_random_uuid(), NULL, 'DEPOSIT', 24, 48, 3000, 72, true, true, '$actor', 'Bulk', now() from generate_series(1, 300); analyze $pa_pc" >/dev/null 2>&1 || true
+pa_plan="$(pa_explain "select * from $pa_pc where tenant_id='$tenant' order by payment_type")"; printf '%s\n' "$pa_plan"
+check 'AC-D9.16 the parameters of a tenant use an index that starts with tenant_id' "$(printf '%s\n' "$pa_plan" | grep -Eq 'idx_payment_condition_tenant|uq_payment_condition_tenant'; echo $?)"
+check 'AC-D9.16 idx_payment_condition_tenant, idx_payment_condition_service_id, idx_payment_deadline_tenant_due and the two foreign key indexes exist' "$([ "$(pa_sql "select count(*) from pg_indexes where schemaname='$SCHEMA' and indexname in ('idx_payment_condition_tenant','idx_payment_condition_service_id','idx_payment_deadline_tenant_due','idx_payment_deadline_reservation_id')")" = 4 ]; echo $?)"
+
+echo 'Idempotence, exact revert and reapply of stages (a), (b) and (c) (AC-D9.17, AC-D9.18)'
+pa_second="$(liquibase update 2>&1)"; printf '%s\n' "$pa_second"
+check 'AC-D9.17 a second update applies zero changesets' "$(printf '%s\n' "$pa_second" | grep -Eq 'Run:[[:space:]]+0([^0-9]|$)|up to date|no changesets'; echo $?)"
+sql "delete from $SCHEMA.outbox_event where reservation_id in ('$pa_res','$pa_res_b'); delete from $pa_dl; delete from $pa_pc; delete from $pa_alloc; delete from $pa_proof; delete from $pa_att; delete from $SCHEMA.reservation where reservation_id in ('$pa_res','$pa_res_b')" >/dev/null 2>&1 || true
+check 'the rows of the probes are gone before the revert' "$([ "$(sql "select (select count(*) from $pa_att) + (select count(*) from $pa_proof)")" = 0 ]; echo $?)"
+liquibase rollback-count 12
+pa_reverted="$(snapshot)"
+printf 'Base MD5: %s\nReverted MD5: %s\n' "$pa_base" "$pa_reverted"
+check 'AC-D9.18 the twelve-change revert restores columns, constraints, indexes and privileges exactly' "$([ -n "$pa_base" ] && [ "$pa_reverted" = "$pa_base" ] && [ "$(sql "select count(*) from $CONTROL")" = 67 ]; echo $?)"
+check 'the five tables, the upper check and the two key lists are gone after the revert' "$([ "$(sql "select to_regclass('$pa_att') is null and to_regclass('$pa_proof') is null and to_regclass('$pa_alloc') is null and to_regclass('$pa_pc') is null and to_regclass('$pa_dl') is null")" = t ] && [ "$(sql "select count(*) from pg_constraint where conname in ('chk_salida_capacity_held_within_effective','chk_outbox_event_payload_keys_payment_evidence_registered','chk_outbox_event_payload_keys_capacity_allocated')")" = 0 ]; echo $?)"
+db_labels='!HU-COM-010 and !collaborator-editing-flag and !customer-name-search and !transport-rate and !HU-COM-011 and !discount-rule-stackable and !HU-COM-013 and !HU-COM-012 and !HU-COM-015 and !HU-COM-016 and !HU-COM-017 and !HU-COM-019 and !HU-COM-018 and !HU-COM-020 and !decision-resume and !episode-frozen-total and !departure-order and !exceptional-access-use and !reservation-confirmed-value and !payment-parameters-changed and !account-session-cutoff and !restricted-access-reason and !establishment-contact-log and !rescheduling-proposed-notice and !fk-tenant-composite and !vehicle-total-capacity and !cancellation-penalty-policy'
+liquibase update >/dev/null
+liquibase rollback-count 999 >/dev/null
+liquibase update >/dev/null
+liquibase validate >/dev/null
+check 'a full build from empty without any label filter applies exactly 79 changesets' "$([ "$(sql "select count(*) from $CONTROL")" = 79 ]; echo $?)"

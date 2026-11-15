@@ -1,0 +1,743 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-alter-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,04_alter"
+      comment: "fk_outbox_event_service: an event must name an existing service. It lives here because the catalog table is created after the outbox."
+      changes:
+        - sqlFile:
+            path: 001_add_outbox_event_service_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/001_add_outbox_event_service_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,ddl,04_alter"
+      comment: "PROPOSED service_id on salida_capacity with fk_salida_capacity_service, so RN-05 can compare a tour's new capacity against the held seats of its own departures (spec.md DD-6)."
+      changes:
+        - sqlFile:
+            path: 002_add_salida_capacity_service_id.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/002_add_salida_capacity_service_id.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-003
+      author: FernandaRobayo
+      labels: "HU-COM-002,ddl,04_alter"
+      comment: "fk_associated_establishment_image_association: an image must name an existing association, ON DELETE RESTRICT (RN-09)."
+      changes:
+        - sqlFile:
+            path: 003_add_associated_establishment_image_association_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/003_add_associated_establishment_image_association_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-004
+      author: FernandaRobayo
+      labels: "HU-COM-002,outbox-generalization,ddl,04_alter"
+      comment: "PROPOSED D-07 correction: extend the existing outbox for association events, preserving catalog rows and their FK."
+      changes:
+        - sqlFile:
+            path: 004_generalize_outbox_event_aggregates.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/004_generalize_outbox_event_aggregates.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-005
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-outbox,ddl,04_alter"
+      comment: "PROPOSED API D-10: DiscountRuleChanged with one aggregate and full audit snapshots."
+      changes:
+        - sqlFile:
+            path: 005_generalize_outbox_event_discount_rules.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/005_generalize_outbox_event_discount_rules.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-006
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-columns,ddl,04_alter"
+      comment: "customer: document, birth date or age, contact, status and account_id (DP-D5-1, 4, 5, 6 defaults); open columns stay absent."
+      changes:
+        - sqlFile:
+            path: 006_add_customer_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/006_add_customer_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-007
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-columns,ddl,04_alter"
+      comment: "reservation_companion: normalized plain document unique per reservation, birth date or age (DP-D5-1, 2, 5 defaults)."
+      changes:
+        - sqlFile:
+            path: 007_add_reservation_companion_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/007_add_reservation_companion_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-008
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-persistence,ddl,04_alter"
+      comment: "PROPOSED discount_rule: covers_all_services, optional cap_cents and status ACTIVE/INACTIVE; defaults DP-01, DP-05, DP-07 of 2026-10-28."
+      changes:
+        - sqlFile:
+            path: 008_add_discount_rule_coverage_cap_and_status.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/008_add_discount_rule_coverage_cap_and_status.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-009
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-rule-codes,ddl,04_alter"
+      comment: "PROPOSED discount_rule: calculation_base and discount_type as contract codes, plus created_at and updated_at (closing decisions 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 009_migrate_discount_rule_codes_and_add_audit_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/009_migrate_discount_rule_codes_and_add_audit_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-010
+      author: FernandaRobayo
+      labels: "HU-COM-004,outbox-widening,ddl,04_alter"
+      comment: "PROPOSED outbox_event: ONE widening for ReservationModified, CustomerRegistered and SensitiveDataAccessed (closing decisions 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 010_widen_outbox_event_for_reservation_and_customer_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/010_widen_outbox_event_for_reservation_and_customer_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-011
+      author: FernandaRobayo
+      labels: "HU-COM-006,salida-state,ddl,04_alter"
+      comment: "PROPOSED salida_capacity: hora_inicio timestamptz and status with English codes SCHEDULED, IN_EXECUTION, FINALIZED, CANCELLED (HU-COM-006 plan D-03, debt DD-1)."
+      preConditions:
+        - onFail: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT count(*) FROM commercial_reservation.salida_capacity
+      changes:
+        - sqlFile:
+            path: 011_add_salida_capacity_departure_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/011_add_salida_capacity_departure_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-019
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-terms,ddl,04_alter"
+      comment: "PROPOSED customer: terms_accepted (true) and terms_accepted_at, stored on customer and not in customer_sensitive_data (decision 2026-10-28)."
+      changes:
+        - sqlFile:
+            path: 019_add_customer_terms_acceptance.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/019_add_customer_terms_acceptance.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-012
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-outbox,ddl,04_alter"
+      comment: "PROPOSED second widening of outbox_event: the key to reservation and the seven reservation, payment and capacity events (HU-COM-007 plan D-09, debt DD-5)."
+      changes:
+        - sqlFile:
+            path: 012_widen_outbox_event_for_reservation_payment_and_capacity_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/012_widen_outbox_event_for_reservation_payment_and_capacity_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-013
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-keys,ddl,04_alter"
+      comment: "PROPOSED foreign keys of reservation_companion and reservation_additional_discount to reservation, the keys that 004 and 005 left waiting (HU-COM-007 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 013_add_reservation_foreign_keys_to_companion_and_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/013_add_reservation_foreign_keys_to_companion_and_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-014
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-capacity,ddl,04_alter"
+      comment: "PROPOSED check held_seats <= effective_capacity on salida_capacity, added not valid and validated (HU-COM-009 plan D-05, DP-D9-3)."
+      changes:
+        - sqlFile:
+            path: 014_add_salida_capacity_held_within_effective_check.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/014_add_salida_capacity_held_within_effective_check.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-015
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-parameters,ddl,04_alter"
+      comment: "Closed key lists of the payloads of PaymentEvidenceRegistered and CapacityAllocated: no file, name, bank datum or account (HU-COM-009 plan D-09)."
+      changes:
+        - sqlFile:
+            path: 015_add_outbox_event_payment_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/015_add_outbox_event_payment_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-016
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "PROPOSED review columns of payment_attempt and the constraints of a complete decision: approval, rejection, undecided and differing amount (HU-COM-010 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 016_add_payment_attempt_review_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/016_add_payment_attempt_review_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-017
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "Closed key lists of the payloads of PaymentValidated, PaymentRejected, ReservationConfirmed and CapacityReleased (HU-COM-010 plan D-07)."
+      changes:
+        - sqlFile:
+            path: 017_add_outbox_event_payment_review_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/017_add_outbox_event_payment_review_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-020
+      author: FernandaRobayo
+      labels: "HU-COM-001,transport-rate,ddl,04_alter"
+      comment: "Optional catalog_service.transport_rate_per_person_cents, bigint, CHECK >= 0, NULL = not parametrized (gap G-E, RN-10, RN-TRA-002)."
+      changes:
+        - sqlFile:
+            path: 020_add_catalog_service_transport_rate_per_person.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/020_add_catalog_service_transport_rate_per_person.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-021
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED extension (hours, instant, grantor) and freeze (instant, remaining minutes) columns of payment_deadline with their checks (HU-COM-011 plan D-03, DP-D11-3)."
+      changes:
+        - sqlFile:
+            path: 021_add_payment_deadline_extension_and_freeze_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/021_add_payment_deadline_extension_and_freeze_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-022
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED cancellation cause, instant and canceller of reservation, coherent with the CANCELLED status (HU-COM-011 plan D-04, DP-D11-2)."
+      changes:
+        - sqlFile:
+            path: 022_add_reservation_cancellation_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/022_add_reservation_cancellation_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-023
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,04_alter"
+      comment: "PROPOSED third widening of outbox_event: ReservationCancelled with the closed key list reservationId, cause, releasedSeats (HU-COM-011 plan D-05, DP-D11-4)."
+      changes:
+        - sqlFile:
+            path: 023_widen_outbox_event_for_reservation_cancelled.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/023_widen_outbox_event_for_reservation_cancelled.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-alter-024
+      author: FernandaRobayo
+      labels: "HU-COM-003,discount-rule-stackable,ddl,04_alter"
+      comment: "PROPOSED discount_rule.stackable boolean NOT NULL DEFAULT true; DP-04 decision of 2026-11-03."
+      changes:
+        - sqlFile:
+            path: 024_add_discount_rule_stackable.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/024_add_discount_rule_stackable.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-025
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,ddl,04_alter"
+      comment: "PROPOSED unique key (tenant, reservation, cause) on reservation and the composite foreign key of the settlement (HU-COM-013 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 025_add_reservation_cancellation_cause_unique.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/025_add_reservation_cancellation_cause_unique.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: ddl-alter-026
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,ddl,04_alter"
+      comment: "PROPOSED closed key list of the modification shape of ReservationModified, additive (HU-COM-012 plan D-05, DP-D12-3)."
+      changes:
+        - sqlFile:
+            path: 026_add_outbox_event_reservation_modified_change_key_list.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/026_add_outbox_event_reservation_modified_change_key_list.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-027
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice,ddl,04_alter"
+      comment: "PROPOSED fourth widening of outbox_event: ClientNotified with the closed key list customerId, notificationType, triggeringEventType, triggeringEventId and the eight notice codes; the actor is optional (HU-COM-015 plan D-02, DP-D15-1, DP-D15-2)."
+      changes:
+        - sqlFile:
+            path: 027_widen_outbox_event_for_client_notified.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/027_widen_outbox_event_for_client_notified.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-028
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,04_alter"
+      comment: "PROPOSED fifth widening of outbox_event: RefundAuthorized with its closed key list (HU-COM-016 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 028_widen_outbox_event_for_refund_authorized.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/028_widen_outbox_event_for_refund_authorized.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-029
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice-delivery,ddl,04_alter"
+      comment: "PROPOSED delivery data of an outbox event: attempts, last_error, next_attempt_at, failed_at, correlation_id and their checks (HU-COM-015 plan D-04, AC-D15.6, AC-D15.7)."
+      changes:
+        - sqlFile:
+            path: 029_add_outbox_event_delivery_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/029_add_outbox_event_delivery_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-030
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,ddl,04_alter"
+      comment: "PROPOSED key from financial_decision.credit_balance_id to credit_balance, restricted (HU-COM-017 plan D-05, AC-D17.9)."
+      changes:
+        - sqlFile:
+            path: 030_add_financial_decision_credit_balance_foreign_key.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/030_add_financial_decision_credit_balance_foreign_key.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-031
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,04_alter"
+      comment: "PROPOSED sixth widening of outbox_event: CreditBalanceRecorded and CreditBalanceApplied with their closed key lists (HU-COM-017 plan D-07, AC-D17.12)."
+      changes:
+        - sqlFile:
+            path: 031_widen_outbox_event_for_credit_balance_events.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/031_widen_outbox_event_for_credit_balance_events.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-032
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,04_alter"
+      comment: "PROPOSED end columns of the departure mirror: estimated end, real end and cancellation instant, coherent with the status (HU-COM-019 plan D-04, AC-D19.6)."
+      changes:
+        - sqlFile:
+            path: 032_add_salida_capacity_end_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/032_add_salida_capacity_end_columns.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-033
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,ddl,04_alter"
+      comment: "PROPOSED seventh widening of outbox_event: SensitiveDataDeleted with its closed list of six keys and no required actor (HU-COM-019 plan D-05, AC-D19.10)."
+      changes:
+        - sqlFile:
+            path: 033_widen_outbox_event_for_sensitive_data_deleted.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/033_widen_outbox_event_for_sensitive_data_deleted.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-034
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,04_alter"
+      comment: "Rewrites the closed key lists of PaymentValidated and PaymentRejected: attemptId allowed, reason allowed and no longer required, old events stay valid (HU-COM-010 debt, decided by default)."
+      changes:
+        - sqlFile:
+            path: 034_relax_outbox_event_payment_review_payload_key_lists.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/034_relax_outbox_event_payment_review_payload_key_lists.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-035
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,04_alter"
+      comment: "PROPOSED allocation kind REPROGRAMMING_HOLD for the temporary hold of a rescheduling (HU-COM-018 plan D-06, DP-D18-5)."
+      changes:
+        - sqlFile:
+            path: 035_widen_capacity_allocation_kind_for_reprogramming_hold.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/035_widen_capacity_allocation_kind_for_reprogramming_hold.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-036
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,ddl,04_alter"
+      comment: "PROPOSED outbox event ReservationRescheduled with a closed list of seven keys (HU-COM-018 plan D-08, AC-D18.16)."
+      changes:
+        - sqlFile:
+            path: 036_widen_outbox_event_for_reservation_rescheduled.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/036_widen_outbox_event_for_reservation_rescheduled.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-037
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,04_alter"
+      comment: "PROPOSED freeze_cause of a frozen payment deadline: the inactivation of the tenant or the cancelled departure (HU-COM-020 plan D-04, DP-D20-3)."
+      changes:
+        - sqlFile:
+            path: 037_add_payment_deadline_freeze_cause.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/037_add_payment_deadline_freeze_cause.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-038
+      author: FernandaRobayo
+      labels: "decision-resume,HU-COM-020-resume,ddl,04_alter"
+      comment: "PROPOSED resumed_due_at: the shifted due instant of a financial decision that resumed after the inactivation of its tenant (HU-COM-020 AC-20.5, AC-20.7)."
+      changes:
+        - sqlFile:
+            path: 038_add_financial_decision_resumed_due_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/038_add_financial_decision_resumed_due_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-039
+      author: FernandaRobayo
+      labels: "departure-order,HU-COM-006-order,ddl,04_alter"
+      comment: "last_event_occurred_at: the occurredAt of the last departure event the mirror applied, so an older event never overwrites a newer state (HU-COM-006 DP-16, DD-8)."
+      changes:
+        - sqlFile:
+            path: 039_add_salida_capacity_last_event_occurred_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/039_add_salida_capacity_last_event_occurred_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-040
+      author: FernandaRobayo
+      labels: "exceptional-access-use,HU-SEC-007-use,ddl,04_alter"
+      comment: "PROPOSED ninth widening of outbox_event: PlatformExceptionalAccessUsed, the audit of each use of an exceptional access token, with authorization_id as its aggregate and a closed key list (HU-SEC-007 G-SEC9-1)."
+      changes:
+        - sqlFile:
+            path: 040_widen_outbox_event_for_platform_exceptional_access_used.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/040_widen_outbox_event_for_platform_exceptional_access_used.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-041
+      author: FernandaRobayo
+      labels: "episode-frozen-total,HU-COM-020-freeze,ddl,04_alter"
+      comment: "PROPOSED frozen_total_minutes: the minutes a rescheduling episode spent frozen, kept because episode_started_at is immutable (HU-COM-020 AC-18.13, AC-20.6)."
+      changes:
+        - sqlFile:
+            path: 041_add_rescheduling_episode_frozen_total.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/041_add_rescheduling_episode_frozen_total.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-042
+      author: FernandaRobayo
+      labels: "exceptional-access-use,exceptional-access-used-at,HU-SEC-007-use,ddl,04_alter"
+      comment: "PROPOSED: the closed payload of PlatformExceptionalAccessUsed carries usedAt in place of occurredAt (spec 012 RN-SEC-012-07); the envelope keeps occurred_at."
+      changes:
+        - sqlFile:
+            path: 042_rename_exceptional_access_use_payload_instant_to_used_at.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/042_rename_exceptional_access_use_payload_instant_to_used_at.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-043
+      author: FernandaRobayo
+      labels: "reservation-confirmed-value,HU-CSH-003-value,ddl,04_alter"
+      comment: "PROPOSED: the closed payload of ReservationConfirmed admits commercialValueCents, the final value of the reservation at its confirmation, as a non-negative whole number of cents (HU-CSH-003 DP-RM-B3)."
+      changes:
+        - sqlFile:
+            path: 043_allow_commercial_value_in_reservation_confirmed_payload.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/043_allow_commercial_value_in_reservation_confirmed_payload.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-044
+      author: FernandaRobayo
+      labels: "payment-parameters-changed,HU-COM-009-parameters-event,ddl,04_alter"
+      comment: "PROPOSED: outbox_event admits PaymentParametersChanged, the audit trace of a change of the payment parameters, with the changed payment_condition row as its aggregate and a closed payload (HU-COM-009 DP-04, Project Lead 2026-11-12)."
+      changes:
+        - sqlFile:
+            path: 044_widen_outbox_event_for_payment_parameters_changed.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/044_widen_outbox_event_for_payment_parameters_changed.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-045
+      author: FernandaRobayo
+      labels: "restricted-access-reason,HU-COM-020-marker,ddl,04_alter"
+      comment: "PROPOSED: outbox_event gains the nullable envelope column reason, which admits only RESTRICTED_ACCESS, the audit marker of an action of the restricted Administrator of an inactive tenant (HU-COM-020 AC-20.13, DP-05 default)."
+      changes:
+        - sqlFile:
+            path: 045_add_outbox_event_reason_for_restricted_access.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/045_add_outbox_event_reason_for_restricted_access.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-046
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,ddl,04_alter"
+      comment: "PROPOSED: associated_establishment gains the optional contact_email, contact_phone and contact_address, bounded in length (HU-COM-002 AC-D2.11)."
+      changes:
+        - sqlFile:
+            path: 046_add_associated_establishment_contact.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/046_add_associated_establishment_contact.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-047
+      author: FernandaRobayo
+      labels: "rescheduling-proposed-notice,HU-COM-015-proposal-notice,ddl,04_alter"
+      comment: "PROPOSED: the guard of ClientNotified admits the trigger code ReschedulingProposed, the notice of a rescheduling proposal (HU-COM-015 AC-15.5, DD-6 default)."
+      changes:
+        - sqlFile:
+            path: 047_widen_client_notified_trigger_codes_for_rescheduling_proposed.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/047_widen_client_notified_trigger_codes_for_rescheduling_proposed.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-048
+      author: FernandaRobayo
+      labels: "vehicle-total-capacity,HU-COM-006-vehicle-total,ddl,04_alter"
+      comment: "PROPOSED: salida_capacity keeps the nullable total capacity of the assigned vehicles, to recompute the effective capacity when the tour capacity changes (HU-COM-006 ND-08, DP-D6-8, H8)."
+      changes:
+        - sqlFile:
+            path: 048_add_salida_capacity_vehicle_capacity_ceiling.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/048_add_salida_capacity_vehicle_capacity_ceiling.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-049
+      author: FernandaRobayo
+      labels: "fk-tenant-composite,DD-11,ddl,04_alter"
+      comment: "PROPOSED: UNIQUE (tenant_id, key) on the ten parent tables that other tenant-scoped tables reference (DD-11 of HU-COM-011, DD-7 and DP-D9-12 of HU-COM-009)."
+      changes:
+        - sqlFile:
+            path: 049_add_tenant_composite_keys_to_parent_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/049_add_tenant_composite_keys_to_parent_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-alter-050
+      author: FernandaRobayo
+      labels: "fk-tenant-composite,DD-11,ddl,04_alter"
+      comment: "PROPOSED: the 48 simple foreign keys between tenant-scoped tables become composite (tenant_id, key); added NOT VALID, then validated (DD-11, DD-7)."
+      changes:
+        - sqlFile:
+            path: 050_make_tenant_scoped_foreign_keys_composite.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/04_alter/050_make_tenant_scoped_foreign_keys_composite.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

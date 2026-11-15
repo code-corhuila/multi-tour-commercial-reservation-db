@@ -1,0 +1,1 @@
+DROP TABLE commercial_reservation.payment_proof_file;

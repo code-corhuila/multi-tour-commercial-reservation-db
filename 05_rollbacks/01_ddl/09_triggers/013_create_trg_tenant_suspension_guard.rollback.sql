@@ -1,0 +1,1 @@
+DROP TRIGGER trg_tenant_suspension_guard ON commercial_reservation.tenant_suspension;

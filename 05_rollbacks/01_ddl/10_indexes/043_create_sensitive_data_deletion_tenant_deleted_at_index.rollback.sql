@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_sensitive_data_deletion_tenant_deleted_at;

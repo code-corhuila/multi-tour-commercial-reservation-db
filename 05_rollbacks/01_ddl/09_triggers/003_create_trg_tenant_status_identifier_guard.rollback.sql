@@ -1,0 +1,1 @@
+DROP TRIGGER trg_tenant_status_identifier_guard ON commercial_reservation.tenant_status;

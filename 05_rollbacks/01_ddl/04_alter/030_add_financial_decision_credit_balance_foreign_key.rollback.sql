@@ -1,0 +1,1 @@
+ALTER TABLE commercial_reservation.financial_decision DROP CONSTRAINT fk_financial_decision_credit_balance;

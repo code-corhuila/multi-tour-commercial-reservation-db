@@ -1,0 +1,289 @@
+databaseChangeLog:
+  - changeSet:
+      id: dcl-grants-001
+      author: FernandaRobayo
+      labels: "HU-COM-001,dcl,grants"
+      comment: "Reader: usage of the schema and SELECT, on the tables that exist and on the ones created later."
+      changes:
+        - sqlFile:
+            path: 001_grant_reader.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/001_grant_reader.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-002
+      author: FernandaRobayo
+      labels: "HU-COM-001,dcl,grants"
+      comment: "Writer: SELECT, INSERT and UPDATE, no DELETE by default (RN-06), on the tables that exist and on the ones created later."
+      changes:
+        - sqlFile:
+            path: 002_grant_writer.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/002_grant_writer.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-003
+      author: FernandaRobayo
+      labels: "HU-COM-001,dcl,grants"
+      comment: "The application user, created by the infrastructure, receives the writer (Annex J.7)."
+      changes:
+        - sqlFile:
+            path: 003_grant_writer_to_application_user.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/003_grant_writer_to_application_user.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-004
+      author: FernandaRobayo
+      labels: "HU-COM-001,dcl,grants"
+      comment: "Writer: DELETE on idempotency_key and outbox_event only, for the daily purge of ADR-004 D10 point 6."
+      changes:
+        - sqlFile:
+            path: 004_grant_delete_on_technical_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/004_grant_delete_on_technical_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-005
+      author: FernandaRobayo
+      labels: "HU-COM-005,customer-sensitive,dcl,grants"
+      comment: "Reader loses SELECT on the two sensitive tables, after they exist (DP-D5-7, AC-D5.7)."
+      changes:
+        - sqlFile:
+            path: 005_revoke_select_on_sensitive_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/005_revoke_select_on_sensitive_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-006
+      author: FernandaRobayo
+      labels: "HU-COM-004,additional-discount-immutable,dcl,grants"
+      comment: "The writer loses UPDATE on reservation_additional_discount: a stored additional discount is immutable (AC-D4.9)."
+      changes:
+        - sqlFile:
+            path: 006_revoke_update_on_reservation_additional_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/006_revoke_update_on_reservation_additional_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-007
+      author: FernandaRobayo
+      labels: "HU-COM-006,processed-event,dcl,grants"
+      comment: "The writer may DELETE from processed_event, the third technical purge table (AC-D6.9)."
+      changes:
+        - sqlFile:
+            path: 007_grant_delete_on_processed_event.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/007_grant_delete_on_processed_event.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-008
+      author: FernandaRobayo
+      labels: "HU-COM-007,fixed-discount,dcl,grants"
+      comment: "The writer may not UPDATE reservation_fixed_discount: what was fixed at creation stays fixed (AC-D7.8)."
+      changes:
+        - sqlFile:
+            path: 008_revoke_update_on_reservation_fixed_discount.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/008_revoke_update_on_reservation_fixed_discount.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-009
+      author: FernandaRobayo
+      labels: "HU-COM-009,payment-attempt-proof,dcl,grants"
+      comment: "The reader may not read the proof content and the writer may not update a proof (AC-D9.5)."
+      changes:
+        - sqlFile:
+            path: 009_revoke_on_payment_proof_file.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/009_revoke_on_payment_proof_file.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-010
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,dcl,grants"
+      comment: "The writer may not update a follow-up: it is appended and never edited (AC-D11.3, HU-COM-011 plan D-02)."
+      changes:
+        - sqlFile:
+            path: 010_revoke_update_on_payment_followup.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/010_revoke_update_on_payment_followup.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-011
+      author: FernandaRobayo
+      labels: "HU-COM-013,reservation-cancellation-settlement,dcl,grants"
+      comment: "The writer may not update a settlement: it is appended and never edited (AC-D13.5, HU-COM-013 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 011_revoke_update_on_reservation_cancellation.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/011_revoke_update_on_reservation_cancellation.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-012
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification,dcl,grants"
+      comment: "The writer may not update a history row: it is appended and never edited (AC-D12.5, HU-COM-012 plan D-06)."
+      changes:
+        - sqlFile:
+            path: 012_revoke_update_on_reservation_modification.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/012_revoke_update_on_reservation_modification.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-013
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification-grants,dcl,grants"
+      comment: "The writer may update the three amount columns of a discount line and no other column: a modification recomputes the lines (DP-D12-4, HU-COM-012 plan D-08)."
+      changes:
+        - sqlFile:
+            path: 013_grant_update_on_reservation_fixed_discount_amounts.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/013_grant_update_on_reservation_fixed_discount_amounts.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+
+  - changeSet:
+      id: dcl-grants-014
+      author: FernandaRobayo
+      labels: "HU-COM-012,reservation-modification-grants,dcl,grants"
+      comment: "The writer may delete the companions of a reservation and their sensitive rows: a modification replaces them (DP-D12-5, HU-COM-012 plan D-08)."
+      changes:
+        - sqlFile:
+            path: 014_grant_delete_on_reservation_companion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/014_grant_delete_on_reservation_companion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-015
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance,dcl,grants"
+      comment: "A recorded credit and its applications are never edited: UPDATE is withdrawn from the writer on both tables (HU-COM-017 plan D-03, AC-D17.6)."
+      changes:
+        - sqlFile:
+            path: 015_revoke_update_on_credit_balance_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/015_revoke_update_on_credit_balance_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-016
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,dcl,grants"
+      comment: "The writer may delete the rows of the two sensitive tables, per table, for the retention run (HU-COM-019 plan D-02, AC-D19.2)."
+      changes:
+        - sqlFile:
+            path: 016_grant_delete_on_sensitive_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/016_grant_delete_on_sensitive_tables.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-017
+      author: FernandaRobayo
+      labels: "HU-COM-019,sensitive-data-deletion,dcl,grants"
+      comment: "A deletion record is never edited: UPDATE is withdrawn from the writer (HU-COM-019 plan D-03, AC-D19.5)."
+      changes:
+        - sqlFile:
+            path: 017_revoke_update_on_sensitive_data_deletion.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/017_revoke_update_on_sensitive_data_deletion.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-018
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling-record,dcl,grants"
+      comment: "A rescheduling record is never edited: UPDATE is withdrawn from the writer (HU-COM-018 plan D-04, AC-D18.11)."
+      changes:
+        - sqlFile:
+            path: 018_revoke_update_on_rescheduling_record.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/018_revoke_update_on_rescheduling_record.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: dcl-grants-019
+      author: FernandaRobayo
+      labels: "HU-COM-002,establishment-contact-log,dcl,grants"
+      comment: "The change log of the associated establishments is never edited: UPDATE is withdrawn from the writer (HU-COM-002 AC-D2.14)."
+      changes:
+        - sqlFile:
+            path: 019_revoke_update_on_associated_establishment_change.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/03_dcl/01_grants/019_revoke_update_on_associated_establishment_change.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

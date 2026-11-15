@@ -1,0 +1,21 @@
+-- DD-11 and DD-7: the unique keys of 049, removed. Nothing refers to them any more once the rollback of 050 has run (Liquibase reverts in the opposite order).
+ALTER TABLE commercial_reservation.customer
+    DROP CONSTRAINT uq_customer_tenant_id_customer_id;
+ALTER TABLE commercial_reservation.catalog_service
+    DROP CONSTRAINT uq_catalog_service_tenant_id_service_id;
+ALTER TABLE commercial_reservation.discount_rule
+    DROP CONSTRAINT uq_discount_rule_tenant_id_discount_rule_id;
+ALTER TABLE commercial_reservation.reservation
+    DROP CONSTRAINT uq_reservation_tenant_id_reservation_id;
+ALTER TABLE commercial_reservation.reservation_companion
+    DROP CONSTRAINT uq_reservation_companion_tenant_id_reservation_companion_id;
+ALTER TABLE commercial_reservation.payment_attempt
+    DROP CONSTRAINT uq_payment_attempt_tenant_id_payment_attempt_id;
+ALTER TABLE commercial_reservation.financial_decision
+    DROP CONSTRAINT uq_financial_decision_tenant_id_financial_decision_id;
+ALTER TABLE commercial_reservation.credit_balance
+    DROP CONSTRAINT uq_credit_balance_tenant_id_credit_balance_id;
+ALTER TABLE commercial_reservation.rescheduling_episode
+    DROP CONSTRAINT uq_rescheduling_episode_tenant_id_rescheduling_episode_id;
+ALTER TABLE commercial_reservation.associated_establishment
+    DROP CONSTRAINT uq_associated_establishment_tenant_id_association_id;

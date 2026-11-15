@@ -1,0 +1,2 @@
+ALTER TABLE commercial_reservation.reservation_additional_discount DROP CONSTRAINT fk_reservation_additional_discount_reservation;
+ALTER TABLE commercial_reservation.reservation_companion DROP CONSTRAINT fk_reservation_companion_reservation;

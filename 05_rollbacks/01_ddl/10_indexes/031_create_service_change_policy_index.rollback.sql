@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_service_change_policy_tenant_service;

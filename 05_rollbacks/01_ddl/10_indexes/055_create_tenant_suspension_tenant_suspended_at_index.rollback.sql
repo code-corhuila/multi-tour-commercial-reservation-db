@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.idx_tenant_suspension_tenant_suspended_at;

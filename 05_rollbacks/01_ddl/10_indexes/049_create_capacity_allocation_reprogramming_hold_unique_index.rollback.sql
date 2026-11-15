@@ -1,0 +1,1 @@
+DROP INDEX commercial_reservation.uq_capacity_allocation_reprogramming_hold;

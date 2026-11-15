@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS commercial_reservation.idx_reservation_tenant_customer_created;

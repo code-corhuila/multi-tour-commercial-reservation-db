@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY commercial_reservation.idx_outbox_event_tenant_id_discount_rule_id;

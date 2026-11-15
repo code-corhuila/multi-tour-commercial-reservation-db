@@ -1,0 +1,196 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-triggers-003
+      author: FernandaRobayo
+      labels: "HU-WRK-007,tenant-status,ddl,09_triggers"
+      comment: "PROPOSED trigger that attaches the identifier guard (spec 021 D-03)."
+      changes:
+        - sqlFile:
+            path: 003_create_trg_tenant_status_identifier_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/003_create_trg_tenant_status_identifier_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-001
+      author: FernandaRobayo
+      labels: "HU-COM-007,reservation-table,ddl,09_triggers"
+      comment: "PROPOSED trg_reservation_birth: BEFORE INSERT on reservation only (HU-COM-007 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 001_create_trg_reservation_birth.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/001_create_trg_reservation_birth.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-002
+      author: FernandaRobayo
+      labels: "HU-COM-010,payment-review,ddl,09_triggers"
+      comment: "PROPOSED trg_payment_attempt_guard: BEFORE UPDATE on payment_attempt only (HU-COM-010 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 002_create_trg_payment_attempt_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/002_create_trg_payment_attempt_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-004
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,09_triggers"
+      comment: "PROPOSED trg_reservation_cancelled_guard: BEFORE UPDATE on reservation only (HU-COM-011 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 004_create_trg_reservation_cancelled_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/004_create_trg_reservation_cancelled_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-005
+      author: FernandaRobayo
+      labels: "HU-COM-011,payment-pending-follow-up,ddl,09_triggers"
+      comment: "PROPOSED trg_payment_deadline_extension_guard: BEFORE UPDATE on payment_deadline only (HU-COM-011 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 005_create_trg_payment_deadline_extension_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/005_create_trg_payment_deadline_extension_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-006
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,09_triggers"
+      comment: "PROPOSED trg_financial_decision_guard BEFORE UPDATE (HU-COM-016 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 006_create_trg_financial_decision_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/006_create_trg_financial_decision_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-007
+      author: FernandaRobayo
+      labels: "HU-COM-016,refund-authorization,ddl,09_triggers"
+      comment: "PROPOSED trg_refund_authorization_guard BEFORE UPDATE (HU-COM-016 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 007_create_trg_refund_authorization_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/007_create_trg_refund_authorization_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-008
+      author: FernandaRobayo
+      labels: "HU-COM-015,client-notice-delivery,ddl,09_triggers"
+      comment: "PROPOSED trg_outbox_event_delivery_guard: BEFORE UPDATE OR DELETE on outbox_event (HU-COM-015 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 008_create_trg_outbox_event_delivery_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/008_create_trg_outbox_event_delivery_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-009
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,09_triggers"
+      comment: "PROPOSED BEFORE INSERT trigger of the application guard (HU-COM-017 plan D-04)."
+      changes:
+        - sqlFile:
+            path: 009_create_trg_credit_balance_application_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/009_create_trg_credit_balance_application_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-010
+      author: FernandaRobayo
+      labels: "HU-COM-017,credit-balance-guards,ddl,09_triggers"
+      comment: "PROPOSED BEFORE INSERT trigger of the request guard, only for the credit-balance refund request kind (HU-COM-017 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 010_create_trg_credit_request_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/010_create_trg_credit_request_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-011
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the episode guard (HU-COM-018 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 011_create_trg_rescheduling_episode_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/011_create_trg_rescheduling_episode_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-012
+      author: FernandaRobayo
+      labels: "HU-COM-018,rescheduling,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the proposal guard (HU-COM-018 plan D-05)."
+      changes:
+        - sqlFile:
+            path: 012_create_trg_rescheduling_proposal_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/012_create_trg_rescheduling_proposal_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+  - changeSet:
+      id: ddl-triggers-013
+      author: FernandaRobayo
+      labels: "HU-COM-020,tenant-suspension,ddl,09_triggers"
+      comment: "PROPOSED BEFORE UPDATE trigger of the suspension guard (HU-COM-020 plan D-03)."
+      changes:
+        - sqlFile:
+            path: 013_create_trg_tenant_suspension_guard.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+      rollback:
+        - sqlFile:
+            path: ../../05_rollbacks/01_ddl/09_triggers/013_create_trg_tenant_suspension_guard.rollback.sql
+            relativeToChangelogFile: true
+            splitStatements: false

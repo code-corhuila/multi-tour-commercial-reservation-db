@@ -1,0 +1,1 @@
+DROP FUNCTION commercial_reservation.fn_credit_balance_application_guard();

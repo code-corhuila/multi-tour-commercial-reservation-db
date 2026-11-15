@@ -1,0 +1,1 @@
+GRANT UPDATE ON commercial_reservation.sensitive_data_deletion TO commercial_reservation_writer;

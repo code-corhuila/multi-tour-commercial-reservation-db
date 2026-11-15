@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS commercial_reservation.idx_processed_event_processed_at;
